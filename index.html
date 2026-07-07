@@ -153,35 +153,34 @@
         /* Star rating */
         .stars { color: #FFC93C; letter-spacing: 1px; }
 
-        /* ---- Reviews carousel ---- */
-        .review-viewport { overflow: hidden; padding: 4px; }
-        .review-track {
+        /* ---- Reviews auto-scrolling marquee ---- */
+        .review-marquee {
+            overflow: hidden;
+            padding: 6px 0;
+            -webkit-mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+            mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+        }
+        .review-marquee-track {
             display: flex;
             gap: 1.5rem;
-            transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+            width: max-content;
+            animation: reviewScroll 70s linear infinite;
             will-change: transform;
-            align-items: stretch;
         }
-        .review-slide { flex: 0 0 100%; }
-        @media (min-width: 768px) { .review-slide { flex: 0 0 calc((100% - 1.5rem) / 2); } }
-        @media (min-width: 1024px) { .review-slide { flex: 0 0 calc((100% - 3rem) / 3); } }
-        .review-arrow {
-            background: #0f1217;
-            border: 1px solid rgba(255,255,255,0.1);
-            color: #fff;
-            transition: all 0.25s ease;
-            box-shadow: 0 8px 24px -10px rgba(0,0,0,0.8);
+        .review-marquee:hover .review-marquee-track { animation-play-state: paused; }
+        .review-slide {
+            flex: 0 0 auto;
+            width: 340px;
         }
-        .review-arrow:hover { border-color: rgba(114,255,255,0.5); color: #72FFFF; transform: translateY(-50%) scale(1.08); }
-        .review-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
-        .review-dot {
-            width: 8px; height: 8px; border-radius: 9999px;
-            background: rgba(255,255,255,0.2);
-            transition: all 0.35s cubic-bezier(0.22,1,0.36,1);
-            cursor: pointer;
+        @media (max-width: 640px) { .review-slide { width: 82vw; } }
+        @keyframes reviewScroll {
+            from { transform: translateX(0); }
+            to   { transform: translateX(calc(-50% - 0.75rem)); } /* half + half a gap for seamless loop */
         }
-        .review-dot:hover { background: rgba(114,255,255,0.5); }
-        .review-dot.active { width: 26px; background: #72FFFF; box-shadow: 0 0 12px rgba(114,255,255,0.5); }
+        @media (prefers-reduced-motion: reduce) {
+            .review-marquee-track { animation: none; }
+            .review-marquee { overflow-x: auto; }
+        }
         
         .glass-nav { 
             backdrop-filter: blur(12px); 
@@ -444,17 +443,8 @@
                 </p>
             </div>
 
-            <div class="relative">
-                <!-- Prev / Next arrows -->
-                <button id="review-prev" aria-label="Previous reviews" class="review-arrow hidden md:flex absolute -left-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full items-center justify-center">
-                    <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
-                </button>
-                <button id="review-next" aria-label="Next reviews" class="review-arrow hidden md:flex absolute -right-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full items-center justify-center">
-                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
-                </button>
-
-                <div class="review-viewport" id="review-viewport">
-                    <div class="review-track" id="review-track">
+            <div class="relative review-marquee" id="review-marquee">
+                    <div class="review-marquee-track" id="review-track">
                 <!-- Vikas Tomar -->
                 <figure class="review-slide si-card spotlight-card p-6 flex flex-col">
                     <div class="stars text-sm mb-3" aria-label="5 out of 5 stars">★★★★★</div>
@@ -634,14 +624,10 @@
                         </div>
                     </figcaption>
                 </figure>
-                    </div>
                 </div>
-
-                <!-- Slider dots -->
-                <div id="review-dots" class="flex items-center justify-center gap-2 mt-8" role="tablist" aria-label="Review slides"></div>
             </div>
 
-            <div class="text-center mt-8">
+            <div class="text-center mt-10">
                 <a href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener" class="text-brand-cyan font-mono text-sm hover:text-white transition-colors inline-flex items-center gap-2">
                     Read all reviews on the Chrome Web Store <i class="fa-solid fa-arrow-up-right-from-square text-xs" aria-hidden="true"></i>
                 </a>
@@ -1407,78 +1393,16 @@ Expires: 2027-05-29T00:00:00.000Z
             });
         });
 
-        // Reviews Carousel — modern auto-sliding, responsive (1 / 2 / 3 visible)
-        (function initReviewCarousel() {
+        // Reviews Marquee — clone the set once for a seamless infinite auto-scroll
+        (function initReviewMarquee() {
             const track = document.getElementById('review-track');
-            const viewport = document.getElementById('review-viewport');
-            const dotsWrap = document.getElementById('review-dots');
-            const prevBtn = document.getElementById('review-prev');
-            const nextBtn = document.getElementById('review-next');
-            if (!track || !viewport) return;
-
-            const slides = Array.from(track.children);
-            let index = 0;
-            let maxIndex = 0;
-            let autoplay;
-            const GAP = 24; // 1.5rem
-
-            function step() {
-                return slides[0].getBoundingClientRect().width + GAP;
-            }
-            function visibleCount() {
-                return Math.max(1, Math.round(viewport.clientWidth / step()));
-            }
-            function computeMax() {
-                maxIndex = Math.max(0, slides.length - visibleCount());
-                if (index > maxIndex) index = maxIndex;
-            }
-            function buildDots() {
-                dotsWrap.innerHTML = '';
-                for (let i = 0; i <= maxIndex; i++) {
-                    const dot = document.createElement('button');
-                    dot.className = 'review-dot' + (i === index ? ' active' : '');
-                    dot.setAttribute('role', 'tab');
-                    dot.setAttribute('aria-label', 'Go to review slide ' + (i + 1));
-                    dot.addEventListener('click', () => { go(i); resetAutoplay(); });
-                    dotsWrap.appendChild(dot);
-                }
-            }
-            function render() {
-                track.style.transform = 'translateX(' + (-index * step()) + 'px)';
-                Array.from(dotsWrap.children).forEach((d, i) => d.classList.toggle('active', i === index));
-            }
-            function go(i) {
-                index = Math.max(0, Math.min(i, maxIndex));
-                render();
-            }
-            function next() { index = index >= maxIndex ? 0 : index + 1; render(); }
-            function prev() { index = index <= 0 ? maxIndex : index - 1; render(); }
-
-            function startAutoplay() { autoplay = setInterval(next, 4500); }
-            function resetAutoplay() { clearInterval(autoplay); startAutoplay(); }
-
-            function rebuild() { computeMax(); buildDots(); render(); }
-
-            if (nextBtn) nextBtn.addEventListener('click', () => { next(); resetAutoplay(); });
-            if (prevBtn) prevBtn.addEventListener('click', () => { prev(); resetAutoplay(); });
-
-            // Pause on hover
-            viewport.addEventListener('mouseenter', () => clearInterval(autoplay));
-            viewport.addEventListener('mouseleave', startAutoplay);
-
-            // Swipe (touch)
-            let startX = 0;
-            viewport.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
-            viewport.addEventListener('touchend', e => {
-                const dx = e.changedTouches[0].clientX - startX;
-                if (Math.abs(dx) > 40) { dx < 0 ? next() : prev(); resetAutoplay(); }
-            }, { passive: true });
-
-            let rt;
-            window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(rebuild, 150); });
-
-            rebuild();
-            startAutoplay();
+            if (!track) return;
+            const originals = Array.from(track.children);
+            originals.forEach(node => {
+                const clone = node.cloneNode(true);
+                clone.setAttribute('aria-hidden', 'true');
+                track.appendChild(clone);
+            });
         })();
 
         // Hover-Tracking Mouse Spotlights
