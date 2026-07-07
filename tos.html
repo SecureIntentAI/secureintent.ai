@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>Terms of Service | SecureIntent.ai</title>
+    <meta name="description" content="SecureIntent Terms of Service and End User License Agreement.">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            bg: '#050505',
+                            card: '#0a0a0a',
+                            navy: '#052656',
+                            cyan: '#72FFFF'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { 
+            background-color: #050505; 
+            color: #ffffff; 
+            overflow-x: hidden;
+        }
+        .glass-nav { 
+            backdrop-filter: blur(12px); 
+            -webkit-backdrop-filter: blur(12px); 
+        }
+        .text-glow-cyan { 
+            text-shadow: 0 0 15px rgba(114, 255, 255, 0.4); 
+        }
+    </style>
+</head>
+<body class="font-sans antialiased selection:bg-brand-cyan selection:text-black">
+
+    <div class="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+        <div class="absolute inset-0" style="background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px); background-size: 30px 30px; mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%); -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);"></div>
+        <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-brand-navy rounded-full mix-blend-screen filter blur-[150px] opacity-30"></div>
+    </div>
+
+    <header class="relative z-10 max-w-5xl mx-auto px-6 pt-12 flex justify-between items-center">
+        <a href="/" class="flex items-center gap-3 text-white hover:text-brand-cyan transition-colors">
+            <svg aria-label="SecureIntent Logo" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 250" class="h-8 w-auto text-current">
+                <path d="M 50,195 L 110,75" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round"></path>
+                <path d="M 130,195 L 160,135" fill="none" stroke="#72FFFF" stroke-width="28" stroke-linecap="round"></path>
+                <circle cx="190" cy="75" r="14" fill="#72FFFF"></circle>
+            </svg>
+            <span class="font-bold text-lg tracking-tight">SecureIntent<span class="text-brand-cyan">.ai</span></span>
+        </a>
+        <a href="/" class="text-xs font-mono text-gray-400 hover:text-brand-cyan transition-colors flex items-center gap-2">
+            <i class="fa-solid fa-arrow-left"></i> /back-to-home
+        </a>
+    </header>
+
+    <main class="relative z-10 max-w-4xl mx-auto px-6 py-16">
+        <div class="mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-white tracking-tight">Terms of Service</h1>
+            <p class="text-brand-cyan font-mono text-sm mt-3">Last Updated: June 14, 2026</p>
+            <p class="text-gray-500 text-xs font-mono mt-1">SECUREINTENT.AI LTD &bull; Company No. 17237217</p>
+        </div>
+
+        <div class="space-y-10 bg-brand-card/60 border border-white/10 rounded-2xl p-8 md:p-12 shadow-2xl backdrop-blur-md">
+            
+            <section class="border-t border-white/5 pt-2">
+                <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-brand-cyan font-mono text-sm">01.</span> Acceptance of Terms
+                </h2>
+                <p class="text-gray-300 text-sm md:text-base leading-relaxed">
+                    By downloading, accessing, or using the SECUREINTENT.AI browser extension, website, or related threat intelligence services (collectively, the "Service"), you agree to be bound by these Terms of Service ("Terms"). The Service is operated by SECUREINTENT.AI LTD, a company registered in England and Wales (Company No. 17237217). If you do not agree to these Terms, you must not use the Service.
+                </p>
+            </section>
+
+            <section class="border-t border-white/5 pt-8">
+                <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-brand-cyan font-mono text-sm">02.</span> Intellectual Property and Licensing
+                </h2>
+                <ul class="space-y-4 pl-4 text-sm md:text-base text-gray-300">
+                    <li class="flex items-start gap-3">
+                        <span class="text-brand-cyan font-bold">&middot;</span>
+                        <span><strong class="text-white">Proprietary Rights:</strong> The Service, including all proprietary backend heuristics, zero-retention architectures, and trade secrets, is the exclusive property of SECUREINTENT.AI LTD.</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-brand-cyan font-bold">&middot;</span>
+                        <span><strong class="text-white">Source-Available Components:</strong> Certain frontend components of the Service may be published publicly for transparency and security auditing purposes. These components are licensed strictly on an "All Rights Reserved" basis. You are permitted to view the source code solely for personal or internal security auditing. You are strictly prohibited from copying, modifying, reverse-engineering, distributing, forking, or commercializing this codebase. Any unauthorized use constitutes copyright infringement.</span>
+                    </li>
+                </ul>
+            </section>
+
+            <section class="border-t border-white/5 pt-8">
+                <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-brand-cyan font-mono text-sm">03.</span> Account Tiers and Usage Restrictions
+                </h2>
+                <ul class="space-y-4 pl-4 text-sm md:text-base text-gray-300">
+                    <li class="flex items-start gap-3">
+                        <span class="text-brand-cyan font-bold">&middot;</span>
+                        <span><strong class="text-white">Free Tier:</strong> The Free Tier requires no account registration and is restricted to a maximum usage gate of 5,000 downloads/requests. It is provided for evaluation and non-commercial use.</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-brand-cyan font-bold">&middot;</span>
+                        <span><strong class="text-white">Pro Tier:</strong> Accessing advanced features requires purchasing a Pro License and creating an account. You are responsible for maintaining the confidentiality of your account credentials and for all activities under your account.</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-brand-cyan font-bold">&middot;</span>
+                        <span><strong class="text-white">Acceptable Use:</strong> You agree not to use the Service to bypass security controls, distribute malware, or conduct illegal activities. We reserve the right to suspend or terminate Pro accounts or block Free Tier access if we detect abusive behavior.</span>
+                    </li>
+                </ul>
+            </section>
+
+            <section class="border-t border-white/5 pt-8">
+                <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-brand-cyan font-mono text-sm">04.</span> The Zero-Retention Architecture
+                </h2>
+                <p class="text-gray-300 text-sm md:text-base leading-relaxed">
+                    Our Service operates on a zero-retention data loss prevention (DLP) model. It evaluates intent locally or via real-time salting and hashing. We do not store, log, or retain your raw data, sensitive code inputs, or environment variables.
+                </p>
+            </section>
+
+            <section class="border-t border-white/5 pt-8">
+                <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-brand-cyan font-mono text-sm">05.</span> Disclaimers (Cybersecurity Provision)
+                </h2>
+                <ul class="space-y-4 pl-4 text-sm md:text-base text-gray-300">
+                    <li class="flex items-start gap-3">
+                        <span class="text-brand-cyan font-bold">&middot;</span>
+                        <span><strong class="text-white">"AS-IS" Basis:</strong> The Service is a threat intelligence and DLP tool provided "AS-IS" and "AS-AVAILABLE".</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-brand-cyan font-bold">&middot;</span>
+                        <span><strong class="text-white">No Guarantee:</strong> While we strive for accuracy, we do not warrant that the Service will identify all security threats, vulnerabilities, or data loss events (false negatives), nor do we guarantee that all flagged events are actual threats (false positives). SECUREINTENT.AI LTD assumes no responsibility for environment conflicts, system performance issues, or data breaches occurring while using the Service.</span>
+                    </li>
+                </ul>
+            </section>
+
+            <section class="border-t border-white/5 pt-8">
+                <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-brand-cyan font-mono text-sm">06.</span> Limitation of Liability
+                </h2>
+                <p class="text-gray-300 text-sm md:text-base leading-relaxed">
+                    To the maximum extent permitted by applicable law, SECUREINTENT.AI LTD shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits, revenue, data, or business opportunities, arising out of your use or inability to use the Service.
+                </p>
+            </section>
+
+            <section class="border-t border-white/5 pt-8">
+                <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-brand-cyan font-mono text-sm">07.</span> Governing Law and Jurisdiction
+                </h2>
+                <p class="text-gray-300 text-sm md:text-base leading-relaxed">
+                    These Terms shall be governed by and construed in accordance with the laws of England and Wales. Any disputes arising out of or in connection with these Terms shall be subject to the exclusive jurisdiction of the courts of England and Wales.
+                </p>
+            </section>
+
+        </div>
+    </main>
+
+    <footer class="relative z-10 border-t border-white/5 bg-[#050505] py-12 text-center text-xs text-gray-600 font-mono">
+        <p>&copy; 2026 SecureIntent.ai. Zero retention guaranteed.</p>
+    </footer>
+
+</body>
+</html>

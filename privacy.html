@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO & Metadata -->
+    <title>Privacy Policy | SecureIntent.ai</title>
+    <meta name="description" content="SecureIntent Privacy Policy and Data Governance Framework. Absolute zero retention, local clipboard evaluation.">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            bg: '#050505',
+                            card: '#0a0a0a',
+                            navy: '#052656',
+                            cyan: '#72FFFF'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { 
+            background-color: #050505; 
+            color: #ffffff; 
+            overflow-x: hidden;
+        }
+        .glass-nav { 
+            backdrop-filter: blur(12px); 
+            -webkit-backdrop-filter: blur(12px); 
+        }
+        .text-glow-cyan { 
+            text-shadow: 0 0 15px rgba(114, 255, 255, 0.4); 
+        }
+    </style>
+</head>
+<body class="font-sans antialiased selection:bg-brand-cyan selection:text-black">
+
+    <!-- Subtle Background Radial Mesh -->
+    <div class="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+        <div class="absolute inset-0" style="background-image: radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px); background-size: 30px 30px; mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%); -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);"></div>
+        <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-brand-navy rounded-full mix-blend-screen filter blur-[150px] opacity-30"></div>
+    </div>
+
+    <!-- Header Navigation -->
+    <header class="relative z-10 max-w-5xl mx-auto px-6 pt-12 flex justify-between items-center">
+        <a href="/" class="flex items-center gap-3 text-white hover:text-brand-cyan transition-colors">
+            <svg aria-label="SecureIntent Logo" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 250" class="h-8 w-auto text-current">
+                <path d="M 50,195 L 110,75" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round"></path>
+                <path d="M 130,195 L 160,135" fill="none" stroke="#72FFFF" stroke-width="28" stroke-linecap="round"></path>
+                <circle cx="190" cy="75" r="14" fill="#72FFFF"></circle>
+            </svg>
+            <span class="font-bold text-lg tracking-tight">SecureIntent<span class="text-brand-cyan">.ai</span></span>
+        </a>
+        <a href="/" class="text-xs font-mono text-gray-400 hover:text-brand-cyan transition-colors flex items-center gap-2">
+            <i class="fa-solid fa-arrow-left"></i> /back-to-home
+        </a>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="relative z-10 max-w-4xl mx-auto px-6 py-16">
+        <div class="mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-white tracking-tight">Privacy Policy</h1>
+            <p class="text-brand-cyan font-mono text-sm mt-3">Effective Date: June 8, 2026</p>
+            <p class="text-gray-500 text-xs font-mono mt-1">SECUREINTENT.AI LTD &bull; Company No. 17237217</p>
+        </div>
+
+        <div class="space-y-10 bg-brand-card/60 border border-white/10 rounded-2xl p-8 md:p-12 shadow-2xl backdrop-blur-md">
+            
+            <p class="text-gray-300 text-sm md:text-base leading-relaxed">
+                This Privacy Policy governs the data practices for the <code class="text-brand-cyan font-mono bg-white/5 px-1.5 py-0.5 rounded">secureintent.ai</code> website and the SecureIntent browser extension, operated by <strong>SECUREINTENT.AI LTD</strong> (Company No. 17237217), with registered offices at 124-128 City Road, London, England, EC1V 2NX.
+            </p>
+
+            <!-- Section 1 -->
+            <section class="border-t border-white/5 pt-8">
+                <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-brand-cyan font-mono text-sm">01.</span> Our "Zero-Retention" Commitment
+                </h2>
+                <p class="text-gray-300 text-sm md:text-base leading-relaxed">
+                    SecureIntent is built on a foundational principle of privacy by design. Our cybersecurity solutions are architected to be completely zero-retention. We do not require account creation, and our extension evaluates data locally or via secure Edge processing (entirely in volatile RAM). Once a security evaluation is complete, all raw payload data and clipboard contents are immediately and permanently destroyed.
+                </p>
+            </section>
+
+            <!-- Section 2 -->
+            <section class="border-t border-white/5 pt-8">
+                <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-brand-cyan font-mono text-sm">02.</span> What We Capture: Metadata Only
+                </h2>
+                <p class="text-gray-300 text-sm md:text-base leading-relaxed mb-4">
+                    To ensure our security heuristics remain highly accurate, we capture a strictly limited set of anonymized telemetry:
+                </p>
+                <ul class="space-y-3 pl-4 border-l-2 border-brand-cyan/30 text-sm text-gray-400 font-mono">
+                    <li class="flex items-start gap-2">
+                        <span class="text-brand-cyan">&rsaquo;</span>
+                        <span>Only metadata is captured in order to tune and enhance the product.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-brand-cyan">&rsaquo;</span>
+                        <span>This metadata is limited to non-identifying telemetry, such as high-level risk scores, event timestamps, and redacted structural signatures (e.g., identifying the format of a leaked key without logging the key itself).</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-brand-cyan">&rsaquo;</span>
+                        <span>Because our systems discard raw input immediately, this metadata cannot be reverse-engineered to identify you, your machine, or the specific contents of your clipboard.</span>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- Section 3 -->
+            <section class="border-t border-white/5 pt-8">
+                <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-brand-cyan font-mono text-sm">03.</span> Strict Prohibition on Data Sales & Third-Party Access
+                </h2>
+                <p class="text-gray-300 text-sm md:text-base leading-relaxed mb-4">
+                    As a cybersecurity provider, we treat the protection of your workflow as our sole business model. We guarantee the following:
+                </p>
+                <div class="grid md:grid-cols-2 gap-4 mt-6">
+                    <div class="bg-[#111] p-5 rounded-lg border border-white/5">
+                        <h4 class="text-white font-bold text-sm mb-2"><i class="fa-solid fa-ban text-red-400 mr-2"></i> No Data Monetization</h4>
+                        <p class="text-gray-400 text-xs leading-relaxed">Your data is not sold, rented, or traded under any circumstances.</p>
+                    </div>
+                    <div class="bg-[#111] p-5 rounded-lg border border-white/5">
+                        <h4 class="text-white font-bold text-sm mb-2"><i class="fa-solid fa-user-shield text-brand-cyan mr-2"></i> No Third-Party Access</h4>
+                        <p class="text-gray-400 text-xs leading-relaxed">Your data is not accessed by third parties. We do not integrate third-party advertising trackers, marketing SDKs, or external profiling tools into our extension or data pipeline.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 4 -->
+            <section class="border-t border-white/5 pt-8">
+                <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-brand-cyan font-mono text-sm">04.</span> Website Analytics (secureintent.ai)
+                </h2>
+                <p class="text-gray-300 text-sm md:text-base leading-relaxed mb-4">
+                    Our website respects your privacy before you even install our product:
+                </p>
+                <ul class="space-y-3 pl-4 text-sm text-gray-400 font-mono">
+                    <li class="flex items-start gap-3">
+                        <span class="text-brand-cyan font-bold">&middot;</span>
+                        <span><strong>No Tracking Cookies:</strong> We do not use persistent tracking cookies, cross-site trackers, or advertising pixels.</span>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="text-brand-cyan font-bold">&middot;</span>
+                        <span><strong>Privacy-First Analytics:</strong> We use Cloudflare Analytics to monitor general website health and traffic volume. This operates entirely at the network layer, aggregating basic performance metrics without capturing individual IP addresses or building user profiles.</span>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- Section 5 -->
+            <section class="border-t border-white/5 pt-8">
+                <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-brand-cyan font-mono text-sm">05.</span> Your Rights Under UK GDPR
+                </h2>
+                <p class="text-gray-300 text-sm md:text-base leading-relaxed mb-4">
+                    We operate in full compliance with the UK General Data Protection Regulation (UK GDPR) and the Data Protection Act 2018.
+                </p>
+                <p class="text-gray-300 text-sm md:text-base leading-relaxed">
+                    You have standard rights to request access, rectification, or erasure of personal data. However, because our architecture is strictly zero-retention and our metadata is fully anonymized, we do not possess the technical ability to retrieve, view, or delete past telemetry data tied to any specific individual—we simply do not hold it.
+                </p>
+            </section>
+
+            <!-- Section 6 -->
+            <section class="border-t border-white/5 pt-8">
+                <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-brand-cyan font-mono text-sm">06.</span> Open Source Transparency & Contact
+                </h2>
+                <p class="text-gray-300 text-sm md:text-base leading-relaxed mb-6">
+                    We believe trust in cybersecurity must be verifiable. Our extension's frontend code is entirely open source, allowing any developer to independently audit our local processing and zero-retention claims.
+                </p>
+                <p class="text-gray-300 text-sm md:text-base leading-relaxed mb-4">
+                    If you have questions about our data practices or wish to report a security vulnerability, please contact the appropriate team:
+                </p>
+                
+                <div class="grid md:grid-cols-2 gap-4 mt-6">
+                    <div class="bg-[#111] p-5 rounded-lg border border-white/5 flex flex-col justify-between">
+                        <div>
+                            <h4 class="text-white font-bold text-sm mb-1">Privacy & Data Governance</h4>
+                            <p class="text-gray-400 text-xs">For regulatory or structural questions.</p>
+                        </div>
+                        <a href="mailto:governance@secureintent.ai" class="text-brand-cyan text-xs font-mono mt-4 hover:underline">governance@secureintent.ai</a>
+                    </div>
+                    <div class="bg-[#111] p-5 rounded-lg border border-white/5 flex flex-col justify-between">
+                        <div>
+                            <h4 class="text-white font-bold text-sm mb-1">Security Operations (SOC)</h4>
+                            <p class="text-gray-400 text-xs">For technical vulnerabilities and threat reporting.</p>
+                        </div>
+                        <a href="mailto:SOC@secureintent.ai" class="text-brand-cyan text-xs font-mono mt-4 hover:underline">SOC@secureintent.ai</a>
+                    </div>
+                </div>
+
+                <div class="mt-8 pt-6 border-t border-white/5 text-center text-xs text-gray-500 font-mono">
+                    <p class="font-bold text-gray-400">SECUREINTENT.AI LTD</p>
+                    <p class="mt-1">124-128 City Road, London, England, EC1V 2NX</p>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Simple Footer -->
+    <footer class="relative z-10 border-t border-white/5 bg-[#050505] py-12 text-center text-xs text-gray-600 font-mono">
+        <p>&copy; 2026 SecureIntent.ai. Zero retention guaranteed.</p>
+    </footer>
+
+</body>
+</html>
