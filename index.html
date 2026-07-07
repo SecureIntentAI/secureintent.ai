@@ -152,6 +152,36 @@
 
         /* Star rating */
         .stars { color: #FFC93C; letter-spacing: 1px; }
+
+        /* ---- Reviews carousel ---- */
+        .review-viewport { overflow: hidden; padding: 4px; }
+        .review-track {
+            display: flex;
+            gap: 1.5rem;
+            transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+            will-change: transform;
+            align-items: stretch;
+        }
+        .review-slide { flex: 0 0 100%; }
+        @media (min-width: 768px) { .review-slide { flex: 0 0 calc((100% - 1.5rem) / 2); } }
+        @media (min-width: 1024px) { .review-slide { flex: 0 0 calc((100% - 3rem) / 3); } }
+        .review-arrow {
+            background: #0f1217;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+            transition: all 0.25s ease;
+            box-shadow: 0 8px 24px -10px rgba(0,0,0,0.8);
+        }
+        .review-arrow:hover { border-color: rgba(114,255,255,0.5); color: #72FFFF; transform: translateY(-50%) scale(1.08); }
+        .review-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+        .review-dot {
+            width: 8px; height: 8px; border-radius: 9999px;
+            background: rgba(255,255,255,0.2);
+            transition: all 0.35s cubic-bezier(0.22,1,0.36,1);
+            cursor: pointer;
+        }
+        .review-dot:hover { background: rgba(114,255,255,0.5); }
+        .review-dot.active { width: 26px; background: #72FFFF; box-shadow: 0 0 12px rgba(114,255,255,0.5); }
         
         .glass-nav { 
             backdrop-filter: blur(12px); 
@@ -318,7 +348,7 @@
                     </div>
                 </div>
                 
-                <h1 class="text-5xl md:text-7xl font-bold leading-tight">
+                <h1 class="text-4xl md:text-6xl font-bold leading-tight">
                     <span class="sr-only">SecureIntent Browser DLP Chrome Extension: </span>
                     Stop credentials from reaching AI. <br>
                     <span class="text-transparent bg-clip-text bg-gradient-to-r from-white via-brand-cyan to-white animate-shimmer text-glow-cyan">Protect every prompt.</span>
@@ -414,9 +444,19 @@
                 </p>
             </div>
 
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="relative">
+                <!-- Prev / Next arrows -->
+                <button id="review-prev" aria-label="Previous reviews" class="review-arrow hidden md:flex absolute -left-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full items-center justify-center">
+                    <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+                </button>
+                <button id="review-next" aria-label="Next reviews" class="review-arrow hidden md:flex absolute -right-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full items-center justify-center">
+                    <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+                </button>
+
+                <div class="review-viewport" id="review-viewport">
+                    <div class="review-track" id="review-track">
                 <!-- Vikas Tomar -->
-                <figure class="si-card spotlight-card p-6 flex flex-col">
+                <figure class="review-slide si-card spotlight-card p-6 flex flex-col">
                     <div class="stars text-sm mb-3" aria-label="5 out of 5 stars">★★★★★</div>
                     <blockquote class="text-gray-200 text-sm leading-relaxed flex-1 font-sans">
                         “A genuinely useful Chrome extension for developers who use AI tools while debugging. It helps catch sensitive information like API keys, tokens, credentials, and private data before it gets pasted into an AI prompt. The setup is simple, it works smoothly in the background, and it adds an important safety layer without slowing down the workflow.”
@@ -431,7 +471,7 @@
                 </figure>
 
                 <!-- kaleem -->
-                <figure class="si-card spotlight-card p-6 flex flex-col">
+                <figure class="review-slide si-card spotlight-card p-6 flex flex-col">
                     <div class="stars text-sm mb-3" aria-label="5 out of 5 stars">★★★★★</div>
                     <blockquote class="text-gray-200 text-sm leading-relaxed flex-1 font-sans">
                         “A few weeks back, a teammate accidentally pasted an API key into ChatGPT. It cost us a few bucks before we noticed the exposure. We haven't had that issue since I found this extension and recommended it to the team. I'd recommend it not just for developers but for anyone who regularly uses AI tools and handles sensitive credentials.”
@@ -446,7 +486,7 @@
                 </figure>
 
                 <!-- Nanouu Symeon -->
-                <figure class="si-card spotlight-card p-6 flex flex-col">
+                <figure class="review-slide si-card spotlight-card p-6 flex flex-col">
                     <div class="stars text-sm mb-3" aria-label="5 out of 5 stars">★★★★★</div>
                     <blockquote class="text-gray-200 text-sm leading-relaxed flex-1 font-sans">
                         “As someone who uses AI tools every day for coding, this extension gives me extra peace of mind. It's lightweight, easy to use, and I like that everything runs locally instead of sending my data elsewhere. It's one of those tools you don't realize you need until it catches something before you paste it.”
@@ -461,7 +501,7 @@
                 </figure>
 
                 <!-- Vishal Gouli -->
-                <figure class="si-card spotlight-card p-6 flex flex-col">
+                <figure class="review-slide si-card spotlight-card p-6 flex flex-col">
                     <div class="stars text-sm mb-3" aria-label="5 out of 5 stars">★★★★★</div>
                     <blockquote class="text-gray-200 text-sm leading-relaxed flex-1 font-sans">
                         “I've been using it for a while — it's a really great tool that secures your keys and secrets without leaving your machine. I highly recommend it to all the people and businesses where data protection is needed.”
@@ -476,7 +516,7 @@
                 </figure>
 
                 <!-- Steve Cal -->
-                <figure class="si-card spotlight-card p-6 flex flex-col">
+                <figure class="review-slide si-card spotlight-card p-6 flex flex-col">
                     <div class="stars text-sm mb-3" aria-label="5 out of 5 stars">★★★★★</div>
                     <blockquote class="text-gray-200 text-sm leading-relaxed flex-1 font-sans">
                         “This extension has been surprisingly useful. It helps catch potential security risks before they become problems, and the setup took only a minute. Great tool for anyone who works with sensitive information.”
@@ -491,7 +531,7 @@
                 </figure>
 
                 <!-- alessia -->
-                <figure class="si-card spotlight-card p-6 flex flex-col">
+                <figure class="review-slide si-card spotlight-card p-6 flex flex-col">
                     <div class="stars text-sm mb-3" aria-label="5 out of 5 stars">★★★★★</div>
                     <blockquote class="text-gray-200 text-sm leading-relaxed flex-1 font-sans">
                         “I've tried several security-focused browser extensions, and this one stands out for its simplicity. It runs quietly in the background and provides peace of mind when handling confidential data, credentials, or AI-generated content. Definitely worth installing.”
@@ -504,9 +544,104 @@
                         </div>
                     </figcaption>
                 </figure>
+
+                <!-- Isaiah N-yilyal -->
+                <figure class="review-slide si-card spotlight-card p-6 flex flex-col">
+                    <div class="stars text-sm mb-3" aria-label="5 out of 5 stars">★★★★★</div>
+                    <blockquote class="text-gray-200 text-sm leading-relaxed flex-1 font-sans">
+                        “Having used this extension, it's effectively caught secrets really well — very useful for all developers.”
+                    </blockquote>
+                    <figcaption class="mt-5 pt-4 border-t border-white/5 flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-full bg-brand-cyan/15 border border-brand-cyan/30 flex items-center justify-center text-brand-cyan font-mono text-xs">IN</div>
+                        <div>
+                            <div class="text-white text-sm font-bold">Isaiah N-yilyal</div>
+                            <div class="text-gray-500 text-xs font-mono">Chrome Web Store · Jun 28, 2026</div>
+                        </div>
+                    </figcaption>
+                </figure>
+
+                <!-- Gaurav Sharma -->
+                <figure class="review-slide si-card spotlight-card p-6 flex flex-col">
+                    <div class="stars text-sm mb-3" aria-label="5 out of 5 stars">★★★★★</div>
+                    <blockquote class="text-gray-200 text-sm leading-relaxed flex-1 font-sans">
+                        “Clean, simple, and does exactly what it promises. Great for anyone handling API keys and credentials regularly.”
+                    </blockquote>
+                    <figcaption class="mt-5 pt-4 border-t border-white/5 flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-full bg-brand-cyan/15 border border-brand-cyan/30 flex items-center justify-center text-brand-cyan font-mono text-xs">GS</div>
+                        <div>
+                            <div class="text-white text-sm font-bold">Gaurav Sharma</div>
+                            <div class="text-gray-500 text-xs font-mono">Chrome Web Store · Jun 22, 2026</div>
+                        </div>
+                    </figcaption>
+                </figure>
+
+                <!-- Tyler Brooks -->
+                <figure class="review-slide si-card spotlight-card p-6 flex flex-col">
+                    <div class="stars text-sm mb-3" aria-label="5 out of 5 stars">★★★★★</div>
+                    <blockquote class="text-gray-200 text-sm leading-relaxed flex-1 font-sans">
+                        “Simple, effective, and easy to use. I installed it to add an extra layer of security while working online, and it does exactly that without slowing down my browser. Highly recommended.”
+                    </blockquote>
+                    <figcaption class="mt-5 pt-4 border-t border-white/5 flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-full bg-brand-cyan/15 border border-brand-cyan/30 flex items-center justify-center text-brand-cyan font-mono text-xs">TB</div>
+                        <div>
+                            <div class="text-white text-sm font-bold">Tyler Brooks</div>
+                            <div class="text-gray-500 text-xs font-mono">Chrome Web Store · Jun 19, 2026</div>
+                        </div>
+                    </figcaption>
+                </figure>
+
+                <!-- Vivek Bharti -->
+                <figure class="review-slide si-card spotlight-card p-6 flex flex-col">
+                    <div class="stars text-sm mb-3" aria-label="5 out of 5 stars">★★★★★</div>
+                    <blockquote class="text-gray-200 text-sm leading-relaxed flex-1 font-sans">
+                        “Great extension for anyone concerned about online security. It's easy to use, runs smoothly, and helps prevent accidental sharing of sensitive information — extra peace of mind while browsing and using AI tools.”
+                    </blockquote>
+                    <figcaption class="mt-5 pt-4 border-t border-white/5 flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-full bg-brand-cyan/15 border border-brand-cyan/30 flex items-center justify-center text-brand-cyan font-mono text-xs">VB</div>
+                        <div>
+                            <div class="text-white text-sm font-bold">Vivek Bharti</div>
+                            <div class="text-gray-500 text-xs font-mono">Chrome Web Store · Jun 19, 2026</div>
+                        </div>
+                    </figcaption>
+                </figure>
+
+                <!-- Vedant Bhatia -->
+                <figure class="review-slide si-card spotlight-card p-6 flex flex-col">
+                    <div class="stars text-sm mb-3" aria-label="5 out of 5 stars">★★★★★</div>
+                    <blockquote class="text-gray-200 text-sm leading-relaxed flex-1 font-sans">
+                        “Excellent extension that helps prevent accidental sharing of sensitive information. Highly recommended!”
+                    </blockquote>
+                    <figcaption class="mt-5 pt-4 border-t border-white/5 flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-full bg-brand-cyan/15 border border-brand-cyan/30 flex items-center justify-center text-brand-cyan font-mono text-xs">VB</div>
+                        <div>
+                            <div class="text-white text-sm font-bold">Vedant Bhatia</div>
+                            <div class="text-gray-500 text-xs font-mono">Chrome Web Store · Jun 22, 2026</div>
+                        </div>
+                    </figcaption>
+                </figure>
+
+                <!-- Rayan Khan -->
+                <figure class="review-slide si-card spotlight-card p-6 flex flex-col">
+                    <div class="stars text-sm mb-3" aria-label="5 out of 5 stars">★★★★★</div>
+                    <blockquote class="text-gray-200 text-sm leading-relaxed flex-1 font-sans">
+                        “Been using it for a while — a great extension to protect your data and keep your privacy. 100% recommended.”
+                    </blockquote>
+                    <figcaption class="mt-5 pt-4 border-t border-white/5 flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-full bg-brand-cyan/15 border border-brand-cyan/30 flex items-center justify-center text-brand-cyan font-mono text-xs">RK</div>
+                        <div>
+                            <div class="text-white text-sm font-bold">Rayan Khan</div>
+                            <div class="text-gray-500 text-xs font-mono">Chrome Web Store · Jun 28, 2026</div>
+                        </div>
+                    </figcaption>
+                </figure>
+                    </div>
+                </div>
+
+                <!-- Slider dots -->
+                <div id="review-dots" class="flex items-center justify-center gap-2 mt-8" role="tablist" aria-label="Review slides"></div>
             </div>
 
-            <div class="text-center mt-10">
+            <div class="text-center mt-8">
                 <a href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener" class="text-brand-cyan font-mono text-sm hover:text-white transition-colors inline-flex items-center gap-2">
                     Read all reviews on the Chrome Web Store <i class="fa-solid fa-arrow-up-right-from-square text-xs" aria-hidden="true"></i>
                 </a>
@@ -1088,7 +1223,7 @@
             <span class="hidden md:block text-white/20">|</span>
             <a href="#" onclick="openModal('modal-billing'); return false;" class="text-xs hover:text-brand-cyan transition-colors text-brand-cyan">Billing Support</a>
             <span class="hidden md:block text-white/20">|</span>
-            <a href="https://wa.me/447775531198?text=Hi%20SecureIntent%20support%2C%20I%20have%20a%20question%20about%20" target="_blank" rel="noopener" class="text-xs hover:text-brand-cyan transition-colors text-brand-cyan inline-flex items-center gap-1.5"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> WhatsApp Support</a>
+            <a href="https://wa.me/447848523845?text=Hi%20SecureIntent%20support%2C%20I%20have%20a%20question%20about%20" target="_blank" rel="noopener" class="text-xs hover:text-brand-cyan transition-colors text-brand-cyan inline-flex items-center gap-1.5"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> WhatsApp Support</a>
         </div>
         
         <div class="mt-12 mb-4 text-[10px] text-gray-500 flex flex-col items-center gap-1">
@@ -1272,6 +1407,80 @@ Expires: 2027-05-29T00:00:00.000Z
             });
         });
 
+        // Reviews Carousel — modern auto-sliding, responsive (1 / 2 / 3 visible)
+        (function initReviewCarousel() {
+            const track = document.getElementById('review-track');
+            const viewport = document.getElementById('review-viewport');
+            const dotsWrap = document.getElementById('review-dots');
+            const prevBtn = document.getElementById('review-prev');
+            const nextBtn = document.getElementById('review-next');
+            if (!track || !viewport) return;
+
+            const slides = Array.from(track.children);
+            let index = 0;
+            let maxIndex = 0;
+            let autoplay;
+            const GAP = 24; // 1.5rem
+
+            function step() {
+                return slides[0].getBoundingClientRect().width + GAP;
+            }
+            function visibleCount() {
+                return Math.max(1, Math.round(viewport.clientWidth / step()));
+            }
+            function computeMax() {
+                maxIndex = Math.max(0, slides.length - visibleCount());
+                if (index > maxIndex) index = maxIndex;
+            }
+            function buildDots() {
+                dotsWrap.innerHTML = '';
+                for (let i = 0; i <= maxIndex; i++) {
+                    const dot = document.createElement('button');
+                    dot.className = 'review-dot' + (i === index ? ' active' : '');
+                    dot.setAttribute('role', 'tab');
+                    dot.setAttribute('aria-label', 'Go to review slide ' + (i + 1));
+                    dot.addEventListener('click', () => { go(i); resetAutoplay(); });
+                    dotsWrap.appendChild(dot);
+                }
+            }
+            function render() {
+                track.style.transform = 'translateX(' + (-index * step()) + 'px)';
+                Array.from(dotsWrap.children).forEach((d, i) => d.classList.toggle('active', i === index));
+            }
+            function go(i) {
+                index = Math.max(0, Math.min(i, maxIndex));
+                render();
+            }
+            function next() { index = index >= maxIndex ? 0 : index + 1; render(); }
+            function prev() { index = index <= 0 ? maxIndex : index - 1; render(); }
+
+            function startAutoplay() { autoplay = setInterval(next, 4500); }
+            function resetAutoplay() { clearInterval(autoplay); startAutoplay(); }
+
+            function rebuild() { computeMax(); buildDots(); render(); }
+
+            if (nextBtn) nextBtn.addEventListener('click', () => { next(); resetAutoplay(); });
+            if (prevBtn) prevBtn.addEventListener('click', () => { prev(); resetAutoplay(); });
+
+            // Pause on hover
+            viewport.addEventListener('mouseenter', () => clearInterval(autoplay));
+            viewport.addEventListener('mouseleave', startAutoplay);
+
+            // Swipe (touch)
+            let startX = 0;
+            viewport.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+            viewport.addEventListener('touchend', e => {
+                const dx = e.changedTouches[0].clientX - startX;
+                if (Math.abs(dx) > 40) { dx < 0 ? next() : prev(); resetAutoplay(); }
+            }, { passive: true });
+
+            let rt;
+            window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(rebuild, 150); });
+
+            rebuild();
+            startAutoplay();
+        })();
+
         // Hover-Tracking Mouse Spotlights
         document.querySelectorAll('.spotlight-card').forEach(card => {
             card.addEventListener('mousemove', e => {
@@ -1313,7 +1522,7 @@ Expires: 2027-05-29T00:00:00.000Z
     </script>
 
     <!-- WhatsApp Business floating support button -->
-    <a href="https://wa.me/447775531198?text=Hi%20SecureIntent%20support%2C%20I%20have%20a%20question%20about%20"
+    <a href="https://wa.me/447848523845?text=Hi%20SecureIntent%20support%2C%20I%20have%20a%20question%20about%20"
        target="_blank" rel="noopener"
        class="wa-float" aria-label="Chat with SecureIntent support on WhatsApp">
         <span class="wa-label">Chat with support</span>
