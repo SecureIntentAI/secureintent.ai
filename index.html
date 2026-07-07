@@ -45,10 +45,14 @@
                 extend: {
                     colors: {
                         brand: {
-                            bg: '#050505',
-                            card: '#0a0a0a',
+                            bg: '#050608',
+                            bg2: '#080a0d',
+                            card: '#0c0e12',
+                            surface: '#0f1217',
+                            line: 'rgba(255,255,255,0.06)',
                             navy: '#052656',
-                            cyan: '#72FFFF'
+                            cyan: '#72FFFF',
+                            wa: '#25D366'
                         }
                     },
                     fontFamily: {
@@ -66,11 +70,88 @@
     </script>
 
     <style>
-        body { 
-            background-color: #050505; 
-            color: #ffffff; 
+        body {
+            background-color: #050608;
+            color: #ffffff;
             overflow-x: hidden;
         }
+
+        /* ---- Refined Security Terminal: depth + hierarchy ---- */
+        /* Unified card surface with gradient top + hairline border */
+        .si-card {
+            background: linear-gradient(180deg, #12151b 0%, #0c0e12 55%);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 0.75rem;
+            transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+        }
+        .si-card:hover {
+            border-color: rgba(114, 255, 255, 0.28);
+            transform: translateY(-2px);
+        }
+        /* Single high-contrast PRIMARY CTA — stands out from ambient cyan */
+        .btn-primary {
+            background: linear-gradient(180deg, #ffffff 0%, #b9fbff 100%);
+            color: #041014;
+            font-weight: 700;
+            box-shadow: 0 0 0 1px rgba(114,255,255,0.35), 0 8px 24px -8px rgba(114,255,255,0.45);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+        }
+        .btn-primary:hover {
+            filter: brightness(1.04);
+            transform: translateY(-1px);
+            box-shadow: 0 0 0 1px rgba(114,255,255,0.6), 0 12px 30px -8px rgba(114,255,255,0.6);
+        }
+
+        /* ---- WhatsApp floating support button ---- */
+        .wa-float {
+            position: fixed;
+            right: 1.25rem;
+            bottom: 1.25rem;
+            z-index: 60;
+            width: 56px;
+            height: 56px;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #25D366;
+            color: #fff;
+            box-shadow: 0 8px 24px -6px rgba(37,211,102,0.5), 0 0 0 6px rgba(37,211,102,0.12);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            animation: waPop 0.4s ease-out 0.6s both;
+        }
+        .wa-float:hover {
+            transform: scale(1.06);
+            box-shadow: 0 10px 30px -6px rgba(37,211,102,0.65), 0 0 0 8px rgba(37,211,102,0.16);
+        }
+        .wa-float i { font-size: 26px; }
+        .wa-float .wa-label {
+            position: absolute;
+            right: 68px;
+            white-space: nowrap;
+            background: #0c0e12;
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #fff;
+            font-size: 12px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            opacity: 0;
+            transform: translateX(6px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            pointer-events: none;
+        }
+        .wa-float:hover .wa-label { opacity: 1; transform: translateX(0); }
+        @keyframes waPop {
+            from { opacity: 0; transform: scale(0.6); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @media (max-width: 640px) {
+            .wa-float { width: 52px; height: 52px; right: 1rem; bottom: 1rem; }
+            .wa-float i { font-size: 24px; }
+        }
+
+        /* Star rating */
+        .stars { color: #FFC93C; letter-spacing: 1px; }
         
         .glass-nav { 
             backdrop-filter: blur(12px); 
@@ -207,6 +288,7 @@
                 <a href="#architecture" class="hover:text-brand-cyan transition-colors">/architecture</a>
                 <a href="#coverage" class="hover:text-brand-cyan transition-colors">/coverage</a>
                 <a href="#threat-intel" class="hover:text-brand-cyan transition-colors">/threats</a>
+                <a href="#reviews" class="hover:text-brand-cyan transition-colors">/reviews</a>
                 <a href="#tiers" class="hover:text-brand-cyan transition-colors">/pricing</a>
                 <a href="#advisors" class="hover:text-brand-cyan transition-colors">/advisors</a>
                 <a href="#roadmap" class="hover:text-brand-cyan transition-colors">/roadmap</a>
@@ -217,22 +299,11 @@
                     <i class="fa-brands fa-github text-lg" aria-hidden="true"></i>
                     <span class="font-mono text-xs">Auditable Code</span>
                 </a>
+                <a href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener" class="btn-primary inline-flex items-center gap-2 px-4 py-2 rounded-full font-mono text-xs">
+                    <i class="fa-brands fa-chrome" aria-hidden="true"></i> Add to Chrome
+                </a>
             </div>
         </nav>
-        
-        <!-- Hanging Launch Countdown Tab -->
-        <div class="pointer-events-auto bg-brand-cyan/10 border-x border-b border-brand-cyan/30 rounded-b-xl px-6 py-1.5 flex items-center justify-center gap-4 backdrop-blur-md shadow-[0_10px_20px_rgba(114,255,255,0.1)] -mt-0.5">
-            <span class="text-[10px] font-bold text-brand-cyan uppercase tracking-widest hidden sm:block">Launch: July 10, 2026</span>
-            <div id="countdown-timer" class="font-mono text-xs font-bold text-white flex gap-1 items-center">
-                <span id="t-days" class="w-6 text-center">00</span><span class="text-brand-cyan colon-pulse">:</span>
-                <span id="t-hours" class="w-6 text-center">00</span><span class="text-brand-cyan colon-pulse">:</span>
-                <span id="t-mins" class="w-6 text-center">00</span><span class="text-brand-cyan colon-pulse">:</span>
-                <span id="t-secs" class="w-6 text-center">00</span>
-            </div>
-            <div id="live-badge" class="hidden text-xs font-mono font-bold text-brand-cyan flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-brand-cyan animate-ping"></span> SYSTEM LIVE
-            </div>
-        </div>
     </div>
 
     <!-- Hero Section -->
@@ -257,75 +328,23 @@
                     SecureIntent is an invisible guardrail for vibe coders and developers and intercepts secrets before you paste them.
                 </p>
 
-                <!-- Waitlist Container (Tabbed) -->
-                <div id="waitlist-container" class="bg-[#111] rounded-xl border border-white/10 max-w-md overflow-hidden transition-all duration-300 focus-within:border-brand-cyan focus-within:shadow-neon min-h-[250px] flex flex-col">
-                    
-                    <!-- Tabs -->
-                    <div class="flex border-b border-white/10 shrink-0">
-                        <button onclick="switchTab('dev')" id="tab-dev" class="flex-1 py-3 text-[10px] sm:text-xs font-mono font-bold text-brand-cyan border-b-2 border-brand-cyan bg-white/5 transition-colors relative">
-                            Developer
-                        </button>
-                        <button onclick="switchTab('dev-pro')" id="tab-dev-pro" class="flex-1 py-3 text-[10px] sm:text-xs font-mono text-gray-500 border-b-2 border-transparent hover:text-white transition-colors relative">
-                            Developer Pro
-                        </button>
-                        <button onclick="switchTab('biz')" id="tab-biz" class="flex-1 py-3 text-[10px] sm:text-xs font-mono text-gray-500 border-b-2 border-transparent hover:text-white transition-colors relative">
-                            Business Pro
-                            <span class="absolute top-2 right-2 flex h-2 w-2">
-                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-cyan opacity-75"></span>
-                                <span class="relative inline-flex rounded-full h-2 w-2 bg-brand-cyan"></span>
-                            </span>
-                        </button>
-                    </div>
+                <!-- Primary CTA: Add to Chrome (live on the Web Store) -->
+                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 max-w-md">
+                    <a href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener" class="btn-primary inline-flex items-center gap-3 px-7 py-4 rounded-lg font-mono text-base w-full sm:w-auto justify-center">
+                        <i class="fa-brands fa-chrome text-xl" aria-hidden="true"></i> Add to Chrome — Free
+                    </a>
+                    <a href="#tiers" class="text-xs font-mono text-gray-400 hover:text-brand-cyan transition-colors inline-flex items-center gap-1">
+                        View pricing <i class="fa-solid fa-arrow-right text-[10px]" aria-hidden="true"></i>
+                    </a>
+                </div>
 
-                    <div class="p-4 flex-1 flex flex-col justify-center">
-                        <!-- FORM 1: Solo Developers -->
-                        <form id="form-dev" class="flex flex-col gap-3" onsubmit="handleWaitlistSubmit(event, 'dev')">
-                            <p class="text-xs text-gray-400 font-mono mb-2">Get the 100% free, auditable interceptor on launch.</p>
-                            <div class="flex gap-2">
-                                <input type="email" name="email" id="email-dev" placeholder="name@domain.com" required class="bg-[#1a1a1a] text-white font-mono text-sm px-4 py-3 rounded outline-none border border-white/5 focus:border-brand-cyan/50 placeholder-gray-600 transition-colors w-full">
-                                <button type="submit" id="btn-dev" class="bg-brand-cyan text-black font-mono font-bold px-6 py-3 rounded hover:bg-white transition-colors flex items-center gap-2">
-                                    Claim
-                                </button>
-                            </div>
-                        </form>
-
-                        <!-- FORM 2: Developer Pro -->
-                        <form id="form-dev-pro" class="hidden flex-col gap-3" onsubmit="handleWaitlistSubmit(event, 'dev-pro')">
-                            <p class="text-xs text-brand-cyan font-mono mb-2">Only <span id="counter-form-dev-pro">442</span>/500 lifetime $4/mo licenses remain.</p>
-                            
-                            <div class="flex gap-2">
-                                <input type="text" name="name" placeholder="Your Full Name" required class="bg-[#1a1a1a] text-white font-mono text-sm px-4 py-3 rounded outline-none border border-white/5 focus:border-brand-cyan/50 placeholder-gray-600 transition-colors w-full">
-                            </div>
-                            
-                            <div class="flex gap-2">
-                                <input type="email" name="email" id="email-dev-pro" placeholder="name@domain.com" required class="bg-[#1a1a1a] text-white font-mono text-sm px-4 py-3 rounded outline-none border border-white/5 focus:border-brand-cyan/50 placeholder-gray-600 transition-colors w-full">
-                                <button type="submit" class="bg-brand-cyan text-black font-mono font-bold px-6 py-3 rounded hover:bg-white transition-colors flex items-center justify-center gap-2 whitespace-nowrap">
-                                    Claim
-                                </button>
-                            </div>
-                        </form>
-
-                        <!-- FORM 3: Business Pro -->
-                        <form id="form-biz" class="hidden flex-col gap-3" onsubmit="handleWaitlistSubmit(event, 'biz')">
-                            <p class="text-xs text-brand-cyan font-mono mb-1">Only <span id="counter-form-biz">489</span>/500 lifetime free tiers remain.</p>
-                            <p class="text-[10px] text-gray-500 uppercase tracking-wide mb-2">Corporate emails only.</p>
-                            
-                            <div class="flex gap-2">
-                                <input type="text" name="name" placeholder="Your Full Name" required class="bg-[#1a1a1a] text-white font-mono text-sm px-4 py-3 rounded outline-none border border-white/5 focus:border-brand-cyan/50 placeholder-gray-600 transition-colors w-full">
-                                <input type="text" name="employees" placeholder="Employees" required class="bg-[#1a1a1a] text-white font-mono text-sm px-4 py-3 rounded outline-none border border-white/5 focus:border-brand-cyan/50 placeholder-gray-600 transition-colors w-1/3">
-                            </div>
-                            
-                            <div class="flex flex-col gap-1">
-                                <div class="flex gap-2">
-                                    <input type="email" name="email" id="email-biz" placeholder="name@company.com" required class="bg-[#1a1a1a] text-white font-mono text-sm px-4 py-3 rounded outline-none border border-white/5 focus:border-brand-cyan/50 placeholder-gray-600 transition-colors w-full">
-                                    <button type="submit" class="bg-brand-cyan text-black font-mono font-bold px-6 py-3 rounded hover:bg-white transition-colors flex items-center gap-2">
-                                        Claim
-                                    </button>
-                                </div>
-                                <span id="error-biz" class="text-red-500 text-xs hidden font-bold mt-1">Please use a valid corporate email.</span>
-                            </div>
-                        </form>
-                    </div>
+                <!-- Micro social proof -->
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-2 max-w-md text-xs text-gray-400 font-mono">
+                    <a href="#reviews" class="hover:text-brand-cyan transition-colors"><span class="stars" aria-hidden="true">★★★★★</span> 5.0 on Chrome Web Store</a>
+                    <span class="text-white/20">·</span>
+                    <span><i class="fa-solid fa-shield-halved text-brand-cyan mr-1" aria-hidden="true"></i>On-device detection</span>
+                    <span class="text-white/20">·</span>
+                    <span><i class="fa-solid fa-lock text-brand-cyan mr-1" aria-hidden="true"></i>Free</span>
                 </div>
             </div>
 
@@ -349,12 +368,13 @@
                     
                     <!-- Video Player -->
                     <div class="relative w-full bg-black flex-1 min-h-[360px]">
-                        <video 
-                            autoplay 
-                            loop 
-                            muted 
-                            playsinline 
+                        <video
+                            autoplay
+                            loop
+                            muted
+                            playsinline
                             controls
+                            preload="metadata"
                             class="w-full h-full object-cover"
                         >
                             <source src="demo.mp4" type="video/mp4">
@@ -374,6 +394,123 @@
             <p class="font-sans text-gray-300 text-sm md:text-base max-w-3xl mx-auto leading-relaxed">
                 Stop betting your career on the illusion of privacy. Over 35% of private corporate repositories contain plaintext secrets, and whatever you paste into an unshielded LLM is actively being ingested. SecureIntent dehydrates your data before it hits the cloud.
             </p>
+        </div>
+    </section>
+
+    <!-- ============================================================= -->
+    <!-- Chrome Web Store Reviews / Social Proof (real reviews)         -->
+    <!-- ============================================================= -->
+    <section id="reviews" class="py-20 relative z-10 border-t border-white/5 fade-up-section">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-14">
+                <a href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-navy/30 border border-brand-cyan/30 text-brand-cyan font-mono text-xs uppercase tracking-wider mb-5 hover:border-brand-cyan transition-colors">
+                    <i class="fa-brands fa-chrome" aria-hidden="true"></i> Chrome Web Store
+                </a>
+                <h2 class="text-3xl md:text-4xl font-bold text-white mb-3">Loved by developers and teams</h2>
+                <p class="text-gray-400 text-sm font-sans">
+                    <span class="stars" aria-hidden="true">★★★★★</span>
+                    <span class="text-white font-bold ml-1">5.0</span>
+                    <span class="text-gray-500">— real reviews from the Chrome Web Store</span>
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Vikas Tomar -->
+                <figure class="si-card spotlight-card p-6 flex flex-col">
+                    <div class="stars text-sm mb-3" aria-label="5 out of 5 stars">★★★★★</div>
+                    <blockquote class="text-gray-200 text-sm leading-relaxed flex-1 font-sans">
+                        “A genuinely useful Chrome extension for developers who use AI tools while debugging. It helps catch sensitive information like API keys, tokens, credentials, and private data before it gets pasted into an AI prompt. The setup is simple, it works smoothly in the background, and it adds an important safety layer without slowing down the workflow.”
+                    </blockquote>
+                    <figcaption class="mt-5 pt-4 border-t border-white/5 flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-full bg-brand-cyan/15 border border-brand-cyan/30 flex items-center justify-center text-brand-cyan font-mono text-xs">VT</div>
+                        <div>
+                            <div class="text-white text-sm font-bold">Vikas Tomar</div>
+                            <div class="text-gray-500 text-xs font-mono">Chrome Web Store · Jul 6, 2026</div>
+                        </div>
+                    </figcaption>
+                </figure>
+
+                <!-- kaleem -->
+                <figure class="si-card spotlight-card p-6 flex flex-col">
+                    <div class="stars text-sm mb-3" aria-label="5 out of 5 stars">★★★★★</div>
+                    <blockquote class="text-gray-200 text-sm leading-relaxed flex-1 font-sans">
+                        “A few weeks back, a teammate accidentally pasted an API key into ChatGPT. It cost us a few bucks before we noticed the exposure. We haven't had that issue since I found this extension and recommended it to the team. I'd recommend it not just for developers but for anyone who regularly uses AI tools and handles sensitive credentials.”
+                    </blockquote>
+                    <figcaption class="mt-5 pt-4 border-t border-white/5 flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-full bg-brand-cyan/15 border border-brand-cyan/30 flex items-center justify-center text-brand-cyan font-mono text-xs">K</div>
+                        <div>
+                            <div class="text-white text-sm font-bold">Kaleem</div>
+                            <div class="text-gray-500 text-xs font-mono">Chrome Web Store · Jun 29, 2026</div>
+                        </div>
+                    </figcaption>
+                </figure>
+
+                <!-- Nanouu Symeon -->
+                <figure class="si-card spotlight-card p-6 flex flex-col">
+                    <div class="stars text-sm mb-3" aria-label="5 out of 5 stars">★★★★★</div>
+                    <blockquote class="text-gray-200 text-sm leading-relaxed flex-1 font-sans">
+                        “As someone who uses AI tools every day for coding, this extension gives me extra peace of mind. It's lightweight, easy to use, and I like that everything runs locally instead of sending my data elsewhere. It's one of those tools you don't realize you need until it catches something before you paste it.”
+                    </blockquote>
+                    <figcaption class="mt-5 pt-4 border-t border-white/5 flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-full bg-brand-cyan/15 border border-brand-cyan/30 flex items-center justify-center text-brand-cyan font-mono text-xs">NS</div>
+                        <div>
+                            <div class="text-white text-sm font-bold">Nanouu Symeon</div>
+                            <div class="text-gray-500 text-xs font-mono">Chrome Web Store · Jun 30, 2026</div>
+                        </div>
+                    </figcaption>
+                </figure>
+
+                <!-- Vishal Gouli -->
+                <figure class="si-card spotlight-card p-6 flex flex-col">
+                    <div class="stars text-sm mb-3" aria-label="5 out of 5 stars">★★★★★</div>
+                    <blockquote class="text-gray-200 text-sm leading-relaxed flex-1 font-sans">
+                        “I've been using it for a while — it's a really great tool that secures your keys and secrets without leaving your machine. I highly recommend it to all the people and businesses where data protection is needed.”
+                    </blockquote>
+                    <figcaption class="mt-5 pt-4 border-t border-white/5 flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-full bg-brand-cyan/15 border border-brand-cyan/30 flex items-center justify-center text-brand-cyan font-mono text-xs">VG</div>
+                        <div>
+                            <div class="text-white text-sm font-bold">Vishal Gouli</div>
+                            <div class="text-gray-500 text-xs font-mono">Chrome Web Store · Jun 28, 2026</div>
+                        </div>
+                    </figcaption>
+                </figure>
+
+                <!-- Steve Cal -->
+                <figure class="si-card spotlight-card p-6 flex flex-col">
+                    <div class="stars text-sm mb-3" aria-label="5 out of 5 stars">★★★★★</div>
+                    <blockquote class="text-gray-200 text-sm leading-relaxed flex-1 font-sans">
+                        “This extension has been surprisingly useful. It helps catch potential security risks before they become problems, and the setup took only a minute. Great tool for anyone who works with sensitive information.”
+                    </blockquote>
+                    <figcaption class="mt-5 pt-4 border-t border-white/5 flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-full bg-brand-cyan/15 border border-brand-cyan/30 flex items-center justify-center text-brand-cyan font-mono text-xs">SC</div>
+                        <div>
+                            <div class="text-white text-sm font-bold">Steve Cal</div>
+                            <div class="text-gray-500 text-xs font-mono">Chrome Web Store · Jun 22, 2026</div>
+                        </div>
+                    </figcaption>
+                </figure>
+
+                <!-- alessia -->
+                <figure class="si-card spotlight-card p-6 flex flex-col">
+                    <div class="stars text-sm mb-3" aria-label="5 out of 5 stars">★★★★★</div>
+                    <blockquote class="text-gray-200 text-sm leading-relaxed flex-1 font-sans">
+                        “I've tried several security-focused browser extensions, and this one stands out for its simplicity. It runs quietly in the background and provides peace of mind when handling confidential data, credentials, or AI-generated content. Definitely worth installing.”
+                    </blockquote>
+                    <figcaption class="mt-5 pt-4 border-t border-white/5 flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-full bg-brand-cyan/15 border border-brand-cyan/30 flex items-center justify-center text-brand-cyan font-mono text-xs">A</div>
+                        <div>
+                            <div class="text-white text-sm font-bold">Alessia</div>
+                            <div class="text-gray-500 text-xs font-mono">Chrome Web Store · Jun 19, 2026</div>
+                        </div>
+                    </figcaption>
+                </figure>
+            </div>
+
+            <div class="text-center mt-10">
+                <a href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener" class="text-brand-cyan font-mono text-sm hover:text-white transition-colors inline-flex items-center gap-2">
+                    Read all reviews on the Chrome Web Store <i class="fa-solid fa-arrow-up-right-from-square text-xs" aria-hidden="true"></i>
+                </a>
+            </div>
         </div>
     </section>
 
@@ -400,19 +537,19 @@
                         </li>
                         <li class="flex items-start gap-3 text-sm text-gray-300">
                             <i class="fa-solid fa-check text-green-500 mt-1" aria-hidden="true"></i>
-                            <span>Zero Retention & 100% Accuracy</span>
+                            <span>On-Device Privacy & High-Accuracy Detection</span>
                         </li>
                         <li class="flex items-start gap-3 text-sm text-gray-300">
                             <i class="fa-solid fa-wand-magic-sparkles text-brand-cyan mt-1" aria-hidden="true"></i>
                             <span><strong>Anonymise & Paste:</strong> 1/day (Max 10/mo)</span>
                         </li>
                     </ul>
-                    <button onclick="document.getElementById('waitlist-container').scrollIntoView(); switchTab('dev');" class="w-full py-3 rounded border border-gray-600 text-gray-300 font-mono text-sm hover:bg-white/5 transition-colors relative z-10">Join Waitlist</button>
+                    <a href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener" class="block text-center w-full py-3 rounded border border-gray-600 text-gray-300 font-mono text-sm hover:bg-white/5 transition-colors relative z-10">Add to Chrome — Free</a>
                 </div>
 
                 <!-- Tier 2: Developer Pro -->
                 <div class="spotlight-card bg-brand-card border border-brand-cyan/50 rounded-2xl p-8 flex flex-col relative shadow-neon lg:-translate-y-4">
-                    <div class="absolute top-4 right-4 bg-brand-cyan text-black text-[10px] font-bold px-3 py-1 rounded uppercase tracking-widest z-20"><span id="badge-dev-pro">442</span>/500 LEFT</div>
+                    <div class="absolute top-4 right-4 bg-brand-cyan text-black text-[10px] font-bold px-3 py-1 rounded uppercase tracking-widest z-20">Most Popular</div>
                     
                     <h3 class="text-xl font-bold mb-2 text-brand-cyan">Developer Pro</h3>
                     <p class="text-brand-cyan font-bold text-sm mb-6 h-10">Go Unlimited. Shape the Shield.</p>
@@ -455,12 +592,12 @@
                             </div>
                         </li>
                     </ul>
-                    <button onclick="document.getElementById('waitlist-container').scrollIntoView(); switchTab('dev-pro');" class="w-full py-3 rounded bg-brand-cyan text-black font-mono font-bold text-sm hover:bg-white transition-colors shadow-neon-hover relative z-10">Register for Pro</button>
+                    <a href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener" class="btn-primary block text-center w-full py-3 rounded font-mono text-sm relative z-10">Add to Chrome</a>
                 </div>
 
                 <!-- Tier 3: Business Pro -->
                 <div class="spotlight-card bg-[#111] border border-white/10 rounded-2xl p-8 flex flex-col relative">
-                    <div class="absolute top-4 right-4 bg-white text-black text-[10px] font-bold px-3 py-1 rounded uppercase tracking-widest z-20"><span id="badge-biz">489</span>/500 LEFT</div>
+                    <div class="absolute top-4 right-4 bg-white text-black text-[10px] font-bold px-3 py-1 rounded uppercase tracking-widest z-20">For Teams</div>
                     
                     <h3 class="text-xl font-bold mb-2 text-white">Business Pro</h3>
                     <p class="text-gray-400 text-sm mb-6 h-10">Claim a lifetime license before launch. The Trojan Horse for your team.</p>
@@ -484,7 +621,7 @@
                             <span><strong>Customer Advisory Board:</strong> Direct access to roadmap calls.</span>
                         </li>
                     </ul>
-                    <button onclick="document.getElementById('waitlist-container').scrollIntoView(); switchTab('biz');" class="w-full py-3 rounded bg-white text-black font-mono font-bold text-sm hover:bg-gray-200 transition-colors mb-2 relative z-10">Claim Lifetime Pro</button>
+                    <a href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener" class="block text-center w-full py-3 rounded bg-white text-black font-mono font-bold text-sm hover:bg-gray-200 transition-colors mb-2 relative z-10">Add to Chrome</a>
                     <a href="mailto:info@secureintent.ai?subject=Enterprise Licensing" class="text-center text-xs font-mono text-gray-500 hover:text-white transition-colors relative z-10">Price on Request (>5 Licenses)</a>
                 </div>
 
@@ -618,8 +755,8 @@
     <section id="coverage" class="py-20 relative z-10 border-t border-white/5 fade-up-section">
         <div class="max-w-7xl mx-auto px-6">
             <div class="text-center mb-16">
-                <h2 class="text-3xl font-bold mb-4">Uncompromising coverage. <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-cyan to-blue-400">100% Accuracy.</span></h2>
-                <p class="font-sans text-gray-300 text-sm md:text-base">100% accuracy within protected platforms. Works everywhere you do.</p>
+                <h2 class="text-3xl font-bold mb-4">Uncompromising coverage. <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-cyan to-blue-400">High-accuracy detection.</span></h2>
+                <p class="font-sans text-gray-300 text-sm md:text-base">Tuned for near-zero false negatives within protected platforms. Works everywhere you do.</p>
             </div>
 
             <div class="grid lg:grid-cols-2 gap-8">
@@ -766,9 +903,9 @@
             <div class="text-center mb-16">
                 <h2 class="text-3xl font-bold mb-4">Designed by cybersecurity heavyweights.</h2>
                 <p class="font-sans text-gray-300 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
-                    Built by industry veterans. We designed SecureIntent for absolute peace of mind: 
-                    <span class="text-brand-cyan font-bold">zero retention, zero remote logging, 100% local execution.</span> 
-                    Business users can deploy knowing we will never store, see, or touch your code.
+                    Built by industry veterans. We designed SecureIntent for peace of mind:
+                    <span class="text-brand-cyan font-bold">detection runs on-device and your raw pasted text never leaves your machine</span> — only anonymized detection metadata is sent.
+                    Business users can deploy knowing we never store, see, or touch your code.
                 </p>
             </div>
 
@@ -895,9 +1032,9 @@
             </div>
             
             <div class="mt-16 text-center">
-                <button onclick="document.getElementById('waitlist-container').scrollIntoView();" class="inline-flex items-center gap-2 px-8 py-4 bg-brand-cyan text-black font-mono font-bold rounded-lg hover:bg-white transition-colors shadow-neon hover:shadow-neon-hover">
-                    Join Waitlist <i class="fa-solid fa-arrow-up" aria-hidden="true"></i>
-                </button>
+                <a href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener" class="btn-primary inline-flex items-center gap-2 px-8 py-4 font-mono rounded-lg">
+                    <i class="fa-brands fa-chrome" aria-hidden="true"></i> Add to Chrome — Free
+                </a>
             </div>
         </div>
     </section>
@@ -914,7 +1051,7 @@
             </svg>
         </div>
         
-        <p class="mt-4 text-xs">A free, auditable tool for developers. Zero retention guaranteed.</p>
+        <p class="mt-4 text-xs">A free, auditable tool for developers. Your pasted content never leaves your device.</p>
 
         <!-- Comprehensive Trust & Resource Links -->
         <div class="mt-12 grid grid-cols-2 md:grid-cols-4 gap-8 text-left max-w-4xl mx-auto px-6 border-t border-white/5 pt-12">
@@ -950,6 +1087,8 @@
             <a href="mailto:SOC@secureintent.ai" class="text-xs hover:text-brand-cyan transition-colors text-brand-cyan">SOC@secureintent.ai</a>
             <span class="hidden md:block text-white/20">|</span>
             <a href="#" onclick="openModal('modal-billing'); return false;" class="text-xs hover:text-brand-cyan transition-colors text-brand-cyan">Billing Support</a>
+            <span class="hidden md:block text-white/20">|</span>
+            <a href="https://wa.me/447775531198?text=Hi%20SecureIntent%20support%2C%20I%20have%20a%20question%20about%20" target="_blank" rel="noopener" class="text-xs hover:text-brand-cyan transition-colors text-brand-cyan inline-flex items-center gap-1.5"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> WhatsApp Support</a>
         </div>
         
         <div class="mt-12 mb-4 text-[10px] text-gray-500 flex flex-col items-center gap-1">
@@ -1118,93 +1257,6 @@ Expires: 2027-05-29T00:00:00.000Z
 
     <!-- Interactive Scripts -->
     <script>
-        // Visual Scarcity Counters
-        let spotsDevPro = 442;
-        let spotsBiz = 489;
-
-        // Function to update all DOM elements showing the counts
-        function updateCounterUI() {
-            const counterFormDevPro = document.getElementById('counter-form-dev-pro');
-            const badgeDevPro = document.getElementById('badge-dev-pro');
-            if (counterFormDevPro) counterFormDevPro.innerText = spotsDevPro;
-            if (badgeDevPro) badgeDevPro.innerText = spotsDevPro;
-
-            const counterFormBiz = document.getElementById('counter-form-biz');
-            const badgeBiz = document.getElementById('badge-biz');
-            if (counterFormBiz) counterFormBiz.innerText = spotsBiz;
-            if (badgeBiz) badgeBiz.innerText = spotsBiz;
-        }
-
-        // Initialize UI on load
-        document.addEventListener('DOMContentLoaded', () => {
-            updateCounterUI(); 
-        });
-
-        // Form Submission Interception & Redirection logic
-        function handleWaitlistSubmit(event, tier) {
-            event.preventDefault(); // Stop standard redirect
-            
-            const form = event.target;
-            const emailInput = document.getElementById(`email-${tier}`).value.trim().toLowerCase();
-            const submitBtn = form.querySelector('button[type="submit"]');
-
-            // Business Pro logic: Block free email providers
-            if (tier === 'biz') {
-                const freeDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'live.com', 'icloud.com', 'proton.me', 'protonmail.com', 'zoho.com', 'aol.com', 'ymail.com', 'googlemail.com'];
-                const domain = emailInput.split('@')[1];
-                const errorMsg = document.getElementById('error-biz');
-                
-                if (freeDomains.includes(domain)) {
-                    errorMsg.classList.remove('hidden');
-                    return false; // Halt submission
-                } else {
-                    errorMsg.classList.add('hidden');
-                }
-            }
-
-            // Visual feedback
-            const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Securing...';
-            submitBtn.disabled = true;
-
-            // Explicit Payload format for Cloudflare D1
-            const payload = {
-                email: emailInput,
-                tier: tier
-            };
-
-            // Add optional fields if provided by Pro/Biz users
-            const formData = new FormData(form);
-            if (formData.get('name')) payload.name = formData.get('name');
-            if (formData.get('employees')) payload.employees = formData.get('employees');
-
-            // Submit to Cloudflare API
-            fetch("https://api.secureintent.ai/submit", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            })
-            .then(async (response) => {
-                if (!response.ok) throw new Error('API request failed');
-
-                // Update scarcity counters locally for the user who just submitted
-                if (tier === 'dev-pro' && spotsDevPro > 0) spotsDevPro--;
-                if (tier === 'biz' && spotsBiz > 0) spotsBiz--;
-                updateCounterUI();
-
-                // Show Claimed state
-                submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Claimed!';
-                submitBtn.classList.remove('bg-brand-cyan');
-                submitBtn.classList.add('bg-green-500', 'text-white');
-            })
-            .catch((error) => {
-                console.error("Form submission error:", error);
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
-                alert("Something went wrong. Please try again.");
-            });
-        }
-
         // Fade Up Observer
         document.addEventListener('DOMContentLoaded', () => {
             const observer = new IntersectionObserver((entries) => {
@@ -1258,57 +1310,14 @@ Expires: 2027-05-29T00:00:00.000Z
             }
         });
 
-        // Tab Switcher Logic
-        function switchTab(tab) {
-            const tabs = ['dev', 'dev-pro', 'biz'];
-            
-            const btnBiz = document.getElementById('tab-biz');
-            const pingDot = btnBiz.querySelector('.animate-ping');
-            if(pingDot && tab === 'biz') pingDot.parentElement.remove();
-
-            tabs.forEach(t => {
-                const form = document.getElementById(`form-${t}`);
-                const btn = document.getElementById(`tab-${t}`);
-                
-                if (t === tab) {
-                    form.classList.remove('hidden');
-                    form.classList.add('flex');
-                    btn.className = "flex-1 py-3 text-[10px] sm:text-xs font-mono font-bold text-brand-cyan border-b-2 border-brand-cyan bg-white/5 transition-colors relative";
-                } else {
-                    form.classList.add('hidden');
-                    form.classList.remove('flex');
-                    btn.className = "flex-1 py-3 text-[10px] sm:text-xs font-mono text-gray-500 border-b-2 border-transparent hover:text-white transition-colors relative";
-                }
-            });
-        }
-
-        // Countdown Timer Logic
-        function updateTimer() {
-            const launchDate = new Date('July 10, 2026 00:00:00').getTime();
-            const now = new Date().getTime();
-            const distance = launchDate - now;
-
-            if (distance < 0) {
-                // Time's up! Hide the timer and show the "SYSTEM LIVE" badge
-                document.getElementById('countdown-timer').style.display = 'none';
-                document.getElementById('live-badge').classList.remove('hidden');
-                return;
-            }
-
-            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const mins = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-            const secs = Math.floor((distance % (1000 * 60)) / 1000);
-
-            // Add leading zeros
-            document.getElementById('t-days').innerText = days.toString().padStart(2, '0') + 'd';
-            document.getElementById('t-hours').innerText = hours.toString().padStart(2, '0') + 'h';
-            document.getElementById('t-mins').innerText = mins.toString().padStart(2, '0') + 'm';
-            document.getElementById('t-secs').innerText = secs.toString().padStart(2, '0') + 's';
-        }
-
-        setInterval(updateTimer, 1000);
-        updateTimer(); // Initial call
     </script>
+
+    <!-- WhatsApp Business floating support button -->
+    <a href="https://wa.me/447775531198?text=Hi%20SecureIntent%20support%2C%20I%20have%20a%20question%20about%20"
+       target="_blank" rel="noopener"
+       class="wa-float" aria-label="Chat with SecureIntent support on WhatsApp">
+        <span class="wa-label">Chat with support</span>
+        <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+    </a>
 </body>
 </html>
