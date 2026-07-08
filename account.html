@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>SecureIntent · Account</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --base: #050507;
+        --panel: #0a0e1a;
+        --cyan: #72ffff;
+        --navy: #052656;
+        --text: #f4f6f8;
+        --muted: #8b949e;
+        --faint: #5a626b;
+        --danger: #ff6b6b;
+        --border: rgba(255, 255, 255, 0.08);
+        --mono: "Fira Code", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        background: radial-gradient(circle at 50% -10%, #0b1530, #050507 62%);
+        color: var(--text);
+        font-family: var(--sans);
+        display: flex;
+        flex-direction: column;
+      }
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 20px 24px;
+      }
+      .brand {
+        font-family: var(--mono);
+        font-size: 17px;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+      }
+      .brand .accent {
+        color: var(--cyan);
+      }
+      .brand a {
+        color: inherit;
+        text-decoration: none;
+      }
+      .backlink {
+        font-size: 13px;
+        color: var(--muted);
+        text-decoration: none;
+      }
+      .backlink:hover {
+        color: var(--cyan);
+      }
+
+      /* Main is a centering stage. Short content (sign-in) centers on both axes;
+         tall content (account/profile) sits toward the top. */
+      main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 16px 20px 64px;
+      }
+      #loading {
+        margin: auto 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      /* Sign-in — vertically centered card */
+      #auth {
+        margin: auto 0;
+        width: 100%;
+        max-width: 420px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 18px;
+      }
+      .auth-head {
+        text-align: center;
+      }
+      .auth-head h1 {
+        margin: 0 0 6px;
+        font-size: 22px;
+        font-weight: 650;
+      }
+      .auth-head p {
+        margin: 0;
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      /* Account — top aligned, constrained width */
+      #account {
+        width: 100%;
+        max-width: 640px;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 20px;
+        margin-top: 8px;
+      }
+      .plan {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        padding: 18px 20px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+      }
+      .plan-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+      }
+      .plan-who {
+        font-size: 15px;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .plan-label {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .plan-name {
+        font-family: var(--mono);
+        font-weight: 600;
+        color: var(--muted);
+      }
+      .plan-name.pro {
+        color: var(--cyan);
+      }
+      .plan-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      button.upgrade {
+        padding: 10px 18px;
+        font-family: var(--mono);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--navy);
+        background: var(--cyan);
+        border: none;
+        border-radius: 9px;
+        cursor: pointer;
+        transition: filter 150ms ease;
+      }
+      button.upgrade:hover {
+        filter: brightness(1.08);
+      }
+      button.signout {
+        padding: 9px 15px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--danger);
+        background: rgba(255, 107, 107, 0.08);
+        border: 1px solid rgba(255, 107, 107, 0.25);
+        border-radius: 9px;
+        cursor: pointer;
+        transition: background 150ms ease;
+      }
+      button.signout:hover {
+        background: rgba(255, 107, 107, 0.14);
+      }
+      .pro-badge {
+        padding: 6px 12px;
+        font-family: var(--mono);
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--cyan);
+        background: rgba(114, 255, 255, 0.1);
+        border: 1px solid rgba(114, 255, 255, 0.25);
+        border-radius: 999px;
+      }
+      /* Clerk mount points — center their internal cards */
+      #clerk-auth,
+      #clerk-profile {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+      }
+      .sync-note {
+        margin: 4px 0 0;
+        padding: 12px 14px;
+        font-size: 12.5px;
+        line-height: 1.5;
+        color: var(--muted);
+        background: rgba(114, 255, 255, 0.05);
+        border: 1px solid rgba(114, 255, 255, 0.16);
+        border-radius: 10px;
+        text-align: center;
+      }
+      [hidden] {
+        display: none !important;
+      }
+    </style>
+
+    <script
+      async
+      crossorigin="anonymous"
+      data-clerk-publishable-key="pk_test_YXNzdXJpbmctcG9sbGl3b2ctOTEuY2xlcmsuYWNjb3VudHMuZGV2JA"
+      src="https://assuring-polliwog-91.clerk.accounts.dev/npm/@clerk/clerk-js@5/dist/clerk.browser.js"
+      type="text/javascript"
+    ></script>
+    <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+  </head>
+  <body>
+    <div class="topbar">
+      <span class="brand"><a href="/">SecureIntent<span class="accent">.ai</span></a></span>
+      <a class="backlink" href="/">← Home</a>
+    </div>
+
+    <main>
+      <div id="loading">Loading…</div>
+
+      <!-- Signed-out -->
+      <div id="auth" hidden>
+        <div class="auth-head">
+          <h1>Sign in</h1>
+          <p>Unlock Pro features and manage your account.</p>
+        </div>
+        <div id="clerk-auth"></div>
+      </div>
+
+      <!-- Signed-in -->
+      <section id="account" hidden>
+        <div class="plan">
+          <div class="plan-info">
+            <span class="plan-who" id="plan-who">—</span>
+            <span class="plan-label"
+              >Plan · <span class="plan-name" id="plan-name">—</span></span
+            >
+          </div>
+          <div class="plan-actions">
+            <button class="upgrade" id="upgrade" hidden>Upgrade · $4/mo</button>
+            <span class="pro-badge" id="pro-badge" hidden>Pro active</span>
+            <button class="signout" id="signout">Sign out</button>
+          </div>
+        </div>
+        <div id="clerk-profile"></div>
+        <p class="sync-note">
+          Signing in here syncs automatically to the SecureIntent browser extension.
+        </p>
+      </section>
+    </main>
+
+    <script>
+      const CFG = {
+        // Paddle client-side token — Paddle → Developer Tools → Authentication →
+        // Client-side tokens (starts with "live_"). REQUIRED for Upgrade.
+        paddleToken: "live_7ce4fc6784b4e1614713a5b29ee",
+        paddleEnv: "production",
+        priceId: "pri_01kvtk87ebyb41gyzm8ydne0hp",
+        apiBase: "https://api.secureintent.ai",
+        jwtTemplate: "secureintent",
+      };
+
+      const PLAN_LABEL = {
+        developer: "Free",
+        developer_pro: "Developer Pro",
+        business_pro: "Business Pro",
+      };
+
+      // Theme Clerk's components to match the dark / cyan brand.
+      const CLERK_APPEARANCE = {
+        variables: {
+          colorPrimary: "#72ffff",
+          colorBackground: "#0a0e1a",
+          colorText: "#f4f6f8",
+          colorTextSecondary: "#8b949e",
+          colorInputBackground: "#0d1220",
+          colorInputText: "#f4f6f8",
+          colorNeutral: "#ffffff",
+          borderRadius: "10px",
+          fontFamily: '"Inter", system-ui, sans-serif',
+        },
+        elements: {
+          card: { boxShadow: "none", border: "1px solid rgba(255,255,255,0.08)" },
+          rootBox: { width: "100%" },
+        },
+      };
+
+      const $ = (id) => document.getElementById(id);
+
+      async function loadPlan() {
+        try {
+          const token = await window.Clerk.session.getToken({ template: CFG.jwtTemplate });
+          const res = await fetch(`${CFG.apiBase}/v1/entitlement`, {
+            headers: { Authorization: `Bearer ${token}` },
+            cache: "no-store",
+          });
+          const data = await res.json();
+          const plan = data?.entitlement?.plan ?? "developer";
+          const isFree = plan === "developer";
+          $("plan-name").textContent = PLAN_LABEL[plan] ?? plan;
+          $("plan-name").classList.toggle("pro", !isFree);
+          $("upgrade").hidden = !isFree;
+          $("pro-badge").hidden = isFree;
+        } catch (e) {
+          console.error("[account] loadPlan failed", e);
+        }
+      }
+
+      function openCheckout() {
+        const user = window.Clerk.user;
+        if (!user) return;
+        const email = user.primaryEmailAddress?.emailAddress;
+        window.Paddle.Checkout.open({
+          items: [{ priceId: CFG.priceId, quantity: 1 }],
+          customData: { clerk_user_id: user.id },
+          customer: email ? { email } : undefined,
+          settings: { displayMode: "overlay", theme: "dark", allowLogout: false },
+        });
+      }
+
+      function resumePendingTxn() {
+        const ptxn = new URLSearchParams(location.search).get("_ptxn");
+        if (ptxn) window.Paddle.Checkout.open({ transactionId: ptxn });
+      }
+
+      function render() {
+        $("loading").hidden = true;
+        const signedIn = !!window.Clerk.user;
+        $("account").hidden = !signedIn;
+        $("auth").hidden = signedIn;
+
+        if (signedIn) {
+          $("plan-who").textContent =
+            window.Clerk.user.primaryEmailAddress?.emailAddress ??
+            window.Clerk.user.fullName ??
+            "Your account";
+          window.Clerk.mountUserProfile($("clerk-profile"), { appearance: CLERK_APPEARANCE });
+          loadPlan();
+          resumePendingTxn();
+        } else {
+          window.Clerk.mountSignIn($("clerk-auth"), {
+            appearance: CLERK_APPEARANCE,
+            afterSignInUrl: "/account.html",
+            afterSignUpUrl: "/account.html",
+          });
+        }
+      }
+
+      async function main() {
+        try {
+          await window.Clerk.load();
+
+          if (CFG.paddleToken && !CFG.paddleToken.startsWith("REPLACE")) {
+            window.Paddle.Environment.set(CFG.paddleEnv);
+            window.Paddle.Initialize({
+              token: CFG.paddleToken,
+              eventCallback: (e) => {
+                if (e?.name === "checkout.completed") setTimeout(loadPlan, 3000);
+              },
+            });
+          } else {
+            console.warn("[account] Paddle client token not set — upgrade disabled.");
+          }
+
+          $("upgrade").addEventListener("click", openCheckout);
+          $("signout").addEventListener("click", () => window.Clerk.signOut());
+          render();
+          window.Clerk.addListener(render);
+        } catch (e) {
+          console.error("[account] init failed", e);
+          $("loading").textContent = "Failed to load. Please refresh.";
+        }
+      }
+
+      if (window.Clerk) {
+        main();
+      } else {
+        window.addEventListener("load", () => {
+          const wait = setInterval(() => {
+            if (window.Clerk && window.Paddle) {
+              clearInterval(wait);
+              main();
+            }
+          }, 60);
+        });
+      }
+    </script>
+  </body>
+</html>
