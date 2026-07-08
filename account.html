@@ -163,6 +163,11 @@
         color: var(--faint);
         font-family: var(--mono);
       }
+      .plan-usage {
+        font-size: 12px;
+        color: var(--cyan);
+        font-family: var(--mono);
+      }
       button.manage {
         padding: 9px 15px;
         font-size: 13px;
@@ -299,6 +304,7 @@
               >Plan · <span class="plan-name" id="plan-name">—</span></span
             >
             <span class="plan-sub" id="plan-sub" hidden></span>
+            <span class="plan-usage" id="plan-usage" hidden></span>
           </div>
           <div class="plan-actions">
             <button class="upgrade" id="upgrade" hidden>Upgrade · $4/mo</button>
@@ -377,8 +383,32 @@
           } else {
             $("plan-sub").hidden = true;
           }
+          // Free plan: show the monthly Anonymise & Paste allowance.
+          if (isFree) {
+            loadUsage(token);
+          } else {
+            $("plan-usage").textContent = "Anonymise & Paste · Unlimited";
+            $("plan-usage").hidden = false;
+          }
         } catch (e) {
           console.error("[account] loadPlan failed", e);
+        }
+      }
+
+      async function loadUsage(token) {
+        try {
+          const res = await fetch(`${CFG.apiBase}/v1/usage`, {
+            headers: { Authorization: `Bearer ${token}` },
+            cache: "no-store",
+          });
+          if (!res.ok) return;
+          const u = await res.json();
+          $("plan-usage").textContent = u.unlimited
+            ? "Anonymise & Paste · Unlimited"
+            : `Anonymise & Paste · ${u.remaining} / ${u.limit} left this month`;
+          $("plan-usage").hidden = false;
+        } catch (e) {
+          console.error("[account] loadUsage failed", e);
         }
       }
 
