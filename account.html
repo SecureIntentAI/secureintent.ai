@@ -41,22 +41,28 @@
         align-items: center;
         justify-content: space-between;
         width: 100%;
-        max-width: 960px;
+        max-width: 1120px;
         margin: 0 auto;
-        padding: 20px 24px;
+        padding: 22px 28px;
       }
       .brand {
-        font-family: var(--mono);
-        font-size: 17px;
-        font-weight: 650;
-        letter-spacing: -0.01em;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: #fff;
+        text-decoration: none;
+      }
+      .brand svg {
+        display: block;
+      }
+      .brand-word {
+        font-family: var(--sans);
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
       }
       .brand .accent {
         color: var(--cyan);
-      }
-      .brand a {
-        color: inherit;
-        text-decoration: none;
       }
       .backlink {
         font-size: 13px;
@@ -109,7 +115,7 @@
       /* Account — top aligned, constrained width */
       #account {
         width: 100%;
-        max-width: 640px;
+        max-width: 940px;
         display: flex;
         flex-direction: column;
         align-items: stretch;
@@ -151,6 +157,25 @@
       }
       .plan-name.pro {
         color: var(--cyan);
+      }
+      .plan-sub {
+        font-size: 12px;
+        color: var(--faint);
+        font-family: var(--mono);
+      }
+      button.manage {
+        padding: 9px 15px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--cyan);
+        background: transparent;
+        border: 1px solid rgba(114, 255, 255, 0.35);
+        border-radius: 9px;
+        cursor: pointer;
+        transition: background 150ms ease;
+      }
+      button.manage:hover {
+        background: rgba(114, 255, 255, 0.08);
       }
       .plan-actions {
         display: flex;
@@ -230,7 +255,26 @@
   </head>
   <body>
     <div class="topbar">
-      <span class="brand"><a href="/">SecureIntent<span class="accent">.ai</span></a></span>
+      <a class="brand" href="/">
+        <svg aria-label="SecureIntent" role="img" viewBox="0 0 250 250" width="32" height="32">
+          <path
+            d="M 50,195 L 110,75"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="28"
+            stroke-linecap="round"
+          ></path>
+          <path
+            d="M 130,195 L 160,135"
+            fill="none"
+            stroke="#72FFFF"
+            stroke-width="28"
+            stroke-linecap="round"
+          ></path>
+          <circle cx="190" cy="75" r="14" fill="#72FFFF"></circle>
+        </svg>
+        <span class="brand-word">SecureIntent<span class="accent">.ai</span></span>
+      </a>
       <a class="backlink" href="/">← Home</a>
     </div>
 
@@ -254,9 +298,11 @@
             <span class="plan-label"
               >Plan · <span class="plan-name" id="plan-name">—</span></span
             >
+            <span class="plan-sub" id="plan-sub" hidden></span>
           </div>
           <div class="plan-actions">
             <button class="upgrade" id="upgrade" hidden>Upgrade · $4/mo</button>
+            <button class="manage" id="manage" hidden>Manage subscription</button>
             <span class="pro-badge" id="pro-badge" hidden>Pro active</span>
             <button class="signout" id="signout">Sign out</button>
           </div>
@@ -289,6 +335,7 @@
       const CLERK_APPEARANCE = {
         variables: {
           colorPrimary: "#72ffff",
+          colorPrimaryForeground: "#052656", // dark text on the cyan primary button
           colorBackground: "#0a0e1a",
           colorText: "#f4f6f8",
           colorTextSecondary: "#8b949e",
@@ -301,6 +348,8 @@
         elements: {
           card: { boxShadow: "none", border: "1px solid rgba(255,255,255,0.08)" },
           rootBox: { width: "100%" },
+          // Cyan button needs dark, bold text for contrast (Clerk defaults to white).
+          formButtonPrimary: { color: "#052656", fontWeight: "600" },
         },
       };
 
@@ -315,13 +364,39 @@
           });
           const data = await res.json();
           const plan = data?.entitlement?.plan ?? "developer";
+          const status = data?.entitlement?.status;
           const isFree = plan === "developer";
           $("plan-name").textContent = PLAN_LABEL[plan] ?? plan;
           $("plan-name").classList.toggle("pro", !isFree);
           $("upgrade").hidden = !isFree;
           $("pro-badge").hidden = isFree;
+          $("manage").hidden = isFree;
+          if (!isFree && status) {
+            $("plan-sub").textContent = `Subscription: ${status}`;
+            $("plan-sub").hidden = false;
+          } else {
+            $("plan-sub").hidden = true;
+          }
         } catch (e) {
           console.error("[account] loadPlan failed", e);
+        }
+      }
+
+      async function openPortal() {
+        try {
+          const token = await window.Clerk.session.getToken({ template: CFG.jwtTemplate });
+          const res = await fetch(`${CFG.apiBase}/v1/billing/portal`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!res.ok) {
+            console.error("[account] portal failed", res.status);
+            return;
+          }
+          const { url } = await res.json();
+          if (url) window.open(url, "_blank", "noopener");
+        } catch (e) {
+          console.error("[account] openPortal failed", e);
         }
       }
 
@@ -382,6 +457,7 @@
           }
 
           $("upgrade").addEventListener("click", openCheckout);
+          $("manage").addEventListener("click", openPortal);
           $("signout").addEventListener("click", () => window.Clerk.signOut());
           render();
           window.Clerk.addListener(render);
