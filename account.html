@@ -284,8 +284,8 @@
       <!-- Signed-out -->
       <div id="auth" hidden>
         <div class="auth-head">
-          <h1>Sign in</h1>
-          <p>Unlock Pro features and manage your account.</p>
+          <h1 id="auth-title">Sign in</h1>
+          <p id="auth-sub">Unlock Pro features and manage your account.</p>
         </div>
         <div id="clerk-auth"></div>
       </div>
@@ -432,11 +432,32 @@
           loadPlan();
           resumePendingTxn();
         } else {
-          window.Clerk.mountSignIn($("clerk-auth"), {
+          // Keep sign-in AND sign-up on this page (don't fall back to Clerk's
+          // hosted Account Portal). The mode is chosen from ?mode=signup, and the
+          // two components cross-link to each other via signInUrl / signUpUrl.
+          const signUpMode =
+            new URLSearchParams(location.search).get("mode") === "signup";
+          $("clerk-auth").replaceChildren();
+          const common = {
             appearance: CLERK_APPEARANCE,
             afterSignInUrl: "/account.html",
             afterSignUpUrl: "/account.html",
-          });
+          };
+          if (signUpMode) {
+            $("auth-title").textContent = "Create account";
+            $("auth-sub").textContent = "Start protecting your prompts in seconds.";
+            window.Clerk.mountSignUp($("clerk-auth"), {
+              ...common,
+              signInUrl: "/account.html",
+            });
+          } else {
+            $("auth-title").textContent = "Sign in";
+            $("auth-sub").textContent = "Unlock Pro features and manage your account.";
+            window.Clerk.mountSignIn($("clerk-auth"), {
+              ...common,
+              signUpUrl: "/account.html?mode=signup",
+            });
+          }
         }
       }
 
