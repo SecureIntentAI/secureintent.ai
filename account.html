@@ -417,6 +417,12 @@
         if (ptxn) window.Paddle.Checkout.open({ transactionId: ptxn });
       }
 
+      // Which Clerk component is currently mounted ('in' | 'signin' | 'signup').
+      // Clerk.addListener fires render() on every state change (incl. mid-flow,
+      // e.g. the email-verification step). Re-mounting each time would tear down
+      // the in-progress flow, so we mount a given state ONCE and skip if unchanged.
+      let mounted = null;
+
       function render() {
         $("loading").hidden = true;
         const signedIn = !!window.Clerk.user;
@@ -428,36 +434,39 @@
             window.Clerk.user.primaryEmailAddress?.emailAddress ??
             window.Clerk.user.fullName ??
             "Your account";
-          window.Clerk.mountUserProfile($("clerk-profile"), { appearance: CLERK_APPEARANCE });
-          loadPlan();
-          resumePendingTxn();
-        } else {
-          // Keep sign-in AND sign-up on this page (don't fall back to Clerk's
-          // hosted Account Portal). The mode is chosen from ?mode=signup, and the
-          // two components cross-link to each other via signInUrl / signUpUrl.
-          const signUpMode =
-            new URLSearchParams(location.search).get("mode") === "signup";
-          $("clerk-auth").replaceChildren();
-          const common = {
-            appearance: CLERK_APPEARANCE,
-            afterSignInUrl: "/account.html",
-            afterSignUpUrl: "/account.html",
-          };
-          if (signUpMode) {
-            $("auth-title").textContent = "Create account";
-            $("auth-sub").textContent = "Start protecting your prompts in seconds.";
-            window.Clerk.mountSignUp($("clerk-auth"), {
-              ...common,
-              signInUrl: "/account.html",
-            });
-          } else {
-            $("auth-title").textContent = "Sign in";
-            $("auth-sub").textContent = "Unlock Pro features and manage your account.";
-            window.Clerk.mountSignIn($("clerk-auth"), {
-              ...common,
-              signUpUrl: "/account.html?mode=signup",
-            });
+          if (mounted !== "in") {
+            mounted = "in";
+            window.Clerk.mountUserProfile($("clerk-profile"), { appearance: CLERK_APPEARANCE });
+            resumePendingTxn();
           }
+          loadPlan();
+          return;
+        }
+
+        // Signed out: keep sign-in AND sign-up on this page (don't fall back to
+        // Clerk's hosted Account Portal). Mode chosen from ?mode=signup; the two
+        // components cross-link via signInUrl / signUpUrl.
+        const signUpMode = new URLSearchParams(location.search).get("mode") === "signup";
+        const want = signUpMode ? "signup" : "signin";
+        if (mounted === want) return; // already showing it — don't disturb the flow
+        mounted = want;
+        $("clerk-auth").replaceChildren();
+        const common = {
+          appearance: CLERK_APPEARANCE,
+          afterSignInUrl: "/account.html",
+          afterSignUpUrl: "/account.html",
+        };
+        if (signUpMode) {
+          $("auth-title").textContent = "Create account";
+          $("auth-sub").textContent = "Start protecting your prompts in seconds.";
+          window.Clerk.mountSignUp($("clerk-auth"), { ...common, signInUrl: "/account.html" });
+        } else {
+          $("auth-title").textContent = "Sign in";
+          $("auth-sub").textContent = "Unlock Pro features and manage your account.";
+          window.Clerk.mountSignIn($("clerk-auth"), {
+            ...common,
+            signUpUrl: "/account.html?mode=signup",
+          });
         }
       }
 
