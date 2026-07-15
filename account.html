@@ -213,15 +213,18 @@
       }
       /* Feature matrix — mirrors the extension popup's "Your plan" checklist. */
       .features {
-        padding: 18px 20px 8px;
+        padding: 0;
         background: rgba(255, 255, 255, 0.03);
         border: 1px solid var(--border);
         border-radius: 14px;
       }
+      /* Symmetric padding on the summary itself so the collapsed bar is
+         vertically centered (card padding would otherwise be lopsided). */
       .features-head {
         display: flex;
         align-items: center;
         justify-content: space-between;
+        padding: 15px 20px;
         font-size: 13px;
         font-weight: 600;
         color: var(--text);
@@ -242,8 +245,8 @@
       }
       .feature-list {
         list-style: none;
-        margin: 6px 0 0;
-        padding: 0;
+        margin: 0;
+        padding: 0 20px 8px;
       }
       .feat {
         display: flex;
