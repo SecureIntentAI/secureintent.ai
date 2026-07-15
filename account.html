@@ -438,7 +438,8 @@
 
       const ICON = { upcoming: CLOCK_SVG, locked: LOCK_SVG };
 
-      function featureRows(isFree) {
+      function featureRows(plan) {
+        const isFree = plan === "developer";
         const anon = isFree
           ? { key: "anonymise", label: "Anonymise & Paste", state: "usage", detail: "—" }
           : { key: "anonymise", label: "Anonymise & Paste", state: "active", detail: "Unlimited" };
@@ -446,19 +447,25 @@
           isFree
             ? { key, label, state: "locked", detail: "Pro" }
             : { key, label, state: "active", detail: "Active" };
-        return [
+        const rows = [
           { key: "detection", label: "Detection & warnings", state: "active", detail: "Active" },
           anon,
           toolkit("rehydrate", "Rehydrate vault"),
           toolkit("ghost", "Ghost log sanitiser"),
           toolkit("session_lock", "Session Lock"),
-          { key: "team_policy", label: "Team Policy Sync", state: "upcoming", detail: "Soon" },
-          { key: "team_alerts", label: "Security-Team Alerts", state: "upcoming", detail: "Soon" },
         ];
+        // Business roadmap is only shown to Business Pro accounts.
+        if (plan === "business_pro") {
+          rows.push(
+            { key: "team_policy", label: "Team Policy Sync", state: "upcoming", detail: "Soon" },
+            { key: "team_alerts", label: "Security-Team Alerts", state: "upcoming", detail: "Soon" },
+          );
+        }
+        return rows;
       }
 
-      function renderFeatures(isFree) {
-        $("feature-list").innerHTML = featureRows(isFree)
+      function renderFeatures(plan) {
+        $("feature-list").innerHTML = featureRows(plan)
           .map(
             (r) =>
               `<li class="feat feat--${r.state}" data-key="${r.key}">` +
@@ -498,7 +505,7 @@
           }
           // Render the full feature matrix; free plans then fill in the live
           // Anonymise & Paste allowance from the usage endpoint.
-          renderFeatures(isFree);
+          renderFeatures(plan);
           if (isFree) loadUsage(token);
         } catch (e) {
           console.error("[account] loadPlan failed", e);
