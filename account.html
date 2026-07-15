@@ -211,16 +211,6 @@
       button.signout:hover {
         background: rgba(255, 107, 107, 0.14);
       }
-      .pro-badge {
-        padding: 6px 12px;
-        font-family: var(--mono);
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--cyan);
-        background: rgba(114, 255, 255, 0.1);
-        border: 1px solid rgba(114, 255, 255, 0.25);
-        border-radius: 999px;
-      }
       /* Feature matrix — mirrors the extension popup's "Your plan" checklist. */
       .features {
         padding: 18px 20px 8px;
@@ -381,7 +371,6 @@
           <div class="plan-actions">
             <button class="upgrade" id="upgrade" hidden>Upgrade · $4/mo</button>
             <button class="manage" id="manage" hidden>Manage subscription</button>
-            <span class="pro-badge" id="pro-badge" hidden>Pro active</span>
             <button class="signout" id="signout">Sign out</button>
           </div>
         </div>
@@ -522,7 +511,6 @@
           $("plan-name").textContent = PLAN_LABEL[plan] ?? plan;
           $("plan-name").classList.toggle("pro", !isFree);
           $("upgrade").hidden = !isFree;
-          $("pro-badge").hidden = isFree;
           $("manage").hidden = isFree;
           if (!isFree && status) {
             $("plan-sub").textContent = `Subscription: ${status}`;
