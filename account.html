@@ -219,14 +219,30 @@
         border-radius: 14px;
       }
       .features-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         font-size: 13px;
         font-weight: 600;
         color: var(--text);
-        margin-bottom: 6px;
+        cursor: pointer;
+        list-style: none;
+        user-select: none;
+      }
+      .features-head::-webkit-details-marker {
+        display: none;
+      }
+      .feat-chev {
+        flex: 0 0 auto;
+        color: var(--faint);
+        transition: transform 200ms ease;
+      }
+      .features[open] .feat-chev {
+        transform: rotate(90deg);
       }
       .feature-list {
         list-style: none;
-        margin: 0;
+        margin: 6px 0 0;
         padding: 0;
       }
       .feat {
@@ -375,10 +391,28 @@
           </div>
         </div>
 
-        <div class="features">
-          <div class="features-head">What's included</div>
+        <details class="features" id="features" open>
+          <summary class="features-head">
+            <span>What's included</span>
+            <svg
+              class="feat-chev"
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M9 6l6 6-6 6"
+                stroke="currentColor"
+                stroke-width="1.9"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </summary>
           <ul class="feature-list" id="feature-list"></ul>
-        </div>
+        </details>
 
         <div id="clerk-profile"></div>
         <p class="sync-note">
@@ -427,6 +461,16 @@
       };
 
       const $ = (id) => document.getElementById(id);
+
+      // Remember whether the "What's included" section is expanded (default: shown).
+      (function setupFeatureToggle() {
+        const el = $("features");
+        if (!el) return;
+        el.open = localStorage.getItem("si_features_open") !== "closed";
+        el.addEventListener("toggle", () => {
+          localStorage.setItem("si_features_open", el.open ? "open" : "closed");
+        });
+      })();
 
       // Feature matrix (mirrors the extension popup). The Pro toolkit is live
       // (locked on Free, active on Pro); business features are still "Soon".
