@@ -266,8 +266,12 @@
         color: var(--text);
       }
       .feat-help {
+        position: relative;
         display: inline-grid;
         place-items: center;
+        padding: 0;
+        border: none;
+        background: none;
         color: var(--faint);
         cursor: help;
         transition: color 150ms ease;
@@ -276,6 +280,48 @@
       .feat-help:focus-visible {
         color: var(--cyan);
         outline: none;
+      }
+      .feat-tip {
+        position: absolute;
+        bottom: calc(100% + 7px);
+        left: 50%;
+        transform: translateX(-50%) translateY(3px);
+        z-index: 60;
+        width: max-content;
+        max-width: 240px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        background: #10151f;
+        border: 1px solid var(--border);
+        box-shadow: 0 8px 22px -8px rgba(0, 0, 0, 0.8);
+        font-family: var(--sans);
+        font-size: 12px;
+        font-weight: 400;
+        line-height: 1.4;
+        color: var(--text);
+        text-align: left;
+        white-space: normal;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition:
+          opacity 110ms ease,
+          transform 110ms ease;
+      }
+      .feat-tip::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 5px solid transparent;
+        border-top-color: #10151f;
+      }
+      .feat-help:hover .feat-tip,
+      .feat-help:focus-visible .feat-tip {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(-50%) translateY(0);
       }
       .feat-state {
         margin-left: auto;
@@ -529,7 +575,7 @@
               `<li class="feat feat--${r.state}" data-key="${r.key}">` +
               `<span class="feat-ic">${ICON[r.state] ?? CHECK_SVG}</span>` +
               `<span class="feat-label">${r.label}</span>` +
-              `<span class="feat-help" role="img" tabindex="0" title="${note}" aria-label="${note}">${HELP_SVG}</span>` +
+              `<button type="button" class="feat-help" aria-label="${note}">${HELP_SVG}<span class="feat-tip" role="tooltip">${note}</span></button>` +
               `<span class="feat-state">${r.detail}</span></li>`
             );
           })
