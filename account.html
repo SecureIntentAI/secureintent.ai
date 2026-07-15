@@ -259,6 +259,18 @@
         font-size: 14px;
         color: var(--text);
       }
+      .feat-help {
+        display: inline-grid;
+        place-items: center;
+        color: var(--faint);
+        cursor: help;
+        transition: color 150ms ease;
+      }
+      .feat-help:hover,
+      .feat-help:focus-visible {
+        color: var(--cyan);
+        outline: none;
+      }
       .feat-state {
         margin-left: auto;
         font-family: var(--mono);
@@ -435,8 +447,20 @@
         '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6"/><path d="M12 8v4.2l2.6 1.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
       const LOCK_SVG =
         '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true"><rect x="5" y="10.5" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" stroke="currentColor" stroke-width="1.6"/></svg>';
+      const HELP_SVG =
+        '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M9.6 9.4a2.4 2.4 0 0 1 4.6.9c0 1.6-2.2 1.9-2.2 3.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="17" r="0.9" fill="currentColor"/></svg>';
 
       const ICON = { upcoming: CLOCK_SVG, locked: LOCK_SVG };
+
+      const NOTES = {
+        detection: "Scans every paste on-device and warns before secrets reach the page.",
+        anonymise: "Swap detected secrets for masked tokens so you can paste without leaking them.",
+        rehydrate: "Restore the original secrets from masked tokens later in the same session.",
+        ghost: "Strip secrets, IPs and emails from large logs before you paste them.",
+        session_lock: "PIN-lock high-risk cloud consoles after inactivity or tab-away.",
+        team_policy: "Push shared detection rules and settings across your whole team.",
+        team_alerts: "Notify your security team when a teammate is caught pasting a secret.",
+      };
 
       function featureRows(plan) {
         const isFree = plan === "developer";
@@ -466,13 +490,16 @@
 
       function renderFeatures(plan) {
         $("feature-list").innerHTML = featureRows(plan)
-          .map(
-            (r) =>
+          .map((r) => {
+            const note = NOTES[r.key] ?? "";
+            return (
               `<li class="feat feat--${r.state}" data-key="${r.key}">` +
               `<span class="feat-ic">${ICON[r.state] ?? CHECK_SVG}</span>` +
               `<span class="feat-label">${r.label}</span>` +
-              `<span class="feat-state">${r.detail}</span></li>`,
-          )
+              `<span class="feat-help" role="img" tabindex="0" title="${note}" aria-label="${note}">${HELP_SVG}</span>` +
+              `<span class="feat-state">${r.detail}</span></li>`
+            );
+          })
           .join("");
       }
 
