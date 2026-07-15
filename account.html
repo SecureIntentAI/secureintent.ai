@@ -499,7 +499,10 @@
           fontFamily: '"Inter", system-ui, sans-serif',
         },
         elements: {
-          card: { boxShadow: "none", border: "1px solid rgba(255,255,255,0.08)" },
+          card: { boxShadow: "none", border: "1px solid rgba(255,255,255,0.08)", width: "100%" },
+          // Fill the container so the profile card lines up with the plan / feature
+          // cards above it (Clerk otherwise centers a narrower fixed-width card).
+          cardBox: { width: "100%", maxWidth: "100%" },
           rootBox: { width: "100%" },
           // Cyan button needs dark, bold text for contrast (Clerk defaults to white).
           formButtonPrimary: { color: "#052656", fontWeight: "600" },
