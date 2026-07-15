@@ -274,6 +274,12 @@
       .feat--active .feat-state {
         color: var(--cyan);
       }
+      .feat--locked .feat-label {
+        color: var(--muted);
+      }
+      .feat--locked .feat-state {
+        color: var(--cyan);
+      }
       .feat--upcoming {
         opacity: 0.55;
       }
@@ -421,23 +427,33 @@
 
       const $ = (id) => document.getElementById(id);
 
-      // Feature matrix (mirrors the extension popup). The Pro toolkit
-      // (rehydrate / ghost / session_lock) is presented as "Upcoming" for now.
+      // Feature matrix (mirrors the extension popup). The Pro toolkit is live
+      // (locked on Free, active on Pro); business features are still "Soon".
       const CHECK_SVG =
         '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6"/><path d="M8.4 12.2l2.4 2.4 4.8-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
       const CLOCK_SVG =
         '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6"/><path d="M12 8v4.2l2.6 1.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      const LOCK_SVG =
+        '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true"><rect x="5" y="10.5" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" stroke="currentColor" stroke-width="1.6"/></svg>';
+
+      const ICON = { upcoming: CLOCK_SVG, locked: LOCK_SVG };
 
       function featureRows(isFree) {
         const anon = isFree
           ? { key: "anonymise", label: "Anonymise & Paste", state: "usage", detail: "—" }
           : { key: "anonymise", label: "Anonymise & Paste", state: "active", detail: "Unlimited" };
+        const toolkit = (key, label) =>
+          isFree
+            ? { key, label, state: "locked", detail: "Pro" }
+            : { key, label, state: "active", detail: "Active" };
         return [
           { key: "detection", label: "Detection & warnings", state: "active", detail: "Active" },
           anon,
-          { key: "rehydrate", label: "Rehydrate vault", state: "upcoming", detail: "Soon" },
-          { key: "ghost", label: "Ghost log sanitiser", state: "upcoming", detail: "Soon" },
-          { key: "session_lock", label: "Session Lock", state: "upcoming", detail: "Soon" },
+          toolkit("rehydrate", "Rehydrate vault"),
+          toolkit("ghost", "Ghost log sanitiser"),
+          toolkit("session_lock", "Session Lock"),
+          { key: "team_policy", label: "Team Policy Sync", state: "upcoming", detail: "Soon" },
+          { key: "team_alerts", label: "Security-Team Alerts", state: "upcoming", detail: "Soon" },
         ];
       }
 
@@ -446,7 +462,7 @@
           .map(
             (r) =>
               `<li class="feat feat--${r.state}" data-key="${r.key}">` +
-              `<span class="feat-ic">${r.state === "upcoming" ? CLOCK_SVG : CHECK_SVG}</span>` +
+              `<span class="feat-ic">${ICON[r.state] ?? CHECK_SVG}</span>` +
               `<span class="feat-label">${r.label}</span>` +
               `<span class="feat-state">${r.detail}</span></li>`,
           )
