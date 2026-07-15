@@ -163,11 +163,6 @@
         color: var(--faint);
         font-family: var(--mono);
       }
-      .plan-usage {
-        font-size: 12px;
-        color: var(--cyan);
-        font-family: var(--mono);
-      }
       button.manage {
         padding: 9px 15px;
         font-size: 13px;
@@ -226,6 +221,66 @@
         border: 1px solid rgba(114, 255, 255, 0.25);
         border-radius: 999px;
       }
+      /* Feature matrix — mirrors the extension popup's "Your plan" checklist. */
+      .features {
+        padding: 18px 20px 8px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+      }
+      .features-head {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 6px;
+      }
+      .feature-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .feat {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+      }
+      .feat:first-child {
+        border-top: none;
+      }
+      .feat-ic {
+        flex: 0 0 auto;
+        display: grid;
+        place-items: center;
+        color: var(--faint);
+      }
+      .feat-label {
+        font-size: 14px;
+        color: var(--text);
+      }
+      .feat-state {
+        margin-left: auto;
+        font-family: var(--mono);
+        font-size: 12.5px;
+        font-variant-numeric: tabular-nums;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .feat--active .feat-ic,
+      .feat--usage .feat-ic {
+        color: var(--cyan);
+      }
+      .feat--active .feat-state {
+        color: var(--cyan);
+      }
+      .feat--upcoming {
+        opacity: 0.55;
+      }
+      .feat--upcoming .feat-state {
+        color: var(--faint);
+      }
+
       /* Clerk mount points — center their internal cards */
       #clerk-auth,
       #clerk-profile {
@@ -304,7 +359,6 @@
               >Plan · <span class="plan-name" id="plan-name">—</span></span
             >
             <span class="plan-sub" id="plan-sub" hidden></span>
-            <span class="plan-usage" id="plan-usage" hidden></span>
           </div>
           <div class="plan-actions">
             <button class="upgrade" id="upgrade" hidden>Upgrade · $4/mo</button>
@@ -313,6 +367,12 @@
             <button class="signout" id="signout">Sign out</button>
           </div>
         </div>
+
+        <div class="features">
+          <div class="features-head">What's included</div>
+          <ul class="feature-list" id="feature-list"></ul>
+        </div>
+
         <div id="clerk-profile"></div>
         <p class="sync-note">
           Signing in here syncs automatically to the SecureIntent browser extension.
@@ -361,6 +421,43 @@
 
       const $ = (id) => document.getElementById(id);
 
+      // Feature matrix (mirrors the extension popup). The Pro toolkit
+      // (rehydrate / ghost / session_lock) is presented as "Upcoming" for now.
+      const CHECK_SVG =
+        '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6"/><path d="M8.4 12.2l2.4 2.4 4.8-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      const CLOCK_SVG =
+        '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6"/><path d="M12 8v4.2l2.6 1.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+      function featureRows(isFree) {
+        const anon = isFree
+          ? { key: "anonymise", label: "Anonymise & Paste", state: "usage", detail: "—" }
+          : { key: "anonymise", label: "Anonymise & Paste", state: "active", detail: "Unlimited" };
+        return [
+          { key: "detection", label: "Detection & warnings", state: "active", detail: "Active" },
+          anon,
+          { key: "rehydrate", label: "Rehydrate vault", state: "upcoming", detail: "Soon" },
+          { key: "ghost", label: "Ghost log sanitiser", state: "upcoming", detail: "Soon" },
+          { key: "session_lock", label: "Session Lock", state: "upcoming", detail: "Soon" },
+        ];
+      }
+
+      function renderFeatures(isFree) {
+        $("feature-list").innerHTML = featureRows(isFree)
+          .map(
+            (r) =>
+              `<li class="feat feat--${r.state}" data-key="${r.key}">` +
+              `<span class="feat-ic">${r.state === "upcoming" ? CLOCK_SVG : CHECK_SVG}</span>` +
+              `<span class="feat-label">${r.label}</span>` +
+              `<span class="feat-state">${r.detail}</span></li>`,
+          )
+          .join("");
+      }
+
+      function setAnonDetail(text) {
+        const el = document.querySelector('#feature-list .feat[data-key="anonymise"] .feat-state');
+        if (el) el.textContent = text;
+      }
+
       async function loadPlan() {
         try {
           const token = await window.Clerk.session.getToken({ template: CFG.jwtTemplate });
@@ -383,13 +480,10 @@
           } else {
             $("plan-sub").hidden = true;
           }
-          // Free plan: show the monthly Anonymise & Paste allowance.
-          if (isFree) {
-            loadUsage(token);
-          } else {
-            $("plan-usage").textContent = "Anonymise & Paste · Unlimited";
-            $("plan-usage").hidden = false;
-          }
+          // Render the full feature matrix; free plans then fill in the live
+          // Anonymise & Paste allowance from the usage endpoint.
+          renderFeatures(isFree);
+          if (isFree) loadUsage(token);
         } catch (e) {
           console.error("[account] loadPlan failed", e);
         }
@@ -403,10 +497,7 @@
           });
           if (!res.ok) return;
           const u = await res.json();
-          $("plan-usage").textContent = u.unlimited
-            ? "Anonymise & Paste · Unlimited"
-            : `Anonymise & Paste · ${u.remaining} / ${u.limit} left this month`;
-          $("plan-usage").hidden = false;
+          setAnonDetail(u.unlimited ? "Unlimited" : `${u.remaining} / ${u.limit} left`);
         } catch (e) {
           console.error("[account] loadUsage failed", e);
         }
