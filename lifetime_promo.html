@@ -141,6 +141,8 @@
         box-shadow: 0 0 0 3px rgba(114, 255, 255, 0.12);
       }
       #code { font-family: var(--mono); font-size: 22px; letter-spacing: 0.5em; text-align: center; padding-left: 0.5em; }
+      .names { display: flex; gap: 10px; }
+      .names .field { flex: 1; min-width: 0; }
 
       .btn {
         width: 100%;
@@ -239,8 +241,12 @@
         </div>
 
         <div id="step-code" class="form" hidden>
-          <label class="lbl" for="code">6-digit code sent to <span id="code-email" class="lbl-em"></span></label>
+          <label class="lbl" for="code">Code sent to <span id="code-email" class="lbl-em"></span> · we'll create your account</label>
           <input class="field" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" />
+          <div class="names">
+            <input class="field" id="fname" type="text" autocomplete="given-name" placeholder="First name" />
+            <input class="field" id="lname" type="text" autocomplete="family-name" placeholder="Last name" />
+          </div>
           <button class="btn" id="verify-btn" type="button">Verify &amp; claim</button>
           <div class="row">
             <button class="link" id="resend-btn" type="button">Resend code</button>
@@ -256,12 +262,12 @@
         <p class="eyebrow eyebrow--ok">Claimed</p>
         <h1 class="title">Pro is live.<br />For life.</h1>
         <p class="lede">
-          SecureIntent Pro is now tied to <strong id="done-email"></strong>, for life. Two steps to
-          switch it on:
+          Your account is ready and SecureIntent Pro is tied to <strong id="done-email"></strong>,
+          for life. Two steps to switch it on:
         </p>
         <ol class="steps">
           <li>Add the SecureIntent extension to your browser.</li>
-          <li>Sign in to the extension with <strong>this same email</strong>. Pro unlocks on its own.</li>
+          <li>Sign in with <strong>this email</strong> — use the email code or Google, no password needed. Pro unlocks on its own.</li>
         </ol>
         <a class="btn" href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noreferrer">Add to Chrome · free</a>
         <p class="note">Already installed? Just sign in with this email. Nothing to renew, nothing to manage.</p>
@@ -363,12 +369,18 @@
           $("signin-err").textContent = "Enter the 6-digit code we emailed you.";
           return;
         }
+        const firstName = $("fname").value.trim();
+        const lastName = $("lname").value.trim();
+        if (!firstName || !lastName) {
+          $("signin-err").textContent = "Enter your first and last name — we'll set up your account.";
+          return;
+        }
         const btn = $("verify-btn");
         btn.disabled = true;
         btn.textContent = "Verifying…";
         $("signin-err").textContent = "";
         try {
-          const r = await api("/v1/promo/verify", { email, code });
+          const r = await api("/v1/promo/verify", { email, code, firstName, lastName });
           if (r.ok) {
             $("done-email").textContent = email;
             show("done");
