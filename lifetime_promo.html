@@ -141,6 +141,7 @@
         box-shadow: 0 0 0 3px rgba(114, 255, 255, 0.12);
       }
       #code { font-family: var(--mono); font-size: 22px; letter-spacing: 0.5em; text-align: center; padding-left: 0.5em; }
+      #new-fields { display: flex; flex-direction: column; gap: 12px; }
       .names { display: flex; gap: 10px; }
       .names .field { flex: 1; min-width: 0; }
 
@@ -241,11 +242,14 @@
         </div>
 
         <div id="step-code" class="form" hidden>
-          <label class="lbl" for="code">Code sent to <span id="code-email" class="lbl-em"></span> · we'll create your account</label>
+          <label class="lbl" for="code">Code sent to <span id="code-email" class="lbl-em"></span></label>
           <input class="field" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" />
-          <div class="names">
-            <input class="field" id="fname" type="text" autocomplete="given-name" placeholder="First name" />
-            <input class="field" id="lname" type="text" autocomplete="family-name" placeholder="Last name" />
+          <div id="new-fields" hidden>
+            <div class="names">
+              <input class="field" id="fname" type="text" autocomplete="given-name" placeholder="First name" />
+              <input class="field" id="lname" type="text" autocomplete="family-name" placeholder="Last name" />
+            </div>
+            <input class="field" id="password" type="password" autocomplete="new-password" minlength="8" placeholder="Choose a password (8+ characters)" />
           </div>
           <button class="btn" id="verify-btn" type="button">Verify &amp; claim</button>
           <div class="row">
@@ -263,12 +267,11 @@
         <h1 class="title">Pro is live.<br />For life.</h1>
         <p class="lede">
           Your account is ready and SecureIntent Pro is tied to <strong id="done-email"></strong>,
-          for life. We've emailed your login details and a quick start guide. Two steps to switch it
-          on:
+          for life. We've emailed a quick start guide. Two steps to switch it on:
         </p>
         <ol class="steps">
           <li>Add the SecureIntent extension to your browser.</li>
-          <li>Sign in with the email and password we just sent (or Google). Pro unlocks on its own.</li>
+          <li>Sign in with <strong>this email</strong> — the password you set, or Google. Pro unlocks on its own.</li>
         </ol>
         <a class="btn" href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noreferrer">Add to Chrome · free</a>
         <p class="note">Didn't get the email? Check spam. You can change your password anytime in your account.</p>
@@ -290,6 +293,7 @@
       const CFG = { apiBase: "https://api.secureintent.ai" };
       const $ = (id) => document.getElementById(id);
       let email = "";
+      let isNewUser = true; // whether to collect name + password (set from /start)
 
       function show(id) {
         for (const s of ["loading", "signin", "done", "closed"]) $(s).hidden = s !== id;
@@ -320,6 +324,8 @@
           const r = await api("/v1/promo/start", { email: v });
           if (r.ok) {
             email = v;
+            isNewUser = r.data.newUser !== false;
+            $("new-fields").hidden = !isNewUser;
             $("code-email").textContent = v;
             $("step-email").hidden = true;
             $("step-code").hidden = false;
@@ -370,18 +376,29 @@
           $("signin-err").textContent = "Enter the 6-digit code we emailed you.";
           return;
         }
-        const firstName = $("fname").value.trim();
-        const lastName = $("lname").value.trim();
-        if (!firstName || !lastName) {
-          $("signin-err").textContent = "Enter your first and last name — we'll set up your account.";
-          return;
+        const payload = { email, code };
+        if (isNewUser) {
+          const firstName = $("fname").value.trim();
+          const lastName = $("lname").value.trim();
+          const password = $("password").value;
+          if (!firstName || !lastName) {
+            $("signin-err").textContent = "Enter your first and last name to set up your account.";
+            return;
+          }
+          if (password.length < 8) {
+            $("signin-err").textContent = "Choose a password with at least 8 characters.";
+            return;
+          }
+          payload.firstName = firstName;
+          payload.lastName = lastName;
+          payload.password = password;
         }
         const btn = $("verify-btn");
         btn.disabled = true;
         btn.textContent = "Verifying…";
         $("signin-err").textContent = "";
         try {
-          const r = await api("/v1/promo/verify", { email, code, firstName, lastName });
+          const r = await api("/v1/promo/verify", payload);
           if (r.ok) {
             $("done-email").textContent = email;
             show("done");
@@ -391,6 +408,8 @@
             show("closed");
           } else if (r.status === 429) {
             $("signin-err").textContent = "Too many attempts. Resend a new code.";
+          } else if (r.data.error === "weak_password") {
+            $("signin-err").textContent = "That password is too weak. Pick a stronger one (8+ characters, not a common password).";
           } else if (r.data.error === "expired") {
             $("signin-err").textContent = "That code expired. Resend a new one.";
           } else {
