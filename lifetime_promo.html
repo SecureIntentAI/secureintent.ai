@@ -94,7 +94,15 @@
       .err { color: var(--danger); font-size: 13px; margin-top: 12px; min-height: 1em; }
       .note { margin-top: 18px; font-size: 12px; color: var(--faint); line-height: 1.5; }
 
-      #clerk-auth { width: 100%; display: flex; justify-content: center; margin-top: 6px; }
+      .field {
+        width: 100%; padding: 13px 15px; margin-bottom: 12px;
+        font-size: 15px; font-family: var(--sans); text-align: center;
+        color: var(--text); background: #0d1220;
+        border: 1px solid var(--border); border-radius: 12px;
+      }
+      .field::placeholder { color: var(--faint); }
+      .field:focus { outline: none; border-color: rgba(114, 255, 255, 0.5); }
+      #code { font-family: var(--mono); font-size: 22px; letter-spacing: 0.35em; padding-left: 0.35em; }
       [hidden] { display: none !important; }
     </style>
 
@@ -132,8 +140,22 @@
         </div>
         <p class="eyebrow">Beta · Lifetime offer</p>
         <h1>Developer Pro, free for life</h1>
-        <p class="sub">A thank-you for our beta testers. Verify your email below and we'll unlock <strong>Developer Pro Lifetime</strong>. No card, no subscription.</p>
-        <div id="clerk-auth"></div>
+        <p class="sub">A thank-you for our beta testers. Enter your email and we'll send a 6-digit code. No password, no card, no subscription.</p>
+
+        <div id="step-email">
+          <input class="field" id="email" type="email" inputmode="email" autocomplete="email" placeholder="you@company.com" />
+          <button class="cta" id="send-btn" type="button">Email me a code</button>
+        </div>
+
+        <div id="step-code" hidden>
+          <p class="sub" style="margin: 0 0 14px">Enter the 6-digit code sent to <strong id="code-email"></strong>.</p>
+          <input class="field" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" />
+          <button class="cta" id="verify-btn" type="button">Verify &amp; claim</button>
+          <button class="signout-link" id="resend-btn" type="button">Resend code</button>
+          <button class="signout-link" id="change-btn" type="button">Use a different email</button>
+        </div>
+
+        <div class="err" id="signin-err"></div>
       </section>
 
       <!-- Signed in, promo open, not yet claimed -->
@@ -179,33 +201,127 @@
       const CFG = { apiBase: "https://api.secureintent.ai", jwtTemplate: "secureintent" };
       const $ = (id) => document.getElementById(id);
 
-      const CLERK_APPEARANCE = {
-        variables: {
-          colorPrimary: "#72ffff",
-          colorPrimaryForeground: "#052656",
-          colorBackground: "#0a0e1a",
-          colorText: "#f4f6f8",
-          colorTextSecondary: "#8b949e",
-          colorInputBackground: "#0d1220",
-          colorInputText: "#f4f6f8",
-          colorNeutral: "#ffffff",
-          borderRadius: "10px",
-          fontFamily: '"Inter", system-ui, sans-serif',
-        },
-        elements: {
-          card: { boxShadow: "none", border: "1px solid rgba(255,255,255,0.08)", width: "100%" },
-          cardBox: { width: "100%", maxWidth: "100%" },
-          rootBox: { width: "100%" },
-          formButtonPrimary: { color: "#052656", fontWeight: "600" },
-        },
-      };
-
-      let mounted = false;
-
       function show(id) {
         for (const s of ["loading", "signin", "claim", "done", "closed"]) $(s).hidden = s !== id;
       }
+      function clerkErr(e) {
+        return e?.errors?.[0]?.longMessage || e?.errors?.[0]?.message || "";
+      }
 
+      // --- custom email-code auth (no password / Google widget) --------------
+      // Try sign-in first; if the email has no account yet, fall back to sign-up.
+      // Both send a 6-digit email code (Clerk handles delivery + verification).
+      let flow = null; // 'signin' | 'signup'
+      let signInRes = null;
+      let signUpRes = null;
+
+      async function sendCode() {
+        const email = $("email").value.trim();
+        if (!/.+@.+\..+/.test(email)) {
+          $("signin-err").textContent = "Enter a valid email address.";
+          return;
+        }
+        const btn = $("send-btn");
+        btn.disabled = true;
+        btn.textContent = "Sending…";
+        $("signin-err").textContent = "";
+        try {
+          try {
+            signInRes = await window.Clerk.client.signIn.create({ identifier: email });
+            const f = (signInRes.supportedFirstFactors || []).find(
+              (x) => x.strategy === "email_code",
+            );
+            if (!f) throw { errors: [{ code: "no_email_code" }] };
+            await signInRes.prepareFirstFactor({
+              strategy: "email_code",
+              emailAddressId: f.emailAddressId,
+            });
+            flow = "signin";
+          } catch (e) {
+            const code = e?.errors?.[0]?.code;
+            if (code === "form_identifier_not_found" || code === "no_email_code") {
+              signUpRes = await window.Clerk.client.signUp.create({ emailAddress: email });
+              await signUpRes.prepareEmailAddressVerification({ strategy: "email_code" });
+              flow = "signup";
+            } else {
+              throw e;
+            }
+          }
+          $("code-email").textContent = email;
+          $("step-email").hidden = true;
+          $("step-code").hidden = false;
+          $("code").value = "";
+          $("code").focus();
+        } catch (e) {
+          console.error("[promo] sendCode", e);
+          $("signin-err").textContent = clerkErr(e) || "Couldn't send a code. Please try again.";
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Email me a code";
+        }
+      }
+
+      async function resendCode() {
+        $("signin-err").textContent = "";
+        try {
+          if (flow === "signin") {
+            const f = (signInRes.supportedFirstFactors || []).find(
+              (x) => x.strategy === "email_code",
+            );
+            await signInRes.prepareFirstFactor({
+              strategy: "email_code",
+              emailAddressId: f.emailAddressId,
+            });
+          } else {
+            await signUpRes.prepareEmailAddressVerification({ strategy: "email_code" });
+          }
+          $("signin-err").textContent = "A new code is on its way.";
+        } catch (e) {
+          $("signin-err").textContent = clerkErr(e) || "Couldn't resend. Try a different email.";
+        }
+      }
+
+      function changeEmail() {
+        $("step-code").hidden = true;
+        $("step-email").hidden = false;
+        $("signin-err").textContent = "";
+        $("email").focus();
+      }
+
+      async function verifyCode() {
+        const code = $("code").value.trim();
+        if (code.length < 4) {
+          $("signin-err").textContent = "Enter the code we emailed you.";
+          return;
+        }
+        const btn = $("verify-btn");
+        btn.disabled = true;
+        btn.textContent = "Verifying…";
+        $("signin-err").textContent = "";
+        try {
+          const res =
+            flow === "signin"
+              ? await signInRes.attemptFirstFactor({ strategy: "email_code", code })
+              : await signUpRes.attemptEmailAddressVerification({ code });
+          if (res.status === "complete") {
+            await window.Clerk.setActive({ session: res.createdSessionId });
+            render(); // signed in → auto-claim
+          } else if (res.status === "missing_requirements") {
+            $("signin-err").innerHTML =
+              'Almost there — <a href="/account.html" style="color:var(--cyan)">finish setting up your account</a>, then reopen this link.';
+          } else {
+            $("signin-err").textContent = "Verification didn't complete. Please try again.";
+          }
+        } catch (e) {
+          console.error("[promo] verify", e);
+          $("signin-err").textContent = clerkErr(e) || "That code didn't work. Resend and try again.";
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Verify & claim";
+        }
+      }
+
+      // --- claim -------------------------------------------------------------
       async function loadStatus() {
         const token = await window.Clerk.session.getToken({ template: CFG.jwtTemplate });
         const res = await fetch(`${CFG.apiBase}/v1/promo`, {
@@ -215,10 +331,11 @@
         return res.json(); // { enabled, granted, plan }
       }
 
-      async function claim() {
-        const btn = $("claim-btn");
-        btn.disabled = true;
-        btn.textContent = "Activating…";
+      async function claim(auto) {
+        if (!auto) {
+          $("claim-btn").disabled = true;
+          $("claim-btn").textContent = "Activating…";
+        }
         $("claim-err").textContent = "";
         try {
           const token = await window.Clerk.session.getToken({ template: CFG.jwtTemplate });
@@ -227,51 +344,55 @@
             headers: { Authorization: `Bearer ${token}` },
           });
           if (res.ok) { show("done"); return; }
-          const body = await res.json().catch(() => ({}));
           if (res.status === 403) { show("closed"); return; }
+          const body = await res.json().catch(() => ({}));
+          show("claim"); // let the user retry
           $("claim-err").textContent =
             body.error === "email_unverified"
-              ? "Please verify your email in Clerk first."
+              ? "Please verify your email first."
               : "Something went wrong. Please try again.";
         } catch (e) {
+          show("claim");
           $("claim-err").textContent = "Network error. Please try again.";
         } finally {
-          btn.disabled = false;
-          btn.textContent = "Activate Lifetime Pro";
+          $("claim-btn").disabled = false;
+          $("claim-btn").textContent = "Activate Lifetime Pro";
         }
       }
 
+      let autoClaimed = false;
       async function render() {
-        const signedIn = !!window.Clerk.user;
-        if (!signedIn) {
+        if (!window.Clerk.user) {
+          autoClaimed = false;
           show("signin");
-          if (!mounted) {
-            mounted = true;
-            window.Clerk.mountSignIn($("clerk-auth"), {
-              appearance: CLERK_APPEARANCE,
-              afterSignInUrl: "/lifetime_promo.html",
-              afterSignUpUrl: "/lifetime_promo.html",
-              signUpUrl: "/lifetime_promo.html",
-            });
-          }
           return;
         }
-        $("claim-who").textContent =
-          window.Clerk.user.primaryEmailAddress?.emailAddress ?? window.Clerk.user.fullName ?? "";
+        $("claim-who").textContent = window.Clerk.user.primaryEmailAddress?.emailAddress ?? "";
+        show("loading");
+        $("loading").textContent = "Activating your Lifetime Pro…";
+        let st;
         try {
-          const st = await loadStatus();
-          if (st.granted) show("done");
-          else if (st.enabled) show("claim");
-          else show("closed");
-        } catch (e) {
-          show("claim"); // fail open to the claim screen; redeem re-checks server-side
+          st = await loadStatus();
+        } catch {
+          st = { enabled: true, granted: false };
         }
+        if (st.granted) { show("done"); return; }
+        if (!st.enabled) { show("closed"); return; }
+        if (autoClaimed) return;
+        autoClaimed = true;
+        claim(true);
       }
 
       async function main() {
         try {
           await window.Clerk.load();
-          $("claim-btn").addEventListener("click", claim);
+          $("send-btn").addEventListener("click", sendCode);
+          $("verify-btn").addEventListener("click", verifyCode);
+          $("resend-btn").addEventListener("click", resendCode);
+          $("change-btn").addEventListener("click", changeEmail);
+          $("email").addEventListener("keydown", (e) => { if (e.key === "Enter") sendCode(); });
+          $("code").addEventListener("keydown", (e) => { if (e.key === "Enter") verifyCode(); });
+          $("claim-btn").addEventListener("click", () => claim(false));
           $("signout-1").addEventListener("click", () => window.Clerk.signOut());
           $("signout-2").addEventListener("click", () => window.Clerk.signOut());
           render();
