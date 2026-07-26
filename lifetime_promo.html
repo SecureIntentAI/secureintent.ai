@@ -208,6 +208,40 @@
         return e?.errors?.[0]?.longMessage || e?.errors?.[0]?.message || "";
       }
 
+      // A strong random password — this stays passwordless from the user's view;
+      // they sign in with an email code or Google. It only satisfies Clerk if the
+      // instance still marks password as required at sign-up.
+      function randomPassword() {
+        const b = new Uint8Array(18);
+        crypto.getRandomValues(b);
+        const s = btoa(String.fromCharCode(...b)).replace(/[^a-zA-Z0-9]/g, "");
+        return `Si9!${s.slice(0, 22)}`;
+      }
+
+      // After the email is verified, fill any remaining required sign-up fields
+      // (password / name / username) so the account can complete without asking
+      // the user for a password. Returns true if a session was created.
+      async function completeSignUp(su) {
+        const missing = new Set([...(su.missingFields || [])]);
+        const patch = {};
+        if (missing.has("password")) patch.password = randomPassword();
+        if (missing.has("first_name")) patch.firstName = "SecureIntent";
+        if (missing.has("last_name")) patch.lastName = "Member";
+        if (missing.has("username")) patch.username = `si${Math.random().toString(36).slice(2, 10)}`;
+        if (Object.keys(patch).length === 0) return false; // can't auto-fill (e.g. phone)
+        try {
+          const updated = await su.update(patch);
+          signUpRes = updated;
+          if (updated.status === "complete") {
+            await window.Clerk.setActive({ session: updated.createdSessionId });
+            return true;
+          }
+        } catch (e) {
+          console.error("[promo] completeSignUp", e);
+        }
+        return false;
+      }
+
       // --- custom email-code auth (no password / Google widget) --------------
       // Try sign-in first; if the email has no account yet, fall back to sign-up.
       // Both send a 6-digit email code (Clerk handles delivery + verification).
@@ -307,8 +341,13 @@
             await window.Clerk.setActive({ session: res.createdSessionId });
             render(); // signed in → auto-claim
           } else if (res.status === "missing_requirements") {
-            $("signin-err").innerHTML =
-              'Almost there — <a href="/account.html" style="color:var(--cyan)">finish setting up your account</a>, then reopen this link.';
+            // New account needs more than email (password/name) — fill it silently.
+            if (await completeSignUp(res)) {
+              render();
+            } else {
+              $("signin-err").innerHTML =
+                'One more step: <a href="/account.html" style="color:var(--cyan)">finish setting up your account</a>, then reopen this link.';
+            }
           } else {
             $("signin-err").textContent = "Verification didn't complete. Please try again.";
           }
