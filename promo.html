@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>SecureIntent · Lifetime Pro</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --base: #050507;
+        --panel: #0a0e1a;
+        --cyan: #72ffff;
+        --navy: #052656;
+        --text: #f4f6f8;
+        --muted: #8b949e;
+        --faint: #5a626b;
+        --danger: #ff6b6b;
+        --border: rgba(255, 255, 255, 0.08);
+        --mono: "Fira Code", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        background: radial-gradient(circle at 50% -10%, #0b1530, #050507 62%);
+        color: var(--text);
+        font-family: var(--sans);
+        display: flex;
+        flex-direction: column;
+      }
+      .topbar {
+        display: flex; align-items: center; justify-content: space-between;
+        width: 100%; max-width: 1120px; margin: 0 auto; padding: 22px 28px;
+      }
+      .brand { display: inline-flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; }
+      .brand-word { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+      .brand .accent { color: var(--cyan); }
+      .backlink { font-size: 13px; color: var(--muted); text-decoration: none; }
+      .backlink:hover { color: var(--cyan); }
+
+      main {
+        flex: 1; display: flex; flex-direction: column; align-items: center;
+        justify-content: center; padding: 16px 20px 64px;
+      }
+      #loading { color: var(--muted); font-size: 14px; }
+
+      .card {
+        width: 100%; max-width: 460px;
+        background: linear-gradient(180deg, rgba(15, 19, 24, 0.9), rgba(7, 8, 11, 0.92));
+        border: 1px solid var(--border); border-radius: 20px;
+        padding: 32px 30px 28px; text-align: center; position: relative; overflow: hidden;
+      }
+      .card::before {
+        content: ""; position: absolute; top: 0; left: 30px; right: 30px; height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(114, 255, 255, 0.6), transparent);
+      }
+      .hero-ring {
+        display: grid; place-items: center; width: 64px; height: 64px; margin: 4px auto 18px;
+        border-radius: 18px; color: var(--cyan);
+        background: radial-gradient(circle at 50% 38%, rgba(114,255,255,0.16), rgba(114,255,255,0.03));
+        border: 1px solid rgba(114, 255, 255, 0.22);
+        box-shadow: 0 0 34px -8px rgba(114, 255, 255, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      }
+      .eyebrow {
+        font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+        color: var(--cyan); margin: 0 0 10px;
+      }
+      h1 { font-family: var(--mono); font-size: 25px; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 10px; line-height: 1.15; }
+      .sub { margin: 0 auto 22px; max-width: 40ch; font-size: 14px; line-height: 1.6; color: var(--muted); }
+      .sub strong { color: var(--text); font-weight: 600; }
+      .who { font-family: var(--mono); font-size: 12.5px; color: var(--cyan); margin: 0 0 18px; word-break: break-all; }
+
+      .cta {
+        width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        padding: 14px 20px; font-family: var(--mono); font-size: 14px; font-weight: 700;
+        color: var(--navy); background: linear-gradient(180deg, #9bffff, var(--cyan));
+        border: none; border-radius: 13px; cursor: pointer;
+        box-shadow: 0 10px 30px -12px rgba(114, 255, 255, 0.7);
+        transition: filter 150ms ease, opacity 150ms ease;
+      }
+      .cta:hover:not(:disabled) { filter: brightness(1.06); }
+      .cta:disabled { opacity: 0.55; cursor: default; }
+      .ghost-btn {
+        display: inline-block; margin-top: 14px; font-family: var(--mono); font-size: 13px;
+        color: var(--cyan); text-decoration: none; border: 1px solid rgba(114,255,255,0.4);
+        border-radius: 11px; padding: 10px 18px; transition: background 150ms ease;
+      }
+      .ghost-btn:hover { background: rgba(114, 255, 255, 0.08); }
+      .signout-link { display: block; margin-top: 16px; font-size: 12.5px; color: var(--faint); background: none; border: none; cursor: pointer; }
+      .signout-link:hover { color: var(--muted); }
+      .err { color: var(--danger); font-size: 13px; margin-top: 12px; min-height: 1em; }
+      .note { margin-top: 18px; font-size: 12px; color: var(--faint); line-height: 1.5; }
+
+      #clerk-auth { width: 100%; display: flex; justify-content: center; margin-top: 6px; }
+      [hidden] { display: none !important; }
+    </style>
+
+    <script
+      async
+      crossorigin="anonymous"
+      data-clerk-publishable-key="pk_live_Y2xlcmsuc2VjdXJlaW50ZW50LmFpJA"
+      src="https://clerk.secureintent.ai/npm/@clerk/clerk-js@5/dist/clerk.browser.js"
+      type="text/javascript"
+    ></script>
+  </head>
+  <body>
+    <div class="topbar">
+      <a class="brand" href="/">
+        <svg aria-label="SecureIntent" role="img" viewBox="0 0 250 250" width="32" height="32">
+          <path d="M 50,195 L 110,75" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round"></path>
+          <path d="M 130,195 L 160,135" fill="none" stroke="#72FFFF" stroke-width="28" stroke-linecap="round"></path>
+          <circle cx="190" cy="75" r="14" fill="#72FFFF"></circle>
+        </svg>
+        <span class="brand-word">SecureIntent<span class="accent">.ai</span></span>
+      </a>
+      <a class="backlink" href="/">← Home</a>
+    </div>
+
+    <main>
+      <div id="loading">Loading…</div>
+
+      <!-- Signed out: the offer + Clerk email sign-in -->
+      <section class="card" id="signin" hidden>
+        <div class="hero-ring">
+          <svg viewBox="0 0 24 24" width="30" height="30" fill="none" aria-hidden="true">
+            <path d="M12 3l7 3v5.5c0 4.3-2.9 7.4-7 8.8-4.1-1.4-7-4.5-7-8.8V6l7-3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"></path>
+            <path d="M8.7 12l2.1 2.1 4-4.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </div>
+        <p class="eyebrow">Beta · Lifetime offer</p>
+        <h1>Developer Pro, free for life</h1>
+        <p class="sub">A thank-you for our beta testers. Verify your email below and we'll unlock <strong>Developer Pro — Lifetime</strong>. No card, no subscription.</p>
+        <div id="clerk-auth"></div>
+      </section>
+
+      <!-- Signed in, promo open, not yet claimed -->
+      <section class="card" id="claim" hidden>
+        <div class="hero-ring">
+          <svg viewBox="0 0 24 24" width="30" height="30" fill="none" aria-hidden="true">
+            <path d="M12 3l7 3v5.5c0 4.3-2.9 7.4-7 8.8-4.1-1.4-7-4.5-7-8.8V6l7-3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"></path>
+            <path d="M8.7 12l2.1 2.1 4-4.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </div>
+        <h1>Claim your Lifetime Pro</h1>
+        <p class="who" id="claim-who">—</p>
+        <p class="sub">This grants <strong>Developer Pro — Lifetime</strong> to your account. It replaces any existing subscription and never expires.</p>
+        <button class="cta" id="claim-btn" type="button">Activate Lifetime Pro</button>
+        <div class="err" id="claim-err"></div>
+        <button class="signout-link" id="signout-1" type="button">Not you? Sign out</button>
+      </section>
+
+      <!-- Success -->
+      <section class="card" id="done" hidden>
+        <div class="hero-ring">
+          <svg viewBox="0 0 24 24" width="30" height="30" fill="none" aria-hidden="true">
+            <path d="M12 3l7 3v5.5c0 4.3-2.9 7.4-7 8.8-4.1-1.4-7-4.5-7-8.8V6l7-3z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"></path>
+            <path d="M8.7 12l2.1 2.1 4-4.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </div>
+        <h1>You're Lifetime Pro</h1>
+        <p class="sub">Developer Pro is now unlocked on your account — forever. Reopen the SecureIntent extension (or its popup) to see it activate.</p>
+        <a class="ghost-btn" href="/account.html">View my account</a>
+        <p class="note">All Pro features are available across every browser where you sign in with this email.</p>
+        <button class="signout-link" id="signout-2" type="button">Sign out</button>
+      </section>
+
+      <!-- Promo closed -->
+      <section class="card" id="closed" hidden>
+        <h1>This promotion has ended</h1>
+        <p class="sub">The Lifetime Pro beta offer is no longer accepting new redemptions. If you already claimed it, your access is unaffected.</p>
+        <a class="ghost-btn" href="/account.html">Go to my account</a>
+      </section>
+    </main>
+
+    <script>
+      const CFG = { apiBase: "https://api.secureintent.ai", jwtTemplate: "secureintent" };
+      const $ = (id) => document.getElementById(id);
+
+      const CLERK_APPEARANCE = {
+        variables: {
+          colorPrimary: "#72ffff",
+          colorPrimaryForeground: "#052656",
+          colorBackground: "#0a0e1a",
+          colorText: "#f4f6f8",
+          colorTextSecondary: "#8b949e",
+          colorInputBackground: "#0d1220",
+          colorInputText: "#f4f6f8",
+          colorNeutral: "#ffffff",
+          borderRadius: "10px",
+          fontFamily: '"Inter", system-ui, sans-serif',
+        },
+        elements: {
+          card: { boxShadow: "none", border: "1px solid rgba(255,255,255,0.08)", width: "100%" },
+          cardBox: { width: "100%", maxWidth: "100%" },
+          rootBox: { width: "100%" },
+          formButtonPrimary: { color: "#052656", fontWeight: "600" },
+        },
+      };
+
+      let mounted = false;
+
+      function show(id) {
+        for (const s of ["loading", "signin", "claim", "done", "closed"]) $(s).hidden = s !== id;
+      }
+
+      async function loadStatus() {
+        const token = await window.Clerk.session.getToken({ template: CFG.jwtTemplate });
+        const res = await fetch(`${CFG.apiBase}/v1/promo`, {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
+        });
+        return res.json(); // { enabled, granted, plan }
+      }
+
+      async function claim() {
+        const btn = $("claim-btn");
+        btn.disabled = true;
+        btn.textContent = "Activating…";
+        $("claim-err").textContent = "";
+        try {
+          const token = await window.Clerk.session.getToken({ template: CFG.jwtTemplate });
+          const res = await fetch(`${CFG.apiBase}/v1/promo/redeem`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) { show("done"); return; }
+          const body = await res.json().catch(() => ({}));
+          if (res.status === 403) { show("closed"); return; }
+          $("claim-err").textContent =
+            body.error === "email_unverified"
+              ? "Please verify your email in Clerk first."
+              : "Something went wrong. Please try again.";
+        } catch (e) {
+          $("claim-err").textContent = "Network error. Please try again.";
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Activate Lifetime Pro";
+        }
+      }
+
+      async function render() {
+        const signedIn = !!window.Clerk.user;
+        if (!signedIn) {
+          show("signin");
+          if (!mounted) {
+            mounted = true;
+            window.Clerk.mountSignIn($("clerk-auth"), {
+              appearance: CLERK_APPEARANCE,
+              afterSignInUrl: "/promo.html",
+              afterSignUpUrl: "/promo.html",
+              signUpUrl: "/promo.html",
+            });
+          }
+          return;
+        }
+        $("claim-who").textContent =
+          window.Clerk.user.primaryEmailAddress?.emailAddress ?? window.Clerk.user.fullName ?? "";
+        try {
+          const st = await loadStatus();
+          if (st.granted) show("done");
+          else if (st.enabled) show("claim");
+          else show("closed");
+        } catch (e) {
+          show("claim"); // fail open to the claim screen; redeem re-checks server-side
+        }
+      }
+
+      async function main() {
+        try {
+          await window.Clerk.load();
+          $("claim-btn").addEventListener("click", claim);
+          $("signout-1").addEventListener("click", () => window.Clerk.signOut());
+          $("signout-2").addEventListener("click", () => window.Clerk.signOut());
+          render();
+          window.Clerk.addListener(render);
+        } catch (e) {
+          console.error("[promo] init failed", e);
+          $("loading").textContent = "Failed to load. Please refresh.";
+        }
+      }
+
+      if (window.Clerk) main();
+      else window.addEventListener("load", () => {
+        const wait = setInterval(() => {
+          if (window.Clerk) { clearInterval(wait); main(); }
+        }, 60);
+      });
+    </script>
+  </body>
+</html>

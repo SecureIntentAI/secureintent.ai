@@ -182,6 +182,16 @@
         align-items: center;
         gap: 10px;
       }
+      .lifetime-badge {
+        padding: 8px 14px;
+        font-family: var(--mono);
+        font-size: 12.5px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: var(--navy);
+        background: var(--cyan);
+        border-radius: 999px;
+      }
       button.upgrade {
         padding: 10px 18px;
         font-family: var(--mono);
@@ -436,6 +446,7 @@
           <div class="plan-actions">
             <button class="upgrade" id="upgrade" hidden>Upgrade · $4/mo</button>
             <button class="manage" id="manage" hidden>Manage subscription</button>
+            <span class="lifetime-badge" id="lifetime-badge" hidden>Lifetime Pro</span>
             <button class="signout" id="signout">Sign out</button>
           </div>
         </div>
@@ -602,13 +613,20 @@
           });
           const data = await res.json();
           const plan = data?.entitlement?.plan ?? "developer";
+          const source = data?.entitlement?.source;
           const status = data?.entitlement?.status;
           const isFree = plan === "developer";
+          const isLifetime = source === "lifetime";
           $("plan-name").textContent = PLAN_LABEL[plan] ?? plan;
           $("plan-name").classList.toggle("pro", !isFree);
+          // Lifetime users have nothing to manage; paid users do; free users upgrade.
           $("upgrade").hidden = !isFree;
-          $("manage").hidden = isFree;
-          if (!isFree && status) {
+          $("manage").hidden = isFree || isLifetime;
+          $("lifetime-badge").hidden = !isLifetime;
+          if (isLifetime) {
+            $("plan-sub").textContent = "Access: Lifetime";
+            $("plan-sub").hidden = false;
+          } else if (!isFree && status) {
             $("plan-sub").textContent = `Subscription: ${status}`;
             $("plan-sub").hidden = false;
           } else {
