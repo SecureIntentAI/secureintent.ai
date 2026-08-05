@@ -44,6 +44,31 @@
     <!-- Analytics Tracking -->
     <script src="https://d2mvefebd70kbz.cloudfront.net/scripts/019e657e-b4de-77a0-874f-2a5d6f66f410.js" async></script>
 
+    <!-- Google Analytics 4 (GA4) — creator / UTM tracking -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-PSSL40SRTR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-PSSL40SRTR');
+      // Fire an "install_click" event whenever an Install button (→ Chrome Web Store)
+      // is clicked, so installs attribute to each creator's UTM link. Mark
+      // "install_click" as a Key event in GA4 to use it as the conversion.
+      document.addEventListener('DOMContentLoaded', function () {
+        var links = document.querySelectorAll(
+          'a[href*="chromewebstore.google.com/detail/secureintent"]:not([href*="/reviews"])'
+        );
+        links.forEach(function (a) {
+          a.addEventListener('click', function () {
+            gtag('event', 'install_click', {
+              link_url: a.href,
+              link_text: (a.textContent || '').trim().slice(0, 40)
+            });
+          });
+        });
+      });
+    </script>
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
