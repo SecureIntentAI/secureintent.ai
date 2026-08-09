@@ -115,7 +115,10 @@
               link_url: a.href,
               link_text: (a.textContent || '').trim().slice(0, 40),
               creator: window.SI_ATTR.creator || '(none)',
-              campaign: window.SI_ATTR.campaign || '(none)'
+              // Named creator_campaign, not campaign: GA4 already has a built-in
+              // `campaign` parameter, and reusing the name would mix Google's
+              // campaign values with ours in the same custom dimension.
+              creator_campaign: window.SI_ATTR.campaign || '(none)'
             });
           });
         });
