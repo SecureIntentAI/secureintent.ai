@@ -33,6 +33,44 @@ directory statically for the API calls to work against a real origin.
 | `todo.md` | pre-launch review findings (claim wording, fake scarcity counters, timezone-pinned countdown…). Read before touching marketing copy — several items are legal/FTC-risk claims, and some are owner-only decisions. |
 | `demo.mp4`, `og-image.png`, `favicon-*.png` | assets referenced by absolute `https://secureintent.ai/...` URLs in the meta tags. |
 
+## Hosting, and the Cloudflare Pages standby
+
+`secureintent.ai` is served by **Netlify** (auto-deploys from `main`), behind
+**Cloudflare** proxy DNS. Two CDNs stacked: Cloudflare edge → Netlify origin.
+
+**Known incident, Aug 10 2026 — 20-second TTFB on every URL.** Measured: the
+homepage, `team.html`, `account.html` and even a 674-byte favicon each took
+~19.5–20.5s to first byte, while `api.secureintent.ai` (a Worker on the same
+Cloudflare zone) answered in 0.17s. DNS/TCP/TLS were a few milliseconds, and the
+delay was suspiciously constant — the signature of a timeout-and-retry on the
+Cloudflare → Netlify origin fetch, not load. Netlify sends
+`cache-control: public, max-age=0, must-revalidate`, so Cloudflare never serves
+from cache (`cf-cache-status: DYNAMIC` / `REVALIDATED`) and every visitor pays it.
+
+A **standby copy lives on Cloudflare Pages**, project `secureintent-site`
+(same account as the Worker), deployed with:
+
+```bash
+cd landing_page && npx wrangler pages deploy . --project-name secureintent-site --branch main
+```
+
+Identical files served in **0.41s** vs 19.8s live, which is what pinned the
+problem on the origin. It holds **no custom domain**; DNS still points at
+Netlify, so it affects nothing until someone switches it deliberately.
+
+If a switch is ever wanted:
+
+- The DNS change needs a Cloudflare token with **Zone.DNS edit**. The wrangler
+  OAuth token is Workers/Pages-scoped and 403s on DNS, cache rules and zone
+  settings.
+- Pages serves **pretty URLs**: `/team.html` 308-redirects to `/team` (same for
+  `account.html`). Every existing link still works but takes an extra hop —
+  including `ACCOUNT_URL` baked into shipped extension builds. Add a
+  `_redirects` file before switching.
+- Cheaper first step: a Cloudflare **Cache Rule** with an Edge TTL override that
+  ignores the origin's `cache-control`, which masks a slow origin for visitors
+  without moving anything.
+
 ## Backend contract
 
 `account.html` config block (`CFG`, near the bottom) holds `apiBase: https://api.secureintent.ai`, the
