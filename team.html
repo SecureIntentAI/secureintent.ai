@@ -540,14 +540,36 @@
         $("signout").addEventListener("click", () => window.Clerk.signOut());
       }
 
+      // Same theme as the account page: Clerk's defaults put white text on our
+      // cyan button and a light social row on a dark card, both unreadable.
       const CLERK_APPEARANCE = {
         variables: {
           colorPrimary: "#72ffff",
-          colorPrimaryForeground: "#052656",
+          colorPrimaryForeground: "#052656", // dark text on the cyan primary button
           colorBackground: "#0a0e1a",
           colorText: "#f4f6f8",
+          colorTextSecondary: "#8b949e",
           colorInputBackground: "#0d1220",
-          borderRadius: "12px",
+          colorInputText: "#f4f6f8",
+          colorNeutral: "#ffffff",
+          borderRadius: "10px",
+          fontFamily: '"Inter", system-ui, sans-serif',
+        },
+        elements: {
+          card: { boxShadow: "none", border: "1px solid rgba(255,255,255,0.08)", width: "100%" },
+          cardBox: { width: "100%", maxWidth: "100%" },
+          rootBox: { width: "100%" },
+          formButtonPrimary: { color: "#052656", fontWeight: "600" },
+          // The social row: Clerk's own colours assume a light card, so the label
+          // came out near-black on near-black, with the "Last used" badge on top
+          // of it.
+          socialButtonsBlockButton: {
+            color: "#f4f6f8",
+            borderColor: "rgba(255,255,255,0.14)",
+            backgroundColor: "rgba(255,255,255,0.04)",
+          },
+          socialButtonsBlockButtonText: { color: "#f4f6f8", fontWeight: "500" },
+          socialButtonsProviderIcon__google: { filter: "none" },
         },
       };
 
