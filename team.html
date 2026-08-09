@@ -350,8 +350,10 @@
         $("people").innerHTML = rows.join("") || '<tr><td colspan="4" class="empty">No one yet</td></tr>';
       }
 
-      async function loadTeam({ awaitSeats = false } = {}) {
-        let { team } = await api("/v1/team");
+      async function loadTeam({ awaitSeats = false, reconcile = false } = {}) {
+        // ?reconcile=1 makes the server ask Paddle directly. It costs two Paddle
+        // calls, so it's for the first look and the retry button — not the poll.
+        let { team } = await api(reconcile ? "/v1/team?reconcile=1" : "/v1/team");
         // Straight back from checkout: Paddle redirects before its webhook
         // reaches us, so give the subscription a moment to appear instead of
         // telling a paying customer they have no team.
@@ -526,7 +528,10 @@
         $("clerk-auth").replaceChildren();
         $("signout").hidden = false;
         try {
-          await loadTeam({ awaitSeats: new URLSearchParams(location.search).get("welcome") === "1" });
+          await loadTeam({
+            awaitSeats: new URLSearchParams(location.search).get("welcome") === "1",
+            reconcile: true,
+          });
         } catch (e) {
           $("gate").classList.remove("hide");
           $("gate-title").textContent = "Couldn't load your team";
