@@ -42,16 +42,58 @@
         -webkit-font-smoothing: antialiased;
       }
       a { color: var(--cyan); }
+      /* Shared header — keep this identical to account.html. */
       .topbar {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 16px 22px;
-        border-bottom: 1px solid var(--border);
+        justify-content: space-between;
+        width: 100%;
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 22px 28px;
       }
-      .brand { font-family: var(--mono); font-weight: 600; letter-spacing: -0.01em; }
-      .brand span { color: var(--cyan); }
-      .topbar .right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: #fff;
+        text-decoration: none;
+      }
+      .brand-word {
+        font-family: var(--sans);
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .brand-word .accent { color: var(--cyan); }
+      .topnav {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .navlink {
+        padding: 8px 13px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        font: 600 12.5px/1 var(--sans);
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .navlink:hover {
+        border-color: rgba(114, 255, 255, 0.4);
+        color: var(--cyan);
+      }
+      .navlink--signout {
+        color: var(--danger);
+        border-color: rgba(255, 107, 107, 0.25);
+        background: rgba(255, 107, 107, 0.08);
+      }
+      .navlink--signout:hover {
+        color: var(--danger);
+        border-color: rgba(255, 107, 107, 0.5);
+      }
       .wrap { max-width: 1080px; margin: 0 auto; padding: 26px 22px 60px; }
       h1 { font-family: var(--mono); font-size: 21px; margin: 0 0 4px; letter-spacing: -0.02em; }
       .sub { color: var(--muted); font-size: 13.5px; margin: 0 0 22px; }
@@ -156,11 +198,21 @@
   </head>
   <body>
     <div class="topbar">
-      <span class="brand">SecureIntent<span>.ai</span></span>
-      <div class="right">
-        <a class="btn" href="/account.html">My account</a>
-        <button class="btn" id="signout" type="button" hidden>Sign out</button>
-      </div>
+      <a class="brand" href="/">
+        <svg aria-hidden="true" viewBox="0 0 250 250" width="30" height="30">
+          <path d="M 50,195 L 110,75" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round"></path>
+          <path d="M 130,195 L 160,135" fill="none" stroke="#72FFFF" stroke-width="28" stroke-linecap="round"></path>
+          <circle cx="190" cy="75" r="14" fill="#72FFFF"></circle>
+        </svg>
+        <span class="brand-word">SecureIntent<span class="accent">.ai</span></span>
+      </a>
+      <nav class="topnav">
+        <a class="navlink" href="/account.html">Account</a>
+        <a class="navlink" href="/">Home</a>
+        <button class="navlink navlink--signout" id="signout" type="button" hidden>
+          Sign out
+        </button>
+      </nav>
     </div>
 
     <div class="wrap">

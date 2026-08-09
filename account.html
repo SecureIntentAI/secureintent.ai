@@ -64,10 +64,34 @@
       .brand .accent {
         color: var(--cyan);
       }
-      .backlink {
-        font-size: 13px;
-        color: var(--muted);
+      /* Shared header nav — keep this identical to team.html. */
+      .topnav {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .navlink {
+        padding: 8px 13px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        font: 600 12.5px/1 var(--sans);
         text-decoration: none;
+        cursor: pointer;
+      }
+      .navlink:hover {
+        border-color: rgba(114, 255, 255, 0.4);
+        color: var(--cyan);
+      }
+      .navlink--signout {
+        color: var(--danger);
+        border-color: rgba(255, 107, 107, 0.25);
+        background: rgba(255, 107, 107, 0.08);
+      }
+      .navlink--signout:hover {
+        color: var(--danger);
+        border-color: rgba(255, 107, 107, 0.5);
       }
       .backlink:hover {
         color: var(--cyan);
@@ -470,7 +494,13 @@
         </svg>
         <span class="brand-word">SecureIntent<span class="accent">.ai</span></span>
       </a>
-      <a class="backlink" href="/">← Home</a>
+      <nav class="topnav">
+        <a class="navlink" href="/team.html">Team</a>
+        <a class="navlink" href="/">Home</a>
+        <button class="navlink navlink--signout" id="signout-top" type="button" hidden>
+          Sign out
+        </button>
+      </nav>
     </div>
 
     <main>
@@ -512,7 +542,6 @@
             <button class="upgrade" id="upgrade" hidden>Upgrade · $8/mo</button>
             <button class="manage" id="manage" hidden>Manage subscription</button>
             <span class="lifetime-badge" id="lifetime-badge" hidden>Lifetime Pro</span>
-            <button class="signout" id="signout">Sign out</button>
           </div>
         </div>
 
@@ -890,6 +919,7 @@
         $("loading").hidden = true;
         const signedIn = !!window.Clerk.user;
         $("account").hidden = !signedIn;
+        $("signout-top").hidden = !signedIn;
         $("auth").hidden = signedIn;
 
         if (signedIn) {
@@ -954,7 +984,7 @@
 
           $("upgrade").addEventListener("click", openCheckout);
           $("manage").addEventListener("click", openPortal);
-          $("signout").addEventListener("click", () => window.Clerk.signOut());
+          $("signout-top").addEventListener("click", () => window.Clerk.signOut());
           render();
           window.Clerk.addListener(render);
         } catch (e) {
