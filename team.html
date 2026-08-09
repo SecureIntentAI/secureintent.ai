@@ -190,8 +190,8 @@
 
         <div class="pending" id="pending" hidden>
           <div>
-            <strong>We haven't seen your payment yet.</strong>
-            <p>
+            <strong id="pending-title">We haven't seen your payment yet.</strong>
+            <p id="pending-body">
               If you've just paid, this usually clears within a minute. Check again, and if it
               still doesn't appear, email
               <a href="mailto:billing@secureintent.ai">billing@secureintent.ai</a> — nothing is
@@ -348,6 +348,22 @@
           ),
         ];
         $("people").innerHTML = rows.join("") || '<tr><td colspan="4" class="empty">No one yet</td></tr>';
+      }
+
+      // Paddle's transaction status is the difference between "we're waiting on
+      // Paddle" and "the payment never went through" — worth saying out loud.
+      function explainPending(status) {
+        const paid = status === "completed" || status === "billed";
+        $("pending-title").textContent = paid
+          ? "Payment received — activating your seats."
+          : "We haven't seen your payment yet.";
+        $("pending-body").innerHTML = paid
+          ? 'Your subscription is being set up. Press Check again in a moment; if it still ' +
+            "doesn't appear, email <a href=\"mailto:billing@secureintent.ai\">billing@secureintent.ai</a> " +
+            'and nothing will be lost.'
+          : 'The checkout wasn\'t completed, so nothing has been charged. You can ' +
+            '<a href="/team.html">start again</a>, or email ' +
+            '<a href="mailto:billing@secureintent.ai">billing@secureintent.ai</a> if you think this is wrong.';
       }
 
       async function loadTeam({ reconcile = false } = {}) {
@@ -522,18 +538,24 @@
         try {
           const params = new URLSearchParams(location.search);
           const txn = params.get("_ptxn");
+          let claim = null;
           if (params.get("welcome") === "1" && txn) {
             // Back from checkout: claim this exact purchase. Paddle knows about
             // it immediately, so there is nothing to wait for.
             $("gate-title").textContent = "Activating your seats…";
             $("gate-sub").textContent = "";
-            await api("/v1/team/reconcile", {
+            claim = await api("/v1/team/reconcile", {
               method: "POST",
               body: JSON.stringify({ transactionId: txn }),
-            }).catch((e) => console.error("[team] claim failed", e));
+            }).catch((e) => {
+              console.error("[team] claim failed", e);
+              return null;
+            });
             history.replaceState(null, "", "/team.html");
           }
           await loadTeam({ reconcile: !txn && params.get("welcome") === "1" });
+          // Say which case this is rather than leaving someone guessing.
+          if (claim && !claim.seats) explainPending(claim.transactionStatus);
         } catch (e) {
           $("gate").classList.remove("hide");
           $("gate-title").textContent = "Couldn't load your team";
