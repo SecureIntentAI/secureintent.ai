@@ -63,10 +63,12 @@ If a switch is ever wanted:
 - The DNS change needs a Cloudflare token with **Zone.DNS edit**. The wrangler
   OAuth token is Workers/Pages-scoped and 403s on DNS, cache rules and zone
   settings.
-- Pages serves **pretty URLs**: `/team.html` 308-redirects to `/team` (same for
-  `account.html`). Every existing link still works but takes an extra hop —
-  including `ACCOUNT_URL` baked into shipped extension builds. Add a
-  `_redirects` file before switching.
+- Pages serves **pretty URLs**: `/team.html` 308-redirects to `/team`. Netlify
+  already does the same thing (its post-processing even rewrites `href="/team.html"`
+  to `href="/team"` in the served HTML, and single-quotes attributes — so grepping
+  deployed markup for a double-quoted attribute will mislead you). Both `/team`
+  and `/team.html` answer 200 today; Pages would redirect rather than serve, which
+  costs a hop on links like `ACCOUNT_URL` baked into shipped extension builds.
 - Cheaper first step: a Cloudflare **Cache Rule** with an Edge TTL override that
   ignores the origin's `cache-control`, which masks a slow origin for visitors
   without moving anything.
