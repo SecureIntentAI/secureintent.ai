@@ -256,6 +256,10 @@
     </div>
 
     <script>
+      // Where Clerk should return people after they authenticate. Kept as one
+      // constant so a rename can't leave a redirect pointing somewhere stale.
+      const TEAM_PATH = "/team.html";
+
       const CFG = {
         apiBase: "https://api.secureintent.ai",
         jwtTemplate: "secureintent",
@@ -581,7 +585,17 @@
           $("gate-sub").textContent = "";
           $("gate-actions").classList.add("hide");
           $("signout").hidden = true;
-          window.Clerk.mountSignIn($("clerk-auth"), { appearance: CLERK_APPEARANCE });
+          // Come back HERE after signing in. Without these Clerk uses the
+          // instance default (the landing page), which drops someone who was
+          // half way through buying seats.
+          window.Clerk.mountSignIn($("clerk-auth"), {
+            appearance: CLERK_APPEARANCE,
+            afterSignInUrl: TEAM_PATH,
+            afterSignUpUrl: TEAM_PATH,
+            fallbackRedirectUrl: TEAM_PATH,
+            signUpFallbackRedirectUrl: TEAM_PATH,
+            signUpUrl: TEAM_PATH,
+          });
           return;
         }
         $("clerk-auth").replaceChildren();
