@@ -152,6 +152,7 @@
       data-clerk-publishable-key="pk_live_Y2xlcmsuc2VjdXJlaW50ZW50LmFpJA"
       src="https://clerk.secureintent.ai/npm/@clerk/clerk-js@5/dist/clerk.browser.js"
     ></script>
+    <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
   </head>
   <body>
     <div class="topbar">
@@ -255,7 +256,13 @@
     </div>
 
     <script>
-      const CFG = { apiBase: "https://api.secureintent.ai", jwtTemplate: "secureintent" };
+      const CFG = {
+        apiBase: "https://api.secureintent.ai",
+        jwtTemplate: "secureintent",
+        // Paddle client-side token (same one the account page uses).
+        paddleToken: "live_7ce4fc6784b4e1614713a5b29ee",
+        paddleEnv: "production",
+      };
       const $ = (id) => document.getElementById(id);
       const esc = (s) =>
         String(s ?? "").replace(/[&<>"']/g, (c) =>
@@ -366,6 +373,24 @@
             '<a href="mailto:billing@secureintent.ai">billing@secureintent.ai</a> if you think this is wrong.';
       }
 
+      /**
+       * Show the payment form. Paddle's overlay is the supported way to pay for
+       * a transaction created through the API; the hosted URL is only a fallback
+       * for a browser where Paddle.js didn't load.
+       */
+      function openCheckout(transactionId, fallbackUrl) {
+        const successUrl = `${location.origin}/team.html?welcome=1&claim=${transactionId}`;
+        if (window.Paddle?.Checkout) {
+          window.Paddle.Checkout.open({
+            transactionId,
+            settings: { displayMode: "overlay", theme: "dark", successUrl },
+          });
+          return;
+        }
+        if (fallbackUrl) window.location.href = fallbackUrl;
+        else $("gate-err").textContent = "Couldn't open the payment form. Please try again.";
+      }
+
       async function loadTeam({ reconcile = false } = {}) {
         // ?reconcile=1 makes the server ask Paddle directly instead of waiting on
         // a webhook. Costs a Paddle call, so it's for the first look after
@@ -446,14 +471,18 @@
             $("gate-err").textContent = "A team starts at three seats.";
             return;
           }
+          $("buy").disabled = true;
           try {
-            const { url } = await api("/v1/team/checkout", {
+            const { transactionId, url } = await api("/v1/team/checkout", {
               method: "POST",
               body: JSON.stringify({ companyName, seats }),
             });
-            window.location.href = url;
+            openCheckout(transactionId, url);
           } catch (e) {
-            $("gate-err").textContent = e.message;
+            $("gate-err").textContent =
+              e.message === "invalid_seats" ? "A team starts at three seats." : e.message;
+          } finally {
+            $("buy").disabled = false;
           }
         });
 
@@ -537,23 +566,31 @@
         $("signout").hidden = false;
         try {
           const params = new URLSearchParams(location.search);
-          const txn = params.get("_ptxn");
+          const welcome = params.get("welcome") === "1";
+          // `claim` is ours, set on the success URL we hand Paddle. `_ptxn` is
+          // Paddle's: it sends people to this page to PAY, so an unclaimed one
+          // means a checkout that was never finished — reopen the form.
+          const claimId = params.get("claim");
+          const resumeId = params.get("_ptxn");
           let claim = null;
-          if (params.get("welcome") === "1" && txn) {
-            // Back from checkout: claim this exact purchase. Paddle knows about
-            // it immediately, so there is nothing to wait for.
+
+          if (welcome && claimId) {
             $("gate-title").textContent = "Activating your seats…";
             $("gate-sub").textContent = "";
             claim = await api("/v1/team/reconcile", {
               method: "POST",
-              body: JSON.stringify({ transactionId: txn }),
+              body: JSON.stringify({ transactionId: claimId }),
             }).catch((e) => {
               console.error("[team] claim failed", e);
               return null;
             });
             history.replaceState(null, "", "/team.html");
+          } else if (resumeId) {
+            openCheckout(resumeId, null);
+            history.replaceState(null, "", "/team.html");
           }
-          await loadTeam({ reconcile: !txn && params.get("welcome") === "1" });
+
+          await loadTeam({ reconcile: welcome && !claimId });
           // Say which case this is rather than leaving someone guessing.
           if (claim && !claim.seats) explainPending(claim.transactionStatus);
         } catch (e) {
@@ -563,8 +600,34 @@
         }
       }
 
+      function initPaddle() {
+        if (!window.Paddle || !CFG.paddleToken) {
+          console.warn("[team] Paddle.js unavailable — checkout will fall back to a redirect.");
+          return;
+        }
+        window.Paddle.Environment.set(CFG.paddleEnv);
+        window.Paddle.Initialize({
+          token: CFG.paddleToken,
+          eventCallback: (e) => {
+            // Claim the moment payment completes; the redirect is the backup.
+            if (e?.name === "checkout.completed") {
+              const id = e?.data?.transaction_id;
+              if (id) {
+                api("/v1/team/reconcile", {
+                  method: "POST",
+                  body: JSON.stringify({ transactionId: id }),
+                })
+                  .catch(() => {})
+                  .then(() => loadTeam());
+              }
+            }
+          },
+        });
+      }
+
       async function start() {
         await window.Clerk.load();
+        initPaddle();
         wire();
         window.Clerk.addListener(render);
         render();
