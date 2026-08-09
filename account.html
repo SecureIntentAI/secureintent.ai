@@ -517,8 +517,12 @@
         };
         const set = (name, value) => {
           try { localStorage.setItem(name, value); } catch (e) {}
-          document.cookie = name + "=" + encodeURIComponent(value) +
-            ";domain=.secureintent.ai;path=/;max-age=" + MAX_AGE + ";SameSite=Lax";
+          // Domain attribute only on the real domain; a local copy on localhost
+          // writes a host-only cookie so the same flow can be tested end to end.
+          const scoped = /(^|\.)secureintent\.ai$/.test(location.hostname)
+            ? ";domain=.secureintent.ai" : "";
+          document.cookie = name + "=" + encodeURIComponent(value) + scoped +
+            ";path=/;max-age=" + MAX_AGE + ";SameSite=Lax";
         };
         const p = new URLSearchParams(location.search);
         const creator = (p.get("ref") || p.get("utm_source") || "").trim();

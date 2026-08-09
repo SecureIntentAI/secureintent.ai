@@ -67,8 +67,13 @@
           return m ? decodeURIComponent(m[1]) : null;
         }
         function writeCookie(name, value) {
-          document.cookie = name + '=' + encodeURIComponent(value) +
-            ';domain=.secureintent.ai;path=/;max-age=' + MAX_AGE + ';SameSite=Lax';
+          // Share the cookie across secureintent.ai subdomains (account.html and the
+          // extension both read it). A domain attribute is only legal on that domain,
+          // so a local dev copy on localhost writes a host-only cookie instead.
+          var scoped = /(^|\.)secureintent\.ai$/.test(location.hostname)
+            ? ';domain=.secureintent.ai' : '';
+          document.cookie = name + '=' + encodeURIComponent(value) + scoped +
+            ';path=/;max-age=' + MAX_AGE + ';SameSite=Lax';
         }
         function get(name) {
           try { return localStorage.getItem(name) || readCookie(name); }
