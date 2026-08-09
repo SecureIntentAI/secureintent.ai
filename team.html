@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>SecureIntent · Team</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        color-scheme: dark;
+        --base: #050507;
+        --panel: #0a0e1a;
+        --panel2: #0d1220;
+        --cyan: #72ffff;
+        --navy: #052656;
+        --text: #f4f6f8;
+        --muted: #8b949e;
+        --faint: #5a626b;
+        --danger: #ff6b6b;
+        --ok: #34d399;
+        --border: rgba(255, 255, 255, 0.08);
+        --mono: "Fira Code", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: radial-gradient(circle at 50% -10%, #0b1530, #050507 62%);
+        color: var(--text);
+        font-family: var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+      a { color: var(--cyan); }
+      .topbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 22px;
+        border-bottom: 1px solid var(--border);
+      }
+      .brand { font-family: var(--mono); font-weight: 600; letter-spacing: -0.01em; }
+      .brand span { color: var(--cyan); }
+      .topbar .right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+      .wrap { max-width: 1080px; margin: 0 auto; padding: 26px 22px 60px; }
+      h1 { font-family: var(--mono); font-size: 21px; margin: 0 0 4px; letter-spacing: -0.02em; }
+      .sub { color: var(--muted); font-size: 13.5px; margin: 0 0 22px; }
+
+      .btn {
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        border-radius: 10px;
+        padding: 8px 13px;
+        font: 600 12.5px/1 var(--sans);
+        cursor: pointer;
+      }
+      .btn:hover { border-color: rgba(114, 255, 255, 0.4); color: var(--cyan); }
+      .btn.primary {
+        background: linear-gradient(180deg, #9bffff, var(--cyan));
+        color: var(--navy);
+        border: 0;
+      }
+      .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+      input, select {
+        background: var(--panel2);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 10px;
+        padding: 9px 11px;
+        font: 400 13px/1.2 var(--sans);
+      }
+      input:focus-visible, select:focus-visible, .btn:focus-visible {
+        outline: 2px solid rgba(114, 255, 255, 0.55);
+        outline-offset: 2px;
+      }
+
+      .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 15px 17px;
+      }
+      .card .k { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+      .card .v { font-size: 25px; font-weight: 700; margin-top: 6px; letter-spacing: -0.02em; }
+      .card .v small { font-size: 13px; color: var(--muted); font-weight: 500; }
+
+      section.block { margin-top: 22px; }
+      .block h2 {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--muted);
+        margin: 0 0 11px;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px 18px;
+      }
+      .row { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+      .row .lbl { width: 150px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .row .track { flex: 1; height: 8px; background: rgba(255, 255, 255, 0.06); border-radius: 6px; overflow: hidden; }
+      .row .fill { height: 100%; background: var(--cyan); border-radius: 6px; }
+      .row .n { width: 52px; text-align: right; font-size: 12.5px; color: var(--muted); }
+      .chart { display: flex; align-items: flex-end; gap: 4px; height: 110px; }
+      .chart .bar { flex: 1; min-width: 4px; background: linear-gradient(180deg, var(--cyan), rgba(114,255,255,.2)); border-radius: 3px 3px 0 0; min-height: 2px; }
+
+      table { width: 100%; border-collapse: collapse; }
+      th, td { text-align: left; padding: 10px 8px; font-size: 13px; border-bottom: 1px solid var(--border); }
+      th { color: var(--faint); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+      tr:last-child td { border-bottom: 0; }
+      .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; border: 1px solid var(--border); color: var(--muted); }
+      .tag.admin { color: var(--cyan); border-color: rgba(114, 255, 255, 0.35); }
+      .tag.pending { color: #fbbf24; border-color: rgba(251, 191, 36, 0.35); }
+      .empty { color: var(--faint); font-size: 13px; padding: 10px 0; }
+      .note { color: var(--faint); font-size: 12px; line-height: 1.55; margin-top: 12px; }
+      .err { color: var(--danger); font-size: 13px; }
+      .hide { display: none !important; }
+      .invite { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+      .invite input { flex: 1; min-width: 220px; }
+      #gate { max-width: 460px; margin: 60px auto; text-align: center; }
+    </style>
+    <script
+      async
+      crossorigin="anonymous"
+      data-clerk-publishable-key="pk_live_Y2xlcmsuc2VjdXJlaW50ZW50LmFpJA"
+      src="https://clerk.secureintent.ai/npm/@clerk/clerk-js@5/dist/clerk.browser.js"
+    ></script>
+  </head>
+  <body>
+    <div class="topbar">
+      <span class="brand">SecureIntent<span>.ai</span></span>
+      <div class="right">
+        <a class="btn" href="/account.html">My account</a>
+        <button class="btn" id="signout" type="button" hidden>Sign out</button>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <!-- Signed out, or signed in without a team -->
+      <div id="gate">
+        <h1 id="gate-title">Loading…</h1>
+        <p class="sub" id="gate-sub"></p>
+        <div id="clerk-auth"></div>
+        <div id="gate-actions" class="hide">
+          <p class="sub">
+            SecureIntent Business protects a whole team: one subscription, a seat per
+            person, and a view of what the extension is stopping.
+          </p>
+          <div class="invite" style="justify-content: center">
+            <input id="company" type="text" placeholder="Company name" />
+            <input id="buy-seats" type="number" min="1" value="5" style="width: 96px" />
+            <button class="btn primary" id="buy" type="button">Buy seats</button>
+          </div>
+          <p class="err" id="gate-err"></p>
+        </div>
+      </div>
+
+      <!-- The team console -->
+      <main id="console" class="hide">
+        <h1 id="team-name">Team</h1>
+        <p class="sub" id="team-sub"></p>
+
+        <div class="cards">
+          <div class="card"><div class="k">Seats</div><div class="v" id="c-seats">—</div></div>
+          <div class="card"><div class="k">Seats used</div><div class="v" id="c-used">—</div></div>
+          <div class="card"><div class="k">Detections · 30d</div><div class="v" id="c-total">—</div></div>
+          <div class="card"><div class="k">People involved</div><div class="v" id="c-actors">—</div></div>
+        </div>
+
+        <section class="block">
+          <h2>Detections over time</h2>
+          <div class="panel"><div class="chart" id="p-chart"></div></div>
+        </section>
+
+        <section class="block" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px">
+          <div>
+            <h2>What was caught</h2>
+            <div class="panel" id="p-types"></div>
+          </div>
+          <div>
+            <h2>Where it was headed</h2>
+            <div class="panel" id="p-sites"></div>
+          </div>
+          <div>
+            <h2>What people chose</h2>
+            <div class="panel" id="p-actions"></div>
+          </div>
+        </section>
+
+        <section class="block">
+          <h2>People</h2>
+          <div class="panel">
+            <div class="invite" id="invite-row">
+              <input id="invite-email" type="email" placeholder="name@company.com" />
+              <select id="invite-role">
+                <option value="org:member">Member</option>
+                <option value="org:admin">Admin</option>
+              </select>
+              <button class="btn primary" id="invite" type="button">Invite</button>
+              <button class="btn" id="seats-btn" type="button">Change seats</button>
+            </div>
+            <p class="err" id="team-err"></p>
+            <table>
+              <thead><tr><th>Person</th><th>Email</th><th>Role</th><th></th></tr></thead>
+              <tbody id="people"></tbody>
+            </table>
+            <p class="note">
+              Activity is shown for the team as a whole. SecureIntent never receives the text
+              anyone pastes — only that something was caught, what kind, and where it was going.
+            </p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const CFG = { apiBase: "https://api.secureintent.ai", jwtTemplate: "secureintent" };
+      const $ = (id) => document.getElementById(id);
+      const esc = (s) =>
+        String(s ?? "").replace(/[&<>"']/g, (c) =>
+          ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
+        );
+      const fmt = (n) => (Number(n) || 0).toLocaleString();
+      const ACTION_LABEL = {
+        cancelled: "Cancelled the paste",
+        paste_anonymously: "Pasted anonymised",
+        paste_anyway: "Pasted anyway",
+      };
+      const TYPE_LABEL = {
+        "known-key": "Known API key",
+        "private-key": "Private key",
+        "env-credential": "Env credential",
+        pii: "Personal data",
+      };
+
+      async function api(path, init = {}) {
+        const token = await window.Clerk.session.getToken({ template: CFG.jwtTemplate });
+        const res = await fetch(`${CFG.apiBase}${path}`, {
+          ...init,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "content-type": "application/json",
+            ...(init.headers || {}),
+          },
+          cache: "no-store",
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+        return body;
+      }
+
+      function bars(el, list, labels) {
+        el.textContent = "";
+        if (!list || !list.length) {
+          el.innerHTML = '<div class="empty">Nothing yet</div>';
+          return;
+        }
+        const max = list.reduce((m, r) => Math.max(m, r.n), 0) || 1;
+        el.innerHTML = list
+          .map(
+            (r) =>
+              `<div class="row"><div class="lbl" title="${esc(r.key)}">${esc(
+                (labels && labels[r.key]) || r.key,
+              )}</div><div class="track"><div class="fill" style="width:${
+                (r.n / max) * 100
+              }%"></div></div><div class="n">${fmt(r.n)}</div></div>`,
+          )
+          .join("");
+      }
+
+      function chart(points) {
+        const el = $("p-chart");
+        if (!points || !points.length) {
+          el.innerHTML = '<div class="empty">No detections in this period</div>';
+          return;
+        }
+        const max = points.reduce((m, p) => Math.max(m, p.n), 0) || 1;
+        el.innerHTML = points
+          .map(
+            (p) =>
+              `<div class="bar" style="height:${Math.max(2, (p.n / max) * 100)}%" title="${esc(
+                p.day,
+              )}: ${fmt(p.n)}"></div>`,
+          )
+          .join("");
+      }
+
+      function renderPeople(team) {
+        const isAdmin = team.role === "org:admin";
+        $("invite-row").classList.toggle("hide", !isAdmin);
+        const rows = [
+          ...team.members.map(
+            (m) =>
+              `<tr><td>${esc(m.name || "—")}</td><td>${esc(m.email || "")}</td><td><span class="tag ${
+                m.role === "org:admin" ? "admin" : ""
+              }">${m.role === "org:admin" ? "Admin" : "Member"}</span></td><td>${
+                isAdmin && m.role !== "org:admin"
+                  ? `<button class="btn" data-remove="${esc(m.userId)}">Remove</button>`
+                  : ""
+              }</td></tr>`,
+          ),
+          ...team.invitations.map(
+            (i) =>
+              `<tr><td>—</td><td>${esc(i.email)}</td><td><span class="tag pending">Invited</span></td><td>${
+                isAdmin ? `<button class="btn" data-revoke="${esc(i.id)}">Revoke</button>` : ""
+              }</td></tr>`,
+          ),
+        ];
+        $("people").innerHTML = rows.join("") || '<tr><td colspan="4" class="empty">No one yet</td></tr>';
+      }
+
+      async function loadTeam() {
+        const { team } = await api("/v1/team");
+        if (!team) {
+          $("gate").classList.remove("hide");
+          $("console").classList.add("hide");
+          $("gate-title").textContent = "Set up your team";
+          $("gate-sub").textContent = "";
+          $("gate-actions").classList.remove("hide");
+          return;
+        }
+        $("gate").classList.add("hide");
+        $("console").classList.remove("hide");
+
+        $("team-name").textContent = team.name || "Your team";
+        $("team-sub").textContent =
+          team.status === "active"
+            ? `Business plan · ${team.seatsUsed} of ${team.seats} seats in use`
+            : `Subscription status: ${team.status}`;
+        $("c-seats").textContent = fmt(team.seats);
+        $("c-used").innerHTML = `${fmt(team.seatsUsed)} <small>/ ${fmt(team.seats)}</small>`;
+        renderPeople(team);
+
+        if (team.role === "org:admin") {
+          const { metrics } = await api("/v1/team/metrics?days=30");
+          $("c-total").textContent = fmt(metrics.total);
+          // Just the count: people who triggered a detection in the window. Not
+          // "of seats" — someone can hold a seat and never trip a warning.
+          $("c-actors").textContent = fmt(metrics.activeActors);
+          chart(metrics.byDay);
+          bars($("p-types"), metrics.byType, TYPE_LABEL);
+          bars($("p-sites"), metrics.bySite);
+          bars($("p-actions"), metrics.byAction, ACTION_LABEL);
+        } else {
+          // Members see the team and their colleagues, not the security posture.
+          document.querySelectorAll("section.block").forEach((s, i) => {
+            if (i < 2) s.classList.add("hide");
+          });
+          $("c-total").textContent = "—";
+          $("c-actors").textContent = "—";
+        }
+      }
+
+      async function act(fn) {
+        $("team-err").textContent = "";
+        try {
+          await fn();
+          await loadTeam();
+        } catch (e) {
+          $("team-err").textContent =
+            e.message === "seat_limit_reached"
+              ? "Every seat is taken. Add seats first."
+              : e.message === "seats_in_use"
+                ? "Remove people before reducing seats."
+                : e.message;
+        }
+      }
+
+      function wire() {
+        $("buy").addEventListener("click", async () => {
+          $("gate-err").textContent = "";
+          const companyName = $("company").value.trim();
+          const seats = Number($("buy-seats").value);
+          if (!companyName) {
+            $("gate-err").textContent = "Company name is required.";
+            return;
+          }
+          try {
+            const { url } = await api("/v1/team/checkout", {
+              method: "POST",
+              body: JSON.stringify({ companyName, seats }),
+            });
+            window.location.href = url;
+          } catch (e) {
+            $("gate-err").textContent = e.message;
+          }
+        });
+
+        $("invite").addEventListener("click", () =>
+          act(async () => {
+            const email = $("invite-email").value.trim();
+            if (!email) throw new Error("Enter an email address.");
+            await api("/v1/team/invite", {
+              method: "POST",
+              body: JSON.stringify({ email, role: $("invite-role").value }),
+            });
+            $("invite-email").value = "";
+          }),
+        );
+
+        $("seats-btn").addEventListener("click", () =>
+          act(async () => {
+            const seats = Number(window.prompt("How many seats in total?"));
+            if (!seats) throw new Error("Cancelled.");
+            await api("/v1/team/seats", { method: "POST", body: JSON.stringify({ seats }) });
+          }),
+        );
+
+        $("people").addEventListener("click", (e) => {
+          const remove = e.target.getAttribute?.("data-remove");
+          const revoke = e.target.getAttribute?.("data-revoke");
+          if (remove) {
+            act(() =>
+              api("/v1/team/member/remove", {
+                method: "POST",
+                body: JSON.stringify({ userId: remove }),
+              }),
+            );
+          } else if (revoke) {
+            act(() =>
+              api("/v1/team/invite/revoke", {
+                method: "POST",
+                body: JSON.stringify({ invitationId: revoke }),
+              }),
+            );
+          }
+        });
+
+        $("signout").addEventListener("click", () => window.Clerk.signOut());
+      }
+
+      const CLERK_APPEARANCE = {
+        variables: {
+          colorPrimary: "#72ffff",
+          colorPrimaryForeground: "#052656",
+          colorBackground: "#0a0e1a",
+          colorText: "#f4f6f8",
+          colorInputBackground: "#0d1220",
+          borderRadius: "12px",
+        },
+      };
+
+      async function render() {
+        if (!window.Clerk.user) {
+          $("gate").classList.remove("hide");
+          $("console").classList.add("hide");
+          $("gate-title").textContent = "Sign in to manage your team";
+          $("gate-sub").textContent = "";
+          $("gate-actions").classList.add("hide");
+          $("signout").hidden = true;
+          window.Clerk.mountSignIn($("clerk-auth"), { appearance: CLERK_APPEARANCE });
+          return;
+        }
+        $("clerk-auth").replaceChildren();
+        $("signout").hidden = false;
+        try {
+          await loadTeam();
+        } catch (e) {
+          $("gate").classList.remove("hide");
+          $("gate-title").textContent = "Couldn't load your team";
+          $("gate-sub").textContent = e.message;
+        }
+      }
+
+      async function start() {
+        await window.Clerk.load();
+        wire();
+        window.Clerk.addListener(render);
+        render();
+      }
+
+      if (window.Clerk) start();
+      else
+        document.addEventListener("DOMContentLoaded", () => {
+          const t = setInterval(() => {
+            if (window.Clerk) {
+              clearInterval(t);
+              start();
+            }
+          }, 60);
+        });
+    </script>
+  </body>
+</html>
