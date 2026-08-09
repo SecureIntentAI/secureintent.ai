@@ -198,8 +198,12 @@
         cursor: pointer;
         transition: background 150ms ease;
       }
-      button.manage:hover {
+      button.manage:hover:not(:disabled) {
         background: rgba(114, 255, 255, 0.08);
+      }
+      button.manage:disabled {
+        opacity: 0.55;
+        cursor: default;
       }
       .plan-actions {
         display: flex;
@@ -266,6 +270,11 @@
       }
       .overlap-cta:hover:not(:disabled) { border-color: rgba(114, 255, 255, 0.45); color: var(--cyan); }
       .overlap-cta:disabled { opacity: 0.5; cursor: default; }
+      /* Same box, said in red: something failed rather than something to decide. */
+      .overlap--error {
+        border-color: rgba(255, 107, 107, 0.32);
+        background: rgba(255, 107, 107, 0.06);
+      }
 
       .team-card {
         display: flex;
@@ -294,6 +303,8 @@
       }
       .team-cta:hover { background: rgba(114, 255, 255, 0.08); }
       .team-cta.hide { display: none; }
+      /* Stands in for the CTA when the team couldn't be read. */
+      .team-retry { margin-left: auto; }
 
       button.upgrade {
         padding: 10px 18px;
@@ -460,12 +471,6 @@
       .feat--locked .feat-state {
         color: var(--cyan);
       }
-      .feat--upcoming {
-        opacity: 0.55;
-      }
-      .feat--upcoming .feat-state {
-        color: var(--faint);
-      }
 
       /* Clerk mount points — center their internal cards */
       #clerk-auth,
@@ -572,6 +577,21 @@
           </div>
         </div>
 
+        <!-- Billing couldn't be read, or an action against it failed. A failed
+             fetch tells us nothing about this account, so we say that instead of
+             guessing: showing "Free" to someone who already pays is how people
+             end up buying a second time. -->
+        <div class="overlap overlap--error" id="plan-notice" hidden>
+          <div>
+            <strong id="plan-notice-title">Couldn't load your plan</strong>
+            <p id="plan-notice-body">
+              We couldn't reach the billing service. Your subscription isn't affected — this is only
+              what we can show right now.
+            </p>
+          </div>
+          <button class="overlap-cta" id="plan-retry" type="button">Retry</button>
+        </div>
+
         <!-- Team: their org when they're in one, otherwise the way into buying seats. -->
         <!-- Their employer now covers them, but they're still paying for their
              own plan. Say so where they can act on it. -->
@@ -594,6 +614,7 @@
             <span class="team-sub" id="team-sub">—</span>
           </div>
           <a class="team-cta" id="team-cta" href="/team.html">Manage team</a>
+          <button class="overlap-cta team-retry" id="team-retry" type="button" hidden>Retry</button>
         </div>
 
         <details class="features" id="features" open>
@@ -743,18 +764,17 @@
         });
       })();
 
-      // Feature matrix (mirrors the extension popup). The Pro toolkit is live
-      // (locked on Free, active on Pro); business features are still "Soon".
+      // Feature matrix (mirrors the extension popup). Everything listed is live:
+      // the Pro toolkit is locked on Free and active on Pro, and the two team
+      // features are locked below Business Pro and active on it.
       const CHECK_SVG =
         '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6"/><path d="M8.4 12.2l2.4 2.4 4.8-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-      const CLOCK_SVG =
-        '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6"/><path d="M12 8v4.2l2.6 1.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
       const LOCK_SVG =
         '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true"><rect x="5" y="10.5" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" stroke="currentColor" stroke-width="1.6"/></svg>';
       const HELP_SVG =
         '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M9.6 9.4a2.4 2.4 0 0 1 4.6.9c0 1.6-2.2 1.9-2.2 3.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="17" r="0.9" fill="currentColor"/></svg>';
 
-      const ICON = { upcoming: CLOCK_SVG, locked: LOCK_SVG };
+      const ICON = { locked: LOCK_SVG };
 
       const NOTES = {
         detection: "Scans every paste on-device and warns before secrets reach the page.",
@@ -775,21 +795,22 @@
           isFree
             ? { key, label, state: "locked", detail: "Pro" }
             : { key, label, state: "active", detail: "Active" };
-        const rows = [
+        // Team Policy Sync and Security-Team Alerts are shipped, so a Business Pro
+        // account has them now — not "Soon". Lower tiers see them locked, the same
+        // way the Pro toolkit reads on Free.
+        const team = (key, label) =>
+          plan === "business_pro"
+            ? { key, label, state: "active", detail: "Active" }
+            : { key, label, state: "locked", detail: "Business Pro" };
+        return [
           { key: "detection", label: "Detection & warnings", state: "active", detail: "Active" },
           anon,
           toolkit("rehydrate", "Rehydrate vault"),
-          toolkit("ghost", "Ghost log sanitiser"),
+          toolkit("ghost", "Ghost Log Sanitiser"),
           toolkit("session_lock", "Session Lock"),
+          team("team_policy", "Team Policy Sync"),
+          team("team_alerts", "Security-Team Alerts"),
         ];
-        // Business roadmap is only shown to Business Pro accounts.
-        if (plan === "business_pro") {
-          rows.push(
-            { key: "team_policy", label: "Team Policy Sync", state: "upcoming", detail: "Soon" },
-            { key: "team_alerts", label: "Security-Team Alerts", state: "upcoming", detail: "Soon" },
-          );
-        }
-        return rows;
       }
 
       function renderFeatures(plan) {
@@ -837,6 +858,7 @@
        */
       function renderOverlap(personal, source) {
         const box = $("overlap");
+        box.classList.remove("overlap--error"); // clear a previous failure
         if (!personal || source !== "org_seat") {
           box.hidden = true;
           return;
@@ -852,6 +874,7 @@
           return;
         }
         $("overlap-cancel").hidden = false;
+        $("overlap-title").textContent = "Your team already covers you";
         $("overlap-body").textContent = ends
           ? `You're also paying for Developer Pro yourself. Cancel it and it keeps working until ${ends}, then your team seat takes over.`
           : "You're also paying for Developer Pro yourself. Cancel it and you keep it until the period you've paid for ends — your team seat takes over from there.";
@@ -872,8 +895,12 @@
           renderOverlap({ cancelScheduled: true, currentPeriodEnd: endsAt }, "org_seat");
         } catch (e) {
           console.error("[account] cancel failed", e);
+          // Say it where they're looking, and colour it as the failure it is —
+          // a console message is not a user-visible answer.
+          $("overlap-title").textContent = "Couldn't cancel your subscription";
           $("overlap-body").textContent =
             "Couldn't cancel just now. Try again, or email billing@secureintent.ai.";
+          $("overlap").classList.add("overlap--error");
         } finally {
           btn.disabled = false;
           btn.textContent = "Cancel my subscription";
@@ -881,14 +908,17 @@
       }
 
       async function loadTeam() {
+        const card = $("team-card");
+        const cta = $("team-cta");
+        const retry = $("team-retry");
+        retry.disabled = true;
         try {
           const { team } = await api("/v1/team");
-          const card = $("team-card");
-          const cta = $("team-cta");
           // The console is for whoever administers the team. A member has
           // nothing to do there, so they don't get pointed at it.
           $("nav-team").hidden = team?.role !== "org:admin";
           card.hidden = false;
+          retry.hidden = true;
           if (!team) {
             $("team-name").textContent = "Protecting a team?";
             $("team-sub").textContent =
@@ -899,6 +929,16 @@
           }
           const isAdmin = team.role === "org:admin";
           $("team-name").textContent = team.name || "Your team";
+          // No seats means no subscription: the checkout was started and never
+          // finished. Saying "1 of 0 seats in use" makes a paid product look
+          // broken — tell them what actually happened and where to finish.
+          if (isAdmin && !(team.seats > 0)) {
+            $("team-sub").textContent =
+              "Payment wasn't completed, so no seats are active yet.";
+            cta.textContent = "Finish checkout";
+            cta.classList.remove("hide");
+            return;
+          }
           $("team-sub").textContent = isAdmin
             ? `Business Pro · ${team.seatsUsed} of ${team.seats} seats in use`
             : "Business Pro · managed by your team admin";
@@ -907,7 +947,16 @@
           cta.classList.toggle("hide", !isAdmin);
         } catch (e) {
           console.error("[account] loadTeam failed", e);
-          $("team-card").hidden = true;
+          // Keep the card. Hiding it takes an admin's only route into the console
+          // away, with nothing said about why — and leave the Team nav item as it
+          // already was rather than removing it on a blip.
+          card.hidden = false;
+          $("team-name").textContent = "Couldn't load your team";
+          $("team-sub").textContent = "We couldn't reach the team service just now.";
+          cta.classList.add("hide");
+          retry.hidden = false;
+        } finally {
+          retry.disabled = false;
         }
       }
 
@@ -922,7 +971,47 @@
         return res.json();
       }
 
+      /**
+       * The one message slot for billing trouble. `retry` is for states the user
+       * can re-run (the plan fetch); a failed action just gets told.
+       */
+      function showPlanNotice(title, body, opts) {
+        $("plan-notice-title").textContent = title;
+        $("plan-notice-body").textContent = body;
+        $("plan-retry").hidden = opts?.retry !== true;
+        $("plan-notice").hidden = false;
+      }
+
+      const hidePlanNotice = () => {
+        $("plan-notice").hidden = true;
+      };
+
+      /**
+       * We asked and didn't get an answer. Unknown is not Free: render nothing
+       * that could be mistaken for a plan, least of all an Upgrade button in
+       * front of someone who is already paying.
+       */
+      function showPlanUnavailable() {
+        $("plan-name").textContent = "Unavailable";
+        $("plan-name").classList.remove("pro");
+        $("plan-sub").hidden = true;
+        $("upgrade").hidden = true;
+        $("manage").hidden = true;
+        $("lifetime-badge").hidden = true;
+        $("overlap").hidden = true;
+        // A locked-looking checklist is a downgrade too — show none of it.
+        $("features").hidden = true;
+        $("feature-list").replaceChildren();
+        showPlanNotice(
+          "Couldn't load your plan",
+          "We couldn't reach the billing service. Your subscription isn't affected — this is only what we can show right now.",
+          { retry: true },
+        );
+      }
+
       async function loadPlan() {
+        const retry = $("plan-retry");
+        retry.disabled = true;
         try {
           const token = await window.Clerk.session.getToken({ template: CFG.jwtTemplate });
           sendAttribution(token); // fire-and-forget; never blocks the plan render
@@ -930,7 +1019,12 @@
             headers: { Authorization: `Bearer ${token}` },
             cache: "no-store",
           });
+          // A non-200 says nothing about this account. Falling through to the
+          // default plan would quietly show a paying customer "Free".
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const data = await res.json();
+          hidePlanNotice();
+          $("features").hidden = false;
           renderOverlap(data?.personalSubscription, data?.entitlement?.source);
           const plan = data?.entitlement?.plan ?? "developer";
           const source = data?.entitlement?.source;
@@ -941,14 +1035,24 @@
           // personal subscription behind it, so neither upgrading nor managing
           // billing belongs here. The team console owns that.
           const isTeamSeat = source === "org_seat";
+          // A work-domain grant is free and has no Paddle subscription behind it,
+          // so /v1/billing/portal has nothing to open. Offering "Manage
+          // subscription" here is a button that can only 404.
+          const isBusinessEmail = source === "business_email";
           $("plan-name").textContent = PLAN_LABEL[plan] ?? plan;
           $("plan-name").classList.toggle("pro", !isFree);
           // Lifetime users have nothing to manage; paid users do; free users upgrade.
           $("upgrade").hidden = !isFree || isTeamSeat;
-          $("manage").hidden = isFree || isLifetime || isTeamSeat;
+          $("manage").hidden = isFree || isLifetime || isTeamSeat || isBusinessEmail;
           $("lifetime-badge").hidden = !isLifetime;
           if (isTeamSeat) {
             $("plan-sub").textContent = "Provided by your team";
+            $("plan-sub").hidden = false;
+          } else if (isBusinessEmail) {
+            const domain = data?.entitlement?.businessDomain;
+            $("plan-sub").textContent = domain
+              ? `Included with ${domain} · nothing to bill`
+              : "Included with your work email · nothing to bill";
             $("plan-sub").hidden = false;
           } else if (isLifetime) {
             $("plan-sub").textContent = "Access: Lifetime";
@@ -966,6 +1070,12 @@
           loadTeam();
         } catch (e) {
           console.error("[account] loadPlan failed", e);
+          showPlanUnavailable();
+          // Different endpoint, different failure: don't take an admin's route
+          // into the team console away because billing blipped.
+          loadTeam();
+        } finally {
+          retry.disabled = false;
         }
       }
 
@@ -984,20 +1094,28 @@
       }
 
       async function openPortal() {
+        const btn = $("manage");
+        btn.disabled = true;
         try {
           const token = await window.Clerk.session.getToken({ template: CFG.jwtTemplate });
           const res = await fetch(`${CFG.apiBase}/v1/billing/portal`, {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
           });
-          if (!res.ok) {
-            console.error("[account] portal failed", res.status);
-            return;
-          }
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const { url } = await res.json();
-          if (url) window.open(url, "_blank", "noopener");
+          if (!url) throw new Error("no portal url");
+          hidePlanNotice();
+          window.open(url, "_blank", "noopener");
         } catch (e) {
           console.error("[account] openPortal failed", e);
+          // A button that does nothing at all reads as a broken product. Say it.
+          showPlanNotice(
+            "Couldn't open billing",
+            "We couldn't reach the billing portal just now. Try again, or email billing@secureintent.ai.",
+          );
+        } finally {
+          btn.disabled = false;
         }
       }
 
@@ -1093,6 +1211,8 @@
 
           $("upgrade").addEventListener("click", openCheckout);
           $("manage").addEventListener("click", openPortal);
+          $("plan-retry").addEventListener("click", loadPlan);
+          $("team-retry").addEventListener("click", loadTeam);
           $("overlap-cancel").addEventListener("click", cancelPersonal);
           $("signout-top").addEventListener("click", () => window.Clerk.signOut());
           render();

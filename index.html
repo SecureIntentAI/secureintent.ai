@@ -424,6 +424,11 @@
                     <i class="fa-brands fa-github text-lg" aria-hidden="true"></i>
                     <span class="font-mono text-xs">Auditable Code</span>
                 </a>
+                <!-- Existing customers need a way back in: plan, billing and the team console all live behind this. -->
+                <a href="/account.html" class="hidden md:flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
+                    <i class="fa-solid fa-user text-lg" aria-hidden="true"></i>
+                    <span class="font-mono text-xs">Sign in</span>
+                </a>
                 <a href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener" class="btn-primary hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full font-mono text-xs">
                     <i class="fa-solid fa-download" aria-hidden="true"></i> Install SecureIntent
                 </a>
@@ -446,6 +451,7 @@
                 <a href="#advisors" class="px-4 py-3 rounded-xl hover:bg-white/5 hover:text-brand-cyan transition-colors">/advisors</a>
                 <a href="advisory-board.html" class="px-4 py-3 rounded-xl hover:bg-white/5 hover:text-brand-cyan transition-colors">/advisory-board</a>
                 <a href="#roadmap" class="px-4 py-3 rounded-xl hover:bg-white/5 hover:text-brand-cyan transition-colors">/roadmap</a>
+                <a href="/account.html" class="px-4 py-3 rounded-xl hover:bg-white/5 hover:text-brand-cyan transition-colors">/sign-in</a>
                 <a href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener" class="sm:hidden px-4 py-3 mt-1 rounded-xl text-center btn-primary font-bold">Install SecureIntent</a>
             </nav>
         </div>
@@ -889,9 +895,9 @@
 
             <div class="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
                 
-                <!-- Tier 1: Developer -->
+                <!-- Tier 1: Free (same name the account page and the extension use) -->
                 <div class="spotlight-card bg-[#111] border border-white/10 rounded-2xl p-8 flex flex-col">
-                    <h3 class="text-xl font-bold mb-2">Developer</h3>
+                    <h3 class="text-xl font-bold mb-2">Free</h3>
                     <p class="text-gray-400 text-sm mb-6 h-10">The core interceptor engine. Publicly auditable and completely free forever.</p>
                     <div class="text-3xl font-bold font-mono mb-8">$0 <span class="text-sm text-gray-400 font-sans">/forever</span></div>
                     
@@ -923,7 +929,7 @@
                     <ul class="space-y-4 mb-8 flex-1 relative z-10">
                         <li class="flex items-start gap-3 text-sm text-white">
                             <i class="fa-solid fa-check text-brand-cyan mt-1" aria-hidden="true"></i>
-                            <span>Everything in Developer</span>
+                            <span>Everything in Free</span>
                         </li>
                         
                         <!-- Pro Toolkit Dropdown -->
@@ -956,7 +962,11 @@
                             </div>
                         </li>
                     </ul>
-                    <a href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener" class="btn-primary block text-center w-full py-3 rounded font-mono text-sm relative z-10">Install SecureIntent</a>
+                    <!-- The card sells a subscription, so the button has to buy one.
+                         The install link stays as the secondary step (and keeps the
+                         Web Store href the install_click handler selects on). -->
+                    <a href="/account.html?mode=signup" class="btn-primary block text-center w-full py-3 rounded font-mono text-sm mb-2 relative z-10">Get Developer Pro &middot; $8/mo</a>
+                    <a href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener" class="block text-center text-xs font-mono text-gray-400 hover:text-white transition-colors relative z-10">Or install the free extension first</a>
                 </div>
 
                 <!-- Tier 3: Business Pro -->
@@ -1422,6 +1432,7 @@
             <div class="flex flex-col gap-3">
                 <span class="text-white font-bold text-xs uppercase tracking-wider mb-1">Product</span>
                 <a href="#tiers" class="text-xs hover:text-brand-cyan transition-colors">Pricing & Tiers</a>
+                <a href="/account.html" class="text-xs hover:text-brand-cyan transition-colors">Sign in / Account</a>
                 <a href="#architecture" class="text-xs hover:text-brand-cyan transition-colors">Architecture</a>
                 <a href="https://github.com/Secureintent-Admin/Secureintent-Extension" target="_blank" class="text-xs hover:text-brand-cyan transition-colors">Source Code</a>
             </div>
