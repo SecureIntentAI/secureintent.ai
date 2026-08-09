@@ -350,19 +350,11 @@
         $("people").innerHTML = rows.join("") || '<tr><td colspan="4" class="empty">No one yet</td></tr>';
       }
 
-      async function loadTeam({ awaitSeats = false, reconcile = false } = {}) {
-        // ?reconcile=1 makes the server ask Paddle directly. It costs two Paddle
-        // calls, so it's for the first look and the retry button — not the poll.
+      async function loadTeam({ reconcile = false } = {}) {
+        // ?reconcile=1 makes the server ask Paddle directly instead of waiting on
+        // a webhook. Costs a Paddle call, so it's for the first look after
+        // checkout and the retry button — never for a plain read.
         let { team } = await api(reconcile ? "/v1/team?reconcile=1" : "/v1/team");
-        // Straight back from checkout: Paddle redirects before its webhook
-        // reaches us, so give the subscription a moment to appear instead of
-        // telling a paying customer they have no team.
-        for (let i = 0; awaitSeats && i < 12 && (!team || team.seats < 1); i++) {
-          $("gate-title").textContent = "Finishing setup…";
-          $("gate-sub").textContent = "Your seats are being activated.";
-          await new Promise((r) => setTimeout(r, 1500));
-          ({ team } = await api("/v1/team"));
-        }
         if (!team) {
           $("gate").classList.remove("hide");
           $("console").classList.add("hide");
@@ -528,10 +520,20 @@
         $("clerk-auth").replaceChildren();
         $("signout").hidden = false;
         try {
-          await loadTeam({
-            awaitSeats: new URLSearchParams(location.search).get("welcome") === "1",
-            reconcile: true,
-          });
+          const params = new URLSearchParams(location.search);
+          const txn = params.get("_ptxn");
+          if (params.get("welcome") === "1" && txn) {
+            // Back from checkout: claim this exact purchase. Paddle knows about
+            // it immediately, so there is nothing to wait for.
+            $("gate-title").textContent = "Activating your seats…";
+            $("gate-sub").textContent = "";
+            await api("/v1/team/reconcile", {
+              method: "POST",
+              body: JSON.stringify({ transactionId: txn }),
+            }).catch((e) => console.error("[team] claim failed", e));
+            history.replaceState(null, "", "/team.html");
+          }
+          await loadTeam({ reconcile: !txn && params.get("welcome") === "1" });
         } catch (e) {
           $("gate").classList.remove("hide");
           $("gate-title").textContent = "Couldn't load your team";
