@@ -463,6 +463,19 @@
         $("gate").classList.add("hide");
         $("console").classList.remove("hide");
 
+        const isAdmin = team.role === "org:admin";
+        if (!isAdmin) {
+          // Everything below is the admin's: seats, colleagues, what the team's
+          // extensions caught. Say who covers them and stop there.
+          $("gate").classList.remove("hide");
+          $("console").classList.add("hide");
+          $("gate-title").textContent = team.name ? `Covered by ${team.name}` : "You're covered";
+          $("gate-sub").textContent =
+            "Your Business Pro seat comes from your team. Your admin manages seats and settings — " +
+            "there's nothing for you to do here.";
+          $("gate-actions").classList.add("hide");
+          return;
+        }
         const live = team.seats > 0;
         $("team-name").textContent = team.name || "Your team";
         $("team-sub").textContent = live

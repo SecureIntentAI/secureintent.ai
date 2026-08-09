@@ -522,7 +522,7 @@
         <span class="brand-word">SecureIntent<span class="accent">.ai</span></span>
       </a>
       <nav class="topnav">
-        <a class="navlink" href="/team.html">Team</a>
+        <a class="navlink" id="nav-team" href="/team.html" hidden>Team</a>
         <a class="navlink" href="/">Home</a>
         <button class="navlink navlink--signout" id="signout-top" type="button" hidden>
           Sign out
@@ -885,6 +885,9 @@
           const { team } = await api("/v1/team");
           const card = $("team-card");
           const cta = $("team-cta");
+          // The console is for whoever administers the team. A member has
+          // nothing to do there, so they don't get pointed at it.
+          $("nav-team").hidden = team?.role !== "org:admin";
           card.hidden = false;
           if (!team) {
             $("team-name").textContent = "Protecting a team?";
