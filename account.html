@@ -240,6 +240,33 @@
         font-size: 12.5px;
         text-decoration: none;
       }
+      .overlap {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        padding: 14px 17px;
+        margin-top: 14px;
+        border: 1px solid rgba(251, 191, 36, 0.32);
+        border-radius: 16px;
+        background: rgba(251, 191, 36, 0.06);
+      }
+      .overlap strong { font-size: 14px; font-weight: 600; }
+      .overlap p { margin: 4px 0 0; color: var(--muted); font-size: 12.5px; max-width: 60ch; }
+      .overlap-cta {
+        margin-left: auto;
+        padding: 9px 15px;
+        border-radius: 11px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+        font: 600 12.5px/1 var(--sans);
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .overlap-cta:hover:not(:disabled) { border-color: rgba(114, 255, 255, 0.45); color: var(--cyan); }
+      .overlap-cta:disabled { opacity: 0.5; cursor: default; }
+
       .team-card {
         display: flex;
         align-items: center;
@@ -546,6 +573,21 @@
         </div>
 
         <!-- Team: their org when they're in one, otherwise the way into buying seats. -->
+        <!-- Their employer now covers them, but they're still paying for their
+             own plan. Say so where they can act on it. -->
+        <div class="overlap" id="overlap" hidden>
+          <div>
+            <strong id="overlap-title">Your team already covers you</strong>
+            <p id="overlap-body">
+              You're also paying for Developer Pro yourself. Cancel it and you keep it until the
+              period you've paid for ends — your team seat takes over from there.
+            </p>
+          </div>
+          <button class="overlap-cta" id="overlap-cancel" type="button">
+            Cancel my subscription
+          </button>
+        </div>
+
         <div class="team-card" id="team-card" hidden>
           <div class="team-info">
             <span class="team-name" id="team-name">—</span>
@@ -775,6 +817,69 @@
        * an admin manages it, a member is told where their Pro comes from, and
        * someone with no team gets the route to buying seats.
        */
+      const fmtDate = (iso) => {
+        if (!iso) return null;
+        try {
+          return new Date(iso).toLocaleDateString(undefined, {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          });
+        } catch (e) {
+          return null;
+        }
+      };
+
+      /**
+       * Someone whose employer gave them a seat may still be paying for their own
+       * plan. Only they can cancel it — their admin can't, and shouldn't even be
+       * told about it — so the offer belongs here.
+       */
+      function renderOverlap(personal, source) {
+        const box = $("overlap");
+        if (!personal || source !== "org_seat") {
+          box.hidden = true;
+          return;
+        }
+        box.hidden = false;
+        const ends = fmtDate(personal.currentPeriodEnd);
+        if (personal.cancelScheduled) {
+          $("overlap-title").textContent = "Your personal subscription is set to end";
+          $("overlap-body").textContent = ends
+            ? `It stays active until ${ends}, then your team seat covers you. Nothing else to do.`
+            : "It stays active until the end of the period you've paid for, then your team seat covers you.";
+          $("overlap-cancel").hidden = true;
+          return;
+        }
+        $("overlap-cancel").hidden = false;
+        $("overlap-body").textContent = ends
+          ? `You're also paying for Developer Pro yourself. Cancel it and it keeps working until ${ends}, then your team seat takes over.`
+          : "You're also paying for Developer Pro yourself. Cancel it and you keep it until the period you've paid for ends — your team seat takes over from there.";
+      }
+
+      async function cancelPersonal() {
+        const btn = $("overlap-cancel");
+        btn.disabled = true;
+        btn.textContent = "Cancelling…";
+        try {
+          const token = await window.Clerk.session.getToken({ template: CFG.jwtTemplate });
+          const res = await fetch(`${CFG.apiBase}/v1/billing/cancel`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const { endsAt } = await res.json();
+          renderOverlap({ cancelScheduled: true, currentPeriodEnd: endsAt }, "org_seat");
+        } catch (e) {
+          console.error("[account] cancel failed", e);
+          $("overlap-body").textContent =
+            "Couldn't cancel just now. Try again, or email billing@secureintent.ai.";
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Cancel my subscription";
+        }
+      }
+
       async function loadTeam() {
         try {
           const { team } = await api("/v1/team");
@@ -823,6 +928,7 @@
             cache: "no-store",
           });
           const data = await res.json();
+          renderOverlap(data?.personalSubscription, data?.entitlement?.source);
           const plan = data?.entitlement?.plan ?? "developer";
           const source = data?.entitlement?.source;
           const status = data?.entitlement?.status;
@@ -984,6 +1090,7 @@
 
           $("upgrade").addEventListener("click", openCheckout);
           $("manage").addEventListener("click", openPortal);
+          $("overlap-cancel").addEventListener("click", cancelPersonal);
           $("signout-top").addEventListener("click", () => window.Clerk.signOut());
           render();
           window.Clerk.addListener(render);
