@@ -50,10 +50,61 @@
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-      gtag('config', 'G-PSSL40SRTR');
+
+      // --- Creator attribution (first touch) -------------------------------
+      // Creator links look like:
+      //   https://secureintent.ai/?utm_source=<creator>&utm_medium=creator&utm_campaign=<campaign>
+      // GA4 reads the UTMs itself, but only for THAT session — a visitor who comes
+      // back directly later would land in "direct". So the first creator we ever
+      // see is also stored for 90 days, in localStorage (this page) and in a cookie
+      // on .secureintent.ai (so account.html can replay it to the API after sign-in,
+      // which is what ties a creator to real signups and paid subscriptions).
+      // First touch wins: a later link never overwrites an earlier one.
+      window.SI_ATTR = (function () {
+        var KEY = 'si_creator', MAX_AGE = 7776000; // 90d
+        function readCookie(name) {
+          var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+          return m ? decodeURIComponent(m[1]) : null;
+        }
+        function writeCookie(name, value) {
+          document.cookie = name + '=' + encodeURIComponent(value) +
+            ';domain=.secureintent.ai;path=/;max-age=' + MAX_AGE + ';SameSite=Lax';
+        }
+        function get(name) {
+          try { return localStorage.getItem(name) || readCookie(name); }
+          catch (e) { return readCookie(name); }
+        }
+        function set(name, value) {
+          try { localStorage.setItem(name, value); } catch (e) {}
+          writeCookie(name, value);
+        }
+        var p = new URLSearchParams(location.search);
+        // ?ref= is the short hand-written form; utm_source is what GA4 reads.
+        var creator = (p.get('ref') || p.get('utm_source') || '').trim();
+        if (creator && !get(KEY)) {
+          set(KEY, creator);
+          set(KEY + '_medium', (p.get('utm_medium') || 'creator').trim());
+          set(KEY + '_campaign', (p.get('utm_campaign') || '').trim());
+        }
+        return {
+          creator: get(KEY) || null,
+          medium: get(KEY + '_medium') || null,
+          campaign: get(KEY + '_campaign') || null
+        };
+      })();
+
+      // Attach the stored creator to every GA4 hit as a user property, so reports
+      // still attribute a returning visitor whose session source is "direct".
+      gtag('config', 'G-PSSL40SRTR', {
+        user_properties: { creator: window.SI_ATTR.creator || '(none)' }
+      });
+
       // Fire an "install_click" event whenever an Install button (→ Chrome Web Store)
       // is clicked, so installs attribute to each creator's UTM link. Mark
       // "install_click" as a Key event in GA4 to use it as the conversion.
+      // NOTE: the Web Store drops query params, so this click is the last thing we
+      // can see — actual installs are not attributable. Paid conversion is picked
+      // up later, on account.html, via POST /v1/attribution.
       document.addEventListener('DOMContentLoaded', function () {
         var links = document.querySelectorAll(
           'a[href*="chromewebstore.google.com/detail/secureintent"]:not([href*="/reviews"])'
@@ -62,7 +113,9 @@
           a.addEventListener('click', function () {
             gtag('event', 'install_click', {
               link_url: a.href,
-              link_text: (a.textContent || '').trim().slice(0, 40)
+              link_text: (a.textContent || '').trim().slice(0, 40),
+              creator: window.SI_ATTR.creator || '(none)',
+              campaign: window.SI_ATTR.campaign || '(none)'
             });
           });
         });

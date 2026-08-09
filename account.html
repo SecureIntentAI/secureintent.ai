@@ -498,6 +498,65 @@
         business_pro: "Business Pro",
       };
 
+      // --- Creator attribution ---------------------------------------------
+      // The landing page stores the first-touch creator in a cookie on
+      // .secureintent.ai; read it here (and capture it directly, in case a creator
+      // link points straight at this page) and replay it to the API once the user
+      // is signed in. That POST is what joins a creator to a real account — and
+      // therefore to any Paddle subscription that follows. The Chrome Web Store
+      // drops query params, so this is the only end-to-end attribution we get.
+      const ATTR = (function () {
+        const KEY = "si_creator", MAX_AGE = 7776000; // 90d
+        const readCookie = (name) => {
+          const m = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+          return m ? decodeURIComponent(m[1]) : null;
+        };
+        const get = (name) => {
+          try { return localStorage.getItem(name) || readCookie(name); }
+          catch (e) { return readCookie(name); }
+        };
+        const set = (name, value) => {
+          try { localStorage.setItem(name, value); } catch (e) {}
+          document.cookie = name + "=" + encodeURIComponent(value) +
+            ";domain=.secureintent.ai;path=/;max-age=" + MAX_AGE + ";SameSite=Lax";
+        };
+        const p = new URLSearchParams(location.search);
+        const creator = (p.get("ref") || p.get("utm_source") || "").trim();
+        if (creator && !get(KEY)) {
+          set(KEY, creator);
+          set(KEY + "_medium", (p.get("utm_medium") || "creator").trim());
+          set(KEY + "_campaign", (p.get("utm_campaign") || "").trim());
+        }
+        return {
+          creator: get(KEY) || null,
+          medium: get(KEY + "_medium") || null,
+          campaign: get(KEY + "_campaign") || null,
+          markSent() { try { localStorage.setItem(KEY + "_sent", "1"); } catch (e) {} },
+          get sent() { try { return localStorage.getItem(KEY + "_sent") === "1"; } catch (e) { return false; } },
+        };
+      })();
+
+      // Fire-and-forget: the server keeps the first creator it ever saw for this
+      // user, so a duplicate call is harmless. The local flag just avoids a
+      // pointless request on every page load.
+      async function sendAttribution(token) {
+        if (!ATTR.creator || ATTR.sent) return;
+        try {
+          const res = await fetch(`${CFG.apiBase}/v1/attribution`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
+            body: JSON.stringify({
+              creator: ATTR.creator,
+              medium: ATTR.medium,
+              campaign: ATTR.campaign,
+            }),
+          });
+          if (res.ok) ATTR.markSent();
+        } catch (e) {
+          console.error("[account] attribution failed", e);
+        }
+      }
+
       // Theme Clerk's components to match the dark / cyan brand.
       const CLERK_APPEARANCE = {
         variables: {
@@ -607,6 +666,7 @@
       async function loadPlan() {
         try {
           const token = await window.Clerk.session.getToken({ template: CFG.jwtTemplate });
+          sendAttribution(token); // fire-and-forget; never blocks the plan render
           const res = await fetch(`${CFG.apiBase}/v1/entitlement`, {
             headers: { Authorization: `Bearer ${token}` },
             cache: "no-store",
