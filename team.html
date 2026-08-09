@@ -126,6 +126,42 @@
         outline: 2px solid rgba(114, 255, 255, 0.55);
         outline-offset: 2px;
       }
+      /* The generic input padding above turns a checkbox into a fat grey square,
+         so policy toggles get their own switch. Must stay after that rule. */
+      input[type="checkbox"] {
+        appearance: none;
+        -webkit-appearance: none;
+        flex: none;
+        position: relative;
+        width: 38px;
+        height: 22px;
+        margin: 2px 0 0;
+        padding: 0;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.07);
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s;
+      }
+      input[type="checkbox"]::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--faint);
+        transition: transform 0.15s, background 0.15s;
+      }
+      input[type="checkbox"]:checked {
+        background: rgba(114, 255, 255, 0.22);
+        border-color: rgba(114, 255, 255, 0.5);
+      }
+      input[type="checkbox"]:checked::after {
+        transform: translateX(16px);
+        background: var(--cyan);
+      }
+      input:disabled, select:disabled { opacity: 0.45; cursor: not-allowed; }
 
       .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
       .card {
@@ -170,10 +206,71 @@
       .empty { color: var(--faint); font-size: 13px; padding: 10px 0; }
       .note { color: var(--faint); font-size: 12px; line-height: 1.55; margin-top: 12px; }
       .err { color: var(--danger); font-size: 13px; }
+      code { font-family: var(--mono); font-size: 12px; color: var(--cyan); word-break: break-all; }
+
+      /* Section header that carries controls (range picker, export). */
+      .blockhead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin: 0 0 11px;
+      }
+      .blockhead h2 { margin: 0; }
+      .headctl { display: flex; align-items: center; gap: 8px; }
+      .headctl select { padding: 6px 9px; font-size: 12.5px; }
+      .ctl-lbl {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--faint);
+      }
+
+      /* Settings forms: label + control rows, action bars, inline status. */
+      .field { display: flex; align-items: center; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+      .flbl { width: 150px; font-size: 13px; color: var(--muted); }
+      .field input, .field select { flex: 1; min-width: 240px; }
+      .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+      .status { font-size: 12.5px; color: var(--muted); }
+      .status.ok { color: var(--ok); }
+      .status.err { color: var(--danger); }
+      .opt { display: flex; align-items: flex-start; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--border); }
+      .opt:last-of-type { border-bottom: 0; }
+      .opt strong { font-size: 13.5px; }
+      .opt p { margin: 5px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.6; max-width: 72ch; }
+      .opt label { cursor: pointer; }
+      .subsec { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+      .subsec h3 { font-size: 13.5px; margin: 0 0 5px; }
+      .subsec > p { margin: 0 0 12px; color: var(--muted); font-size: 12.5px; line-height: 1.6; max-width: 72ch; }
+      .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 7px 5px 11px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.03);
+        font: 500 12.5px/1 var(--mono);
+      }
+      .chip button {
+        border: 0;
+        background: none;
+        color: var(--faint);
+        font-size: 15px;
+        line-height: 1;
+        padding: 0 3px;
+        cursor: pointer;
+      }
+      .chip button:hover { color: var(--danger); }
+      #pat-label { min-width: 170px; }
+      #pat-regex { flex: 2; min-width: 240px; font-family: var(--mono); }
+      #pat-type { flex: none; }
       .hide { display: none !important; }
       .invite { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
       .invite input { flex: 1; min-width: 220px; }
-      .pending {
+      #pending {
         display: flex;
         align-items: center;
         gap: 16px;
@@ -184,8 +281,8 @@
         border-radius: 14px;
         background: rgba(251, 191, 36, 0.06);
       }
-      .pending p { margin: 5px 0 0; color: var(--muted); font-size: 13px; max-width: 62ch; }
-      .pending button { margin-left: auto; }
+      #pending p { margin: 5px 0 0; color: var(--muted); font-size: 13px; max-width: 62ch; }
+      #pending button { margin-left: auto; }
       #gate { max-width: 460px; margin: 60px auto; text-align: center; }
     </style>
     <script
@@ -257,12 +354,25 @@
         <div class="cards">
           <div class="card"><div class="k">Seats</div><div class="v" id="c-seats">—</div></div>
           <div class="card"><div class="k">Seats used</div><div class="v" id="c-used">—</div></div>
-          <div class="card"><div class="k">Detections · 30d</div><div class="v" id="c-total">—</div></div>
-          <div class="card"><div class="k">People involved</div><div class="v" id="c-actors">—</div></div>
+          <div class="card"><div class="k" id="c-total-k">Detections · 30d</div><div class="v" id="c-total">—</div></div>
+          <div class="card"><div class="k" id="c-actors-k">People involved</div><div class="v" id="c-actors">—</div></div>
         </div>
 
         <section class="block">
-          <h2>Detections over time</h2>
+          <div class="blockhead">
+            <h2>Detections over time</h2>
+            <div class="headctl">
+              <label class="ctl-lbl" for="range">Range</label>
+              <select id="range" title="How far back every figure on this page reaches">
+                <option value="7">Last 7 days</option>
+                <option value="30" selected>Last 30 days</option>
+                <option value="90">Last 90 days</option>
+              </select>
+              <button class="btn" id="export" type="button" disabled title="Download the figures shown here as a CSV">
+                Export CSV
+              </button>
+            </div>
+          </div>
           <div class="panel"><div class="chart" id="p-chart"></div></div>
         </section>
 
@@ -304,6 +414,128 @@
             </p>
           </div>
         </section>
+
+        <!--
+          Admin-only. Both sections are `section.block`, so the same rule that
+          hides the dashboard for a team with no seats hides them too, and a
+          member never gets this far: loadTeam() sends non-admins to the gate.
+        -->
+        <section class="block">
+          <h2>Security alerts</h2>
+          <div class="panel">
+            <p class="note" style="margin-top: 0">
+              Post a message to Slack, Teams, or any HTTPS endpoint the moment the extension
+              catches something on one of your seats. The alert says what kind of secret it was
+              and where it was headed — never the text itself, which never leaves the machine.
+            </p>
+            <div class="field">
+              <label class="flbl" for="alert-webhook">Webhook URL</label>
+              <input id="alert-webhook" type="url" placeholder="https://hooks.slack.com/services/…" />
+            </div>
+            <div class="field">
+              <label class="flbl" for="alert-min">Alert me about</label>
+              <select id="alert-min">
+                <option value="private-key">Private keys only</option>
+                <option value="known-key">Private keys and known API keys</option>
+                <option value="env-credential">Private keys, API keys, and env credentials</option>
+                <option value="pii">Everything, including personal data</option>
+              </select>
+            </div>
+            <div class="actions">
+              <button class="btn primary" id="alerts-save" type="button">Save changes</button>
+              <button class="btn" id="alerts-test" type="button">Send test</button>
+              <span class="status" id="alerts-status"></span>
+            </div>
+            <p class="note">
+              Leave the URL empty to turn alerts off. The test posts to the saved URL, so save
+              first if you've just changed it. Alerts and policy are one record — either Save
+              button writes both.
+            </p>
+          </div>
+        </section>
+
+        <section class="block">
+          <h2>Team policy</h2>
+          <div class="panel">
+            <p class="note" style="margin-top: 0">
+              These rules travel to the SecureIntent extension on every seat and are applied
+              on the device. They change what your colleagues can do, so read what each one
+              costs them before switching it on.
+            </p>
+
+            <div class="opt">
+              <input type="checkbox" id="pol-block" />
+              <div>
+                <label for="pol-block"><strong>Block instead of warn</strong></label>
+                <p>
+                  Normally the extension warns and leaves the choice with the person: paste
+                  anyway, paste an anonymised copy, or cancel. Turn this on and
+                  <strong>Paste anyway disappears</strong> — when a secret is found, the original
+                  text cannot be pasted at all. Only the anonymised paste and cancel remain.
+                  That also means a false positive becomes a hard stop with no way round it, so
+                  expect a few "it won't let me paste" messages in the first week.
+                </p>
+              </div>
+            </div>
+
+            <div class="opt">
+              <input type="checkbox" id="pol-lock" />
+              <div>
+                <label for="pol-lock"><strong>Require session lock</strong></label>
+                <p>
+                  Switches the PIN lock on for every seat and stops people turning it off. After
+                  a few minutes of inactivity or a tab away, high-risk cloud consoles (AWS, GCP,
+                  Azure, Cloudflare, and the rest) are covered until the PIN is re-entered.
+                  Anyone who hasn't set a PIN yet is asked to choose one the first time it fires.
+                </p>
+              </div>
+            </div>
+
+            <div class="subsec">
+              <h3>Blocked destinations</h3>
+              <p>
+                On these hostnames the extension refuses every paste, whether or not it finds
+                a secret — for sites your team shouldn't be feeding data into at all. Everywhere
+                else behaves normally. One hostname per entry, no <code>https://</code> and no path.
+              </p>
+              <div class="invite">
+                <input id="site-input" type="text" placeholder="chat.example.com" />
+                <button class="btn" id="site-add" type="button">Add</button>
+              </div>
+              <div id="site-list"></div>
+            </div>
+
+            <div class="subsec">
+              <h3>Custom patterns</h3>
+              <p>
+                Anything matching one of these counts as a secret on every seat, alongside the
+                built-in detectors — for your own token formats. The regular expression is
+                evaluated on the device against the pasted text; the text still never leaves it.
+                Keep patterns tight: one that fires on ordinary prose teaches people to click
+                through warnings, which costs you more than it catches. The label is what your
+                colleague reads in the warning.
+              </p>
+              <div class="invite">
+                <input id="pat-label" type="text" placeholder="Label, e.g. Acme internal token" />
+                <input id="pat-regex" type="text" placeholder="ACME_[A-Z0-9]{24}" spellcheck="false" />
+                <select id="pat-type" title="How the warning describes a match">
+                  <option value="known-key">Known API key</option>
+                  <option value="private-key">Private key</option>
+                  <option value="env-credential">Env credential</option>
+                  <option value="pii">Personal data</option>
+                </select>
+                <button class="btn" id="pat-add" type="button">Add</button>
+              </div>
+              <div id="pat-list"></div>
+            </div>
+
+            <div class="actions">
+              <button class="btn primary" id="policy-save" type="button">Save changes</button>
+              <span class="status" id="policy-status"></span>
+            </div>
+            <p class="note" id="policy-version"></p>
+          </div>
+        </section>
       </main>
     </div>
 
@@ -336,6 +568,14 @@
         "env-credential": "Env credential",
         pii: "Personal data",
       };
+      // The four detector types, most severe first — the order the alert
+      // threshold reads down.
+      const TYPES = ["private-key", "known-key", "env-credential", "pii"];
+
+      // How far back the dashboard looks, and the last payload we drew, so
+      // Export CSV writes exactly the figures on screen rather than refetching.
+      let days = 30;
+      let lastMetrics = null;
 
       async function api(path, init = {}) {
         const token = await window.Clerk.session.getToken({ template: CFG.jwtTemplate });
@@ -351,6 +591,25 @@
         const body = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
         return body;
+      }
+
+      // One inline line of feedback per form. Success and failure look
+      // different and both say what actually happened; the message clears
+      // itself so a stale "Saved" can't be mistaken for the current state.
+      const flashTimers = new WeakMap();
+      function flash(el, msg, kind) {
+        el.textContent = msg;
+        el.className = kind ? `status ${kind}` : "status";
+        clearTimeout(flashTimers.get(el));
+        if (kind) {
+          flashTimers.set(
+            el,
+            setTimeout(() => {
+              el.textContent = "";
+              el.className = "status";
+            }, 7000),
+          );
+        }
       }
 
       function bars(el, list, labels) {
@@ -387,6 +646,73 @@
               )}: ${fmt(p.n)}"></div>`,
           )
           .join("");
+      }
+
+      /**
+       * Pull the aggregate numbers for the selected window and draw all four
+       * views plus the two headline cards. Kept apart from loadTeam so the
+       * range picker can redraw without re-reading the roster.
+       */
+      async function loadMetrics() {
+        const want = days;
+        $("range").disabled = true;
+        try {
+          const { metrics } = await api(`/v1/team/metrics?days=${want}`);
+          const m = metrics || {};
+          // The server clamps the window (1–365), so label the cards with what
+          // it actually counted rather than what we asked for.
+          const shown = Number(m.days) || want;
+          lastMetrics = { ...m, days: shown };
+          $("c-total-k").textContent = `Detections · ${shown}d`;
+          $("c-actors-k").textContent = `People involved · ${shown}d`;
+          $("c-total").textContent = fmt(m.total);
+          // Just the count: people who triggered a detection in the window. Not
+          // "of seats" — someone can hold a seat and never trip a warning.
+          $("c-actors").textContent = fmt(m.activeActors);
+          chart(m.byDay);
+          bars($("p-types"), m.byType, TYPE_LABEL);
+          bars($("p-sites"), m.bySite);
+          bars($("p-actions"), m.byAction, ACTION_LABEL);
+          $("export").disabled = false;
+        } finally {
+          $("range").disabled = false;
+        }
+      }
+
+      // A leading =, +, @ or control character makes a spreadsheet treat the
+      // cell as a formula. Site names come from the wild, so defuse them.
+      function csvCell(v) {
+        let s = String(v ?? "");
+        if (/^[=+@\t\r]/.test(s)) s = `'${s}`;
+        return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      }
+
+      /** Everything currently on screen, as one long CSV — no new dependency. */
+      function exportCsv() {
+        if (!lastMetrics) return;
+        const m = lastMetrics;
+        const rows = [["section", "key", "label", "detections"]];
+        (m.byDay || []).forEach((p) => rows.push(["day", p.day, p.day, p.n]));
+        (m.byType || []).forEach((r) => rows.push(["type", r.key, TYPE_LABEL[r.key] || r.key, r.n]));
+        (m.bySite || []).forEach((r) => rows.push(["destination", r.key, r.key, r.n]));
+        (m.byAction || []).forEach((r) =>
+          rows.push(["action", r.key, ACTION_LABEL[r.key] || r.key, r.n]),
+        );
+        rows.push(["summary", "total", "All detections", m.total ?? 0]);
+        rows.push(["summary", "activeActors", "People involved", m.activeActors ?? 0]);
+        rows.push(["summary", "days", "Days covered", m.days]);
+        // The BOM is what makes Excel read this as UTF-8 rather than Latin-1.
+        const body = `${rows.map((r) => r.map(csvCell).join(",")).join("\r\n")}\r\n`;
+        const url = URL.createObjectURL(
+          new Blob(["\ufeff", body], { type: "text/csv;charset=utf-8" }),
+        );
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `secureintent-team-${m.days}d-${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 30000);
       }
 
       function renderPeople(team) {
@@ -447,6 +773,239 @@
         else $("gate-err").textContent = "Couldn't open the payment form. Please try again.";
       }
 
+      // ---------------------------------------------------------------------
+      // Team settings: alert routing, and the policy every seat's extension
+      // enforces. One record on the server, edited through two panels.
+      // ---------------------------------------------------------------------
+
+      // `settings` is the working copy: the lists are edited in place and only
+      // reach the server on Save. `loaded` guards against a background
+      // loadTeam() (an invite, a removal) wiping edits someone is mid-way
+      // through, and against saving defaults over a record we never read.
+      let settings = null;
+      let settingsLoaded = false;
+      let savedWebhook = "";
+
+      const SETTINGS_CONTROLS = [
+        "alert-webhook",
+        "alert-min",
+        "alerts-save",
+        "alerts-test",
+        "pol-block",
+        "pol-lock",
+        "site-input",
+        "site-add",
+        "pat-label",
+        "pat-regex",
+        "pat-type",
+        "pat-add",
+        "policy-save",
+      ];
+      const setSettingsEnabled = (on) => {
+        SETTINGS_CONTROLS.forEach((id) => {
+          $(id).disabled = !on;
+        });
+      };
+
+      /** Never trust the shape: a missing field must not become `undefined` in a PUT. */
+      function normalizeSettings(raw) {
+        const s = raw || {};
+        const p = s.policy || {};
+        return {
+          alertWebhook: typeof s.alertWebhook === "string" ? s.alertWebhook : "",
+          alertMinType: TYPES.includes(s.alertMinType) ? s.alertMinType : "known-key",
+          policy: {
+            blockInsteadOfWarn: !!p.blockInsteadOfWarn,
+            requireSessionLock: !!p.requireSessionLock,
+            extraPatterns: (Array.isArray(p.extraPatterns) ? p.extraPatterns : [])
+              .filter((x) => x && x.regex)
+              .map((x) => ({
+                label: String(x.label ?? ""),
+                regex: String(x.regex),
+                type: TYPES.includes(x.type) ? x.type : "known-key",
+              })),
+            blockedSites: (Array.isArray(p.blockedSites) ? p.blockedSites : [])
+              .map((h) => String(h ?? "").trim())
+              .filter(Boolean),
+          },
+          policyVersion: Number(s.policyVersion) || 0,
+        };
+      }
+
+      function renderSites() {
+        const list = settings.policy.blockedSites;
+        $("site-list").innerHTML = list.length
+          ? `<div class="chips">${list
+              .map(
+                (h, i) =>
+                  `<span class="chip">${esc(h)}<button type="button" data-site="${i}" title="Remove ${esc(
+                    h,
+                  )}" aria-label="Remove ${esc(h)}">×</button></span>`,
+              )
+              .join("")}</div>`
+          : '<div class="empty">Nothing blocked outright — the extension warns as usual everywhere.</div>';
+      }
+
+      function renderPatterns() {
+        const list = settings.policy.extraPatterns;
+        $("pat-list").innerHTML = list.length
+          ? `<table><thead><tr><th>Label</th><th>Pattern</th><th>Treated as</th><th></th></tr></thead><tbody>${list
+              .map(
+                (p, i) =>
+                  `<tr><td>${esc(p.label || "—")}</td><td><code>${esc(
+                    p.regex,
+                  )}</code></td><td><span class="tag">${esc(
+                    TYPE_LABEL[p.type] || p.type,
+                  )}</span></td><td><button class="btn" type="button" data-pattern="${i}">Remove</button></td></tr>`,
+              )
+              .join("")}</tbody></table>`
+          : '<div class="empty">No custom patterns — only the built-in detectors run.</div>';
+      }
+
+      function renderSettings() {
+        $("alert-webhook").value = settings.alertWebhook;
+        $("alert-min").value = settings.alertMinType;
+        $("pol-block").checked = settings.policy.blockInsteadOfWarn;
+        $("pol-lock").checked = settings.policy.requireSessionLock;
+        renderSites();
+        renderPatterns();
+        $("policy-version").textContent = settings.policyVersion
+          ? `Policy version ${settings.policyVersion}. A new version reaches your team's extensions ` +
+            "at their next config refresh — within a couple of hours, or straight away if someone " +
+            "opens the SecureIntent popup and taps Refresh."
+          : "Nothing published yet. Save to send the first policy to your team's extensions.";
+      }
+
+      /** Read once per page load; re-read only after a failure. */
+      async function loadSettings() {
+        if (settingsLoaded) return;
+        setSettingsEnabled(false);
+        try {
+          const res = await api("/v1/team/settings");
+          settings = normalizeSettings(res.settings || res);
+          savedWebhook = settings.alertWebhook;
+          settingsLoaded = true;
+          renderSettings();
+          setSettingsEnabled(true);
+        } catch (e) {
+          // Leave the controls disabled: writing defaults over a record we
+          // failed to read would quietly undo someone's policy.
+          settings = settings || normalizeSettings(null);
+          renderSettings();
+          const msg = `Couldn't load your settings (${e.message}). Reload the page to try again.`;
+          flash($("alerts-status"), msg, "err");
+          flash($("policy-status"), msg, "err");
+        }
+      }
+
+      /**
+       * One record, so either Save writes the whole thing — the copy under both
+       * panels says as much.
+       */
+      async function saveSettings(statusEl, btn) {
+        if (!settingsLoaded) return;
+        const webhook = $("alert-webhook").value.trim();
+        if (webhook && !/^https:\/\/\S+$/i.test(webhook)) {
+          flash(statusEl, "The webhook URL has to start with https:// — alerts are never sent over http.", "err");
+          return;
+        }
+        settings.alertWebhook = webhook;
+        settings.alertMinType = $("alert-min").value;
+        settings.policy.blockInsteadOfWarn = $("pol-block").checked;
+        settings.policy.requireSessionLock = $("pol-lock").checked;
+
+        btn.disabled = true;
+        flash(statusEl, "Saving…", "");
+        try {
+          const res = await api("/v1/team/settings", {
+            method: "PUT",
+            body: JSON.stringify(settings),
+          });
+          // Take the server's copy when it sends one back (it owns
+          // policyVersion); otherwise keep what we just wrote.
+          const back = res && (res.settings || (res.policy ? res : null));
+          settings = normalizeSettings(back || settings);
+          savedWebhook = settings.alertWebhook;
+          renderSettings();
+          flash(statusEl, "Saved. Your team picks this up at their next config refresh.", "ok");
+        } catch (e) {
+          flash(statusEl, `Couldn't save: ${e.message}`, "err");
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      async function sendTestAlert() {
+        const st = $("alerts-status");
+        const typed = $("alert-webhook").value.trim();
+        if (!typed) {
+          flash(st, "Add a webhook URL and save it — there's nowhere to send a test yet.", "err");
+          return;
+        }
+        if (typed !== savedWebhook) {
+          flash(st, "Save the new URL first — the test posts to the saved one.", "err");
+          return;
+        }
+        $("alerts-test").disabled = true;
+        flash(st, "Sending…", "");
+        try {
+          await api("/v1/team/settings/test-alert", { method: "POST", body: "{}" });
+          flash(st, "Test alert sent. It should be in your channel now.", "ok");
+        } catch (e) {
+          flash(st, `Couldn't send it: ${e.message}`, "err");
+        } finally {
+          $("alerts-test").disabled = false;
+        }
+      }
+
+      function addBlockedSite() {
+        const st = $("policy-status");
+        const host = $("site-input")
+          .value.trim()
+          .replace(/^[a-z]+:\/\//i, "")
+          .replace(/\/.*$/, "")
+          .toLowerCase();
+        if (!host) return;
+        if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(host)) {
+          flash(st, "That isn't a hostname. Try something like chat.example.com.", "err");
+          return;
+        }
+        if (settings.policy.blockedSites.includes(host)) {
+          flash(st, `${host} is already on the list.`, "err");
+          return;
+        }
+        settings.policy.blockedSites.push(host);
+        $("site-input").value = "";
+        renderSites();
+        flash(st, `Added ${host}. Press Save changes to send it out.`, "ok");
+      }
+
+      function addPattern() {
+        const st = $("policy-status");
+        const label = $("pat-label").value.trim();
+        const regex = $("pat-regex").value.trim();
+        if (!label) {
+          flash(st, "Give the pattern a label — that's what your colleague reads in the warning.", "err");
+          return;
+        }
+        if (!regex) {
+          flash(st, "A pattern needs a regular expression.", "err");
+          return;
+        }
+        // Better to fail here than to ship a regex that throws on every seat.
+        try {
+          new RegExp(regex);
+        } catch (err) {
+          flash(st, `That regular expression won't compile: ${err.message}`, "err");
+          return;
+        }
+        settings.policy.extraPatterns.push({ label, regex, type: $("pat-type").value });
+        $("pat-label").value = "";
+        $("pat-regex").value = "";
+        renderPatterns();
+        flash(st, `Added "${label}". Press Save changes to send it out.`, "ok");
+      }
+
       async function loadTeam({ reconcile = false } = {}) {
         // ?reconcile=1 makes the server ask Paddle directly instead of waiting on
         // a webhook. Costs a Paddle call, so it's for the first look after
@@ -492,21 +1051,12 @@
         $("c-used").innerHTML = `${fmt(team.seatsUsed)} <small>/ ${fmt(team.seats)}</small>`;
         renderPeople(team);
 
-        if (team.role === "org:admin") {
-          const { metrics } = await api("/v1/team/metrics?days=30");
-          $("c-total").textContent = fmt(metrics.total);
-          // Just the count: people who triggered a detection in the window. Not
-          // "of seats" — someone can hold a seat and never trip a warning.
-          $("c-actors").textContent = fmt(metrics.activeActors);
-          chart(metrics.byDay);
-          bars($("p-types"), metrics.byType, TYPE_LABEL);
-          bars($("p-sites"), metrics.bySite);
-          bars($("p-actions"), metrics.byAction, ACTION_LABEL);
+        // Only an admin gets here, and only a team with seats has anything to
+        // show or configure — the loop above already hid both for the rest.
+        if (live) {
+          await loadMetrics();
+          await loadSettings();
         } else {
-          // Members see the team and their colleagues, not the security posture.
-          document.querySelectorAll("section.block").forEach((s, i) => {
-            if (i < 2) s.classList.add("hide");
-          });
           $("c-total").textContent = "—";
           $("c-actors").textContent = "—";
         }
@@ -528,6 +1078,9 @@
       }
 
       function wire() {
+        // Inert until a GET has told us what the current settings are.
+        setSettingsEnabled(false);
+
         $("buy").addEventListener("click", async () => {
           $("gate-err").textContent = "";
           const companyName = $("company").value.trim();
@@ -605,6 +1158,52 @@
             }
           }),
         );
+
+        $("range").addEventListener("change", async () => {
+          days = Number($("range").value) || 30;
+          $("team-err").textContent = "";
+          try {
+            await loadMetrics();
+          } catch (e) {
+            $("team-err").textContent = e.message;
+          }
+        });
+
+        $("export").addEventListener("click", exportCsv);
+
+        $("alerts-save").addEventListener("click", () =>
+          saveSettings($("alerts-status"), $("alerts-save")),
+        );
+        $("alerts-test").addEventListener("click", sendTestAlert);
+        $("policy-save").addEventListener("click", () =>
+          saveSettings($("policy-status"), $("policy-save")),
+        );
+
+        $("site-add").addEventListener("click", addBlockedSite);
+        $("site-input").addEventListener("keydown", (e) => {
+          if (e.key === "Enter") addBlockedSite();
+        });
+        $("pat-add").addEventListener("click", addPattern);
+
+        $("site-list").addEventListener("click", (e) => {
+          const i = e.target.getAttribute?.("data-site");
+          if (i === null || i === undefined) return;
+          const [gone] = settings.policy.blockedSites.splice(Number(i), 1);
+          renderSites();
+          flash($("policy-status"), `Removed ${gone}. Press Save changes to apply it.`, "ok");
+        });
+
+        $("pat-list").addEventListener("click", (e) => {
+          const i = e.target.getAttribute?.("data-pattern");
+          if (i === null || i === undefined) return;
+          const [gone] = settings.policy.extraPatterns.splice(Number(i), 1);
+          renderPatterns();
+          flash(
+            $("policy-status"),
+            `Removed "${gone.label || gone.regex}". Press Save changes to apply it.`,
+            "ok",
+          );
+        });
 
         $("signout").addEventListener("click", () => window.Clerk.signOut());
       }
