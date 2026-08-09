@@ -192,6 +192,58 @@
         background: var(--cyan);
         border-radius: 999px;
       }
+      .joined {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 13px 16px;
+        margin-bottom: 14px;
+        border: 1px solid rgba(114, 255, 255, 0.3);
+        border-radius: 14px;
+        background: rgba(114, 255, 255, 0.06);
+        font-size: 13.5px;
+      }
+      .joined strong { font-weight: 600; }
+      .joined span { color: var(--muted); }
+      .joined-cta {
+        margin-left: auto;
+        padding: 8px 14px;
+        border-radius: 10px;
+        background: linear-gradient(180deg, #9bffff, var(--cyan));
+        color: var(--navy);
+        font-weight: 700;
+        font-size: 12.5px;
+        text-decoration: none;
+      }
+      .team-card {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        padding: 15px 17px;
+        margin-top: 14px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--panel);
+      }
+      .team-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+      .team-name { font-weight: 600; font-size: 14.5px; }
+      .team-sub { color: var(--muted); font-size: 12.5px; }
+      .team-cta {
+        margin-left: auto;
+        padding: 9px 15px;
+        border-radius: 11px;
+        border: 1px solid rgba(114, 255, 255, 0.35);
+        color: var(--cyan);
+        font-weight: 600;
+        font-size: 12.5px;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      .team-cta:hover { background: rgba(114, 255, 255, 0.08); }
+      .team-cta.hide { display: none; }
+
       button.upgrade {
         padding: 10px 18px;
         font-family: var(--mono);
@@ -435,6 +487,19 @@
 
       <!-- Signed-in -->
       <section id="account" hidden>
+        <!-- Shown when someone lands here from an invitation email. -->
+        <div class="joined" id="joined" hidden>
+          <strong id="joined-title">You're covered by your team's plan</strong>
+          <span id="joined-sub">Install the extension to start being protected.</span>
+          <a
+            class="joined-cta"
+            href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof"
+            target="_blank"
+            rel="noreferrer"
+            >Install SecureIntent</a
+          >
+        </div>
+
         <div class="plan">
           <div class="plan-info">
             <span class="plan-who" id="plan-who">—</span>
@@ -449,6 +514,15 @@
             <span class="lifetime-badge" id="lifetime-badge" hidden>Lifetime Pro</span>
             <button class="signout" id="signout">Sign out</button>
           </div>
+        </div>
+
+        <!-- Team: their org when they're in one, otherwise the way into buying seats. -->
+        <div class="team-card" id="team-card" hidden>
+          <div class="team-info">
+            <span class="team-name" id="team-name">—</span>
+            <span class="team-sub" id="team-sub">—</span>
+          </div>
+          <a class="team-cta" id="team-cta" href="/team.html">Manage team</a>
         </div>
 
         <details class="features" id="features" open>
@@ -667,6 +741,50 @@
         if (el) el.textContent = text;
       }
 
+      /**
+       * The team block. Three states, because all three need a way forward:
+       * an admin manages it, a member is told where their Pro comes from, and
+       * someone with no team gets the route to buying seats.
+       */
+      async function loadTeam() {
+        try {
+          const { team } = await api("/v1/team");
+          const card = $("team-card");
+          const cta = $("team-cta");
+          card.hidden = false;
+          if (!team) {
+            $("team-name").textContent = "Protecting a team?";
+            $("team-sub").textContent =
+              "One subscription, a seat per person, and a view of what's being stopped.";
+            cta.textContent = "Buy seats";
+            cta.classList.remove("hide");
+            return;
+          }
+          const isAdmin = team.role === "org:admin";
+          $("team-name").textContent = team.name || "Your team";
+          $("team-sub").textContent = isAdmin
+            ? `Business Pro · ${team.seatsUsed} of ${team.seats} seats in use`
+            : "Business Pro · managed by your team admin";
+          cta.textContent = "Manage team";
+          // A member has nothing to manage, so don't offer them a dead end.
+          cta.classList.toggle("hide", !isAdmin);
+        } catch (e) {
+          console.error("[account] loadTeam failed", e);
+          $("team-card").hidden = true;
+        }
+      }
+
+      async function api(path, init = {}) {
+        const token = await window.Clerk.session.getToken({ template: CFG.jwtTemplate });
+        const res = await fetch(`${CFG.apiBase}${path}`, {
+          ...init,
+          headers: { Authorization: `Bearer ${token}`, ...(init.headers || {}) },
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      }
+
       async function loadPlan() {
         try {
           const token = await window.Clerk.session.getToken({ template: CFG.jwtTemplate });
@@ -681,13 +799,20 @@
           const status = data?.entitlement?.status;
           const isFree = plan === "developer";
           const isLifetime = source === "lifetime";
+          // A seat is billed to the company, not to this person: there is no
+          // personal subscription behind it, so neither upgrading nor managing
+          // billing belongs here. The team console owns that.
+          const isTeamSeat = source === "org_seat";
           $("plan-name").textContent = PLAN_LABEL[plan] ?? plan;
           $("plan-name").classList.toggle("pro", !isFree);
           // Lifetime users have nothing to manage; paid users do; free users upgrade.
-          $("upgrade").hidden = !isFree;
-          $("manage").hidden = isFree || isLifetime;
+          $("upgrade").hidden = !isFree || isTeamSeat;
+          $("manage").hidden = isFree || isLifetime || isTeamSeat;
           $("lifetime-badge").hidden = !isLifetime;
-          if (isLifetime) {
+          if (isTeamSeat) {
+            $("plan-sub").textContent = "Provided by your team";
+            $("plan-sub").hidden = false;
+          } else if (isLifetime) {
             $("plan-sub").textContent = "Access: Lifetime";
             $("plan-sub").hidden = false;
           } else if (!isFree && status) {
@@ -700,6 +825,7 @@
           // Anonymise & Paste allowance from the usage endpoint.
           renderFeatures(plan);
           if (isFree) loadUsage(token);
+          loadTeam();
         } catch (e) {
           console.error("[account] loadPlan failed", e);
         }
@@ -775,6 +901,9 @@
             mounted = "in";
             window.Clerk.mountUserProfile($("clerk-profile"), { appearance: CLERK_APPEARANCE });
             resumePendingTxn();
+          }
+          if (new URLSearchParams(location.search).get("joined") === "1") {
+            $("joined").hidden = false;
           }
           loadPlan();
           return;

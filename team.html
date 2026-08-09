@@ -155,11 +155,12 @@
         <div id="gate-actions" class="hide">
           <p class="sub">
             SecureIntent Business protects a whole team: one subscription, a seat per
-            person, and a view of what the extension is stopping.
+            person, and a view of what the extension is stopping. $9 per seat per month,
+            three seats minimum. Add or remove seats any time.
           </p>
           <div class="invite" style="justify-content: center">
             <input id="company" type="text" placeholder="Company name" />
-            <input id="buy-seats" type="number" min="1" value="5" style="width: 96px" />
+            <input id="buy-seats" type="number" min="3" value="5" style="width: 96px" title="3 seats minimum" />
             <button class="btn primary" id="buy" type="button">Buy seats</button>
           </div>
           <p class="err" id="gate-err"></p>
@@ -320,8 +321,17 @@
         $("people").innerHTML = rows.join("") || '<tr><td colspan="4" class="empty">No one yet</td></tr>';
       }
 
-      async function loadTeam() {
-        const { team } = await api("/v1/team");
+      async function loadTeam({ awaitSeats = false } = {}) {
+        let { team } = await api("/v1/team");
+        // Straight back from checkout: Paddle redirects before its webhook
+        // reaches us, so give the subscription a moment to appear instead of
+        // telling a paying customer they have no team.
+        for (let i = 0; awaitSeats && i < 10 && (!team || team.seats < 1); i++) {
+          $("gate-title").textContent = "Finishing setup…";
+          $("gate-sub").textContent = "Your seats are being activated.";
+          await new Promise((r) => setTimeout(r, 1500));
+          ({ team } = await api("/v1/team"));
+        }
         if (!team) {
           $("gate").classList.remove("hide");
           $("console").classList.add("hide");
@@ -384,6 +394,10 @@
           const seats = Number($("buy-seats").value);
           if (!companyName) {
             $("gate-err").textContent = "Company name is required.";
+            return;
+          }
+          if (!(seats >= 3)) {
+            $("gate-err").textContent = "A team starts at three seats.";
             return;
           }
           try {
@@ -465,7 +479,7 @@
         $("clerk-auth").replaceChildren();
         $("signout").hidden = false;
         try {
-          await loadTeam();
+          await loadTeam({ awaitSeats: new URLSearchParams(location.search).get("welcome") === "1" });
         } catch (e) {
           $("gate").classList.remove("hide");
           $("gate-title").textContent = "Couldn't load your team";
