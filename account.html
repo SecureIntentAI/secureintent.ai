@@ -146,6 +146,29 @@
         gap: 20px;
         margin-top: 8px;
       }
+      /* Small screens: brand + three nav controls overflow a 390px phone. Wrap
+         the row and tighten the chrome instead of letting the page scroll
+         sideways. Keep this identical in the sibling page. */
+      @media (max-width: 460px) {
+        .topbar {
+          flex-wrap: wrap;
+          gap: 10px;
+          padding: 16px 16px;
+        }
+        .topnav {
+          width: 100%;
+          justify-content: flex-start;
+          gap: 6px;
+        }
+        .navlink {
+          padding: 7px 10px;
+          font-size: 12px;
+        }
+        .brand-word {
+          font-size: 18px;
+        }
+      }
+
       .plan {
         display: flex;
         align-items: center;

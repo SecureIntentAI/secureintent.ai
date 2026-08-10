@@ -94,6 +94,29 @@
         color: var(--danger);
         border-color: rgba(255, 107, 107, 0.5);
       }
+      /* Small screens: brand + three nav controls overflow a 390px phone. Wrap
+         the row and tighten the chrome instead of letting the page scroll
+         sideways. Keep this identical in the sibling page. */
+      @media (max-width: 460px) {
+        .topbar {
+          flex-wrap: wrap;
+          gap: 10px;
+          padding: 16px 16px;
+        }
+        .topnav {
+          width: 100%;
+          justify-content: flex-start;
+          gap: 6px;
+        }
+        .navlink {
+          padding: 7px 10px;
+          font-size: 12px;
+        }
+        .brand-word {
+          font-size: 18px;
+        }
+      }
+
       .wrap { max-width: 1080px; margin: 0 auto; padding: 26px 22px 60px; }
       h1 { font-family: var(--mono); font-size: 21px; margin: 0 0 4px; letter-spacing: -0.02em; }
       .sub { color: var(--muted); font-size: 13.5px; margin: 0 0 22px; }
@@ -273,6 +296,67 @@
       .opt strong { font-size: 13.5px; }
       .opt p { margin: 5px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.6; max-width: 72ch; }
       .opt label { cursor: pointer; }
+      /* The one control on this page that can make the extension catch LESS.
+         Boxed, tinted, and it turns red once it is armed — nobody should flip
+         this while skimming the pattern list it sits under. */
+      .opt.opt--danger {
+        margin-top: 15px;
+        padding: 13px 15px;
+        border: 1px solid rgba(255, 107, 107, 0.3);
+        border-radius: 12px;
+        background: rgba(255, 107, 107, 0.05);
+      }
+      .opt.opt--danger.armed {
+        border-color: rgba(255, 107, 107, 0.65);
+        background: rgba(255, 107, 107, 0.11);
+      }
+      .opt.opt--danger.armed strong { color: var(--danger); }
+      #pol-replace:checked {
+        background: rgba(255, 107, 107, 0.25);
+        border-color: rgba(255, 107, 107, 0.55);
+      }
+      #pol-replace:checked::after { background: var(--danger); }
+      .opt--danger .warn {
+        margin-top: 10px;
+        padding: 8px 11px;
+        border-left: 2px solid var(--danger);
+        border-radius: 0 8px 8px 0;
+        background: rgba(255, 107, 107, 0.09);
+        color: var(--text);
+        font-size: 12.5px;
+        line-height: 1.55;
+        max-width: 72ch;
+      }
+
+      /* "Are my alerts actually arriving?" Delivery is fire-and-forget, so a
+         webhook that has started refusing everything looks exactly like a quiet
+         week unless this line says otherwise. */
+      .health {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin: 12px 0 2px;
+        padding: 11px 13px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.03);
+      }
+      .health .dot {
+        flex: none;
+        width: 8px;
+        height: 8px;
+        margin-top: 5px;
+        border-radius: 50%;
+        background: var(--faint);
+      }
+      .health .line { font-size: 13px; line-height: 1.5; }
+      .health .sub { margin: 5px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.55; max-width: 72ch; }
+      /* The exact timestamp is in the title; hint that there is one to hover. */
+      .health .ago { border-bottom: 1px dotted var(--faint); cursor: help; }
+      .health--ok .dot { background: var(--ok); }
+      .health--bad { border-color: rgba(255, 107, 107, 0.35); background: rgba(255, 107, 107, 0.06); }
+      .health--bad .dot { background: var(--danger); }
+      .health--bad .line { color: var(--danger); }
       .subsec { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
       .subsec h3 { font-size: 13.5px; margin: 0 0 5px; }
       .subsec > p { margin: 0 0 12px; color: var(--muted); font-size: 12.5px; line-height: 1.6; max-width: 72ch; }
@@ -542,6 +626,15 @@
               catches something on one of your seats. The alert says what kind of secret it was
               and where it was headed — never the text itself, which never leaves the machine.
             </p>
+            <!-- Whether the last alert actually arrived. Populated from
+                 settings.alertDelivery; hidden until we have read it. -->
+            <div class="health" id="alert-health" hidden>
+              <span class="dot" aria-hidden="true"></span>
+              <div>
+                <div class="line" id="alert-health-line"></div>
+                <p class="sub" id="alert-health-sub" hidden></p>
+              </div>
+            </div>
             <div class="field">
               <label class="flbl" for="alert-webhook">Webhook URL</label>
               <input id="alert-webhook" type="url" placeholder="https://hooks.slack.com/services/…" />
@@ -645,6 +738,31 @@
                 <button class="btn" id="pat-add" type="button">Add</button>
               </div>
               <div id="pat-list"></div>
+
+              <div class="opt opt--danger" id="pol-replace-box">
+                <input type="checkbox" id="pol-replace" />
+                <div>
+                  <label for="pol-replace"><strong>Use only these patterns</strong></label>
+                  <p>
+                    Normally your patterns run <em>alongside</em> ours. Turn this on and they run
+                    <strong>instead</strong> of ours: SecureIntent's own catalogue — AWS keys, private
+                    keys, GitHub and Slack tokens, database URLs, the lot — stops being checked for
+                    everyone on the team. An AWS key pasted into a chat would go through without a
+                    word. Only switch it on if the patterns above really are the only things you want
+                    caught.
+                  </p>
+                  <p>
+                    One safeguard, so this can't quietly turn detection off: if your team has no
+                    usable patterns, our catalogue keeps running anyway. A pattern the extension
+                    can't compile doesn't count, so an empty or broken list always falls back to full
+                    coverage.
+                  </p>
+                  <p class="warn" id="pol-replace-warn" hidden>
+                    There are no patterns above yet, so this changes nothing for now — our catalogue
+                    keeps running until you add one. Add a pattern before you save, or leave this off.
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div class="actions">
@@ -804,6 +922,14 @@
           return Number.isFinite(n) && n > 0
             ? `All ${n} seats are taken. Add seats before inviting anyone else.`
             : "Every seat is taken. Add seats before inviting anyone else.";
+        }
+        if (code === "delivery_failed") {
+          // The status is the webhook's answer, not ours (the call itself 502s).
+          // It is the whole diagnosis, so put it in the sentence.
+          const n = Math.floor(Number(data.status));
+          return Number.isFinite(n) && n >= 100
+            ? `The test didn't reach your webhook — it answered ${n}. Check the URL is still accepting posts.`
+            : ERROR_TEXT.delivery_failed;
         }
         // typeof, not `in`: a code of "constructor" must not reach a prototype.
         if (code && typeof ERROR_TEXT[code] === "string") return ERROR_TEXT[code];
@@ -1100,6 +1226,7 @@
         "pat-regex",
         "pat-type",
         "pat-add",
+        "pol-replace",
         "policy-save",
       ];
       const setSettingsEnabled = (on) => {
@@ -1107,6 +1234,34 @@
           $(id).disabled = !on;
         });
       };
+
+      /**
+       * How the last delivery attempt went, as the console needs it. `known`
+       * separates "the server told us nothing has been sent" from "this build of
+       * the API doesn't report delivery at all" — the second must show nothing
+       * rather than claim a healthy silence.
+       */
+      function normalizeDelivery(raw) {
+        const d = raw && typeof raw === "object" ? raw : null;
+        const count = (v) => {
+          const n = Math.floor(Number(v));
+          return Number.isFinite(n) && n > 0 ? n : 0;
+        };
+        const status = d && d.status != null ? Math.floor(Number(d.status)) : NaN;
+        return {
+          known: !!d,
+          lastAttemptAt: d && typeof d.lastAttemptAt === "string" ? d.lastAttemptAt : null,
+          // Three states, and null is not a failure: it means nothing has ever
+          // been sent, which is the normal state of a quiet week.
+          ok: d && d.ok === true ? true : d && d.ok === false ? false : null,
+          status: Number.isFinite(status) ? status : null,
+          reason: d && typeof d.reason === "string" ? d.reason : null,
+          consecutiveFailures: count(d && d.consecutiveFailures),
+          suppressedSinceLastAlert: count(d && d.suppressedSinceLastAlert),
+          suppressedEvents: count(d && d.suppressedEvents),
+          throttleWindowSeconds: count(d && d.throttleWindowSeconds),
+        };
+      }
 
       /** Never trust the shape: a missing field must not become `undefined` in a PUT. */
       function normalizeSettings(raw) {
@@ -1118,6 +1273,11 @@
           policy: {
             blockInsteadOfWarn: !!p.blockInsteadOfWarn,
             requireSessionLock: !!p.requireSessionLock,
+            // Kept even with an empty pattern list: the server stores the admin's
+            // intent and ignores it until there is something to replace the
+            // catalogue with, so dropping it here would lose the decision
+            // between "tick the box" and "add the patterns" on two saves.
+            replaceDefaultPatterns: !!p.replaceDefaultPatterns,
             extraPatterns: (Array.isArray(p.extraPatterns) ? p.extraPatterns : [])
               .filter((x) => x && x.regex)
               .map((x) => ({
@@ -1130,7 +1290,138 @@
               .filter(Boolean),
           },
           policyVersion: Number(s.policyVersion) || 0,
+          alertDelivery: normalizeDelivery(s.alertDelivery),
         };
+      }
+
+      // ---------------------------------------------------------------------
+      // Alert delivery health. Alerts are fire-and-forget by design, so nothing
+      // else on this page would ever tell an admin that their webhook has been
+      // swallowing the team's security events since somebody rotated its URL.
+      // ---------------------------------------------------------------------
+
+      /** "12 minutes ago" — the form of a timestamp anyone reads at a glance. */
+      function relTime(iso) {
+        const t = Date.parse(iso);
+        if (!Number.isFinite(t)) return null;
+        const secs = Math.max(0, Math.round((Date.now() - t) / 1000));
+        if (secs < 60) return "just now";
+        const mins = Math.round(secs / 60);
+        if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`;
+        const hrs = Math.round(mins / 60);
+        if (hrs < 24) return `${hrs} hour${hrs === 1 ? "" : "s"} ago`;
+        const dys = Math.round(hrs / 24);
+        if (dys < 30) return `${dys} day${dys === 1 ? "" : "s"} ago`;
+        const mos = Math.round(dys / 30);
+        return `${mos} month${mos === 1 ? "" : "s"} ago`;
+      }
+
+      /** The exact time, kept in the title behind the relative one. */
+      function absTime(iso) {
+        const t = Date.parse(iso);
+        return Number.isFinite(t) ? new Date(t).toLocaleString() : String(iso ?? "");
+      }
+
+      function agoHtml(iso) {
+        const rel = relTime(iso);
+        return rel ? `<span class="ago" title="${esc(absTime(iso))}">${esc(rel)}</span>` : "";
+      }
+
+      // The Worker's coarse reasons — 'ok', 'http_<status>', 'timeout',
+      // 'network_error', 'blocked_url' — as sentences. A code on screen tells an
+      // admin nothing they can do something about.
+      const DELIVERY_REASON = {
+        ok: "your webhook accepted it.",
+        timeout: "it didn't answer in time. Check the endpoint is up and replies within a few seconds.",
+        network_error:
+          "we couldn't reach it at all. Check the address is right and reachable from the public internet.",
+        blocked_url:
+          "that address isn't allowed. Alerts only go to a public https:// address, so nothing was sent — save a different URL.",
+      };
+
+      /** A sentence for any reason, including ones this build has never seen. */
+      function deliveryReason(reason, status) {
+        // typeof, not `in`: an invented reason must not reach a prototype.
+        if (reason && typeof DELIVERY_REASON[reason] === "string") return DELIVERY_REASON[reason];
+        const fromReason = /^http_(\d{3})$/.exec(String(reason ?? ""));
+        const code = Math.floor(Number(fromReason ? fromReason[1] : status));
+        if (Number.isFinite(code) && code >= 100) return `${code} from your webhook. Check the URL.`;
+        return "we don't know why. Press Send test to see what it answers.";
+      }
+
+      /** How often alerts can leave at most, in the words of the window we got. */
+      function throttlePhrase(seconds) {
+        const secs = Math.floor(Number(seconds));
+        if (!Number.isFinite(secs) || secs <= 0) return "Alerts are sent in batches.";
+        if (secs < 60) return `Alerts are sent at most once every ${secs} seconds.`;
+        const mins = Math.round(secs / 60);
+        if (mins === 1) return "Alerts are sent at most once a minute.";
+        if (mins < 60) return `Alerts are sent at most once every ${mins} minutes.`;
+        const hrs = Math.round(mins / 60);
+        return hrs === 1
+          ? "Alerts are sent at most once an hour."
+          : `Alerts are sent at most once every ${hrs} hours.`;
+      }
+
+      function renderAlertHealth() {
+        const box = $("alert-health");
+        const line = $("alert-health-line");
+        const sub = $("alert-health-sub");
+        const d = settings && settings.alertDelivery;
+        // Nothing to report on: no webhook saved and nothing ever attempted, or
+        // an API that doesn't tell us. Silence beats a made-up verdict.
+        if (!d || !d.known || (!savedWebhook && d.ok === null && !d.suppressedSinceLastAlert)) {
+          box.hidden = true;
+          return;
+        }
+        box.hidden = false;
+        box.classList.remove("health--ok", "health--bad");
+
+        const notes = [];
+        if (d.ok === true) {
+          box.classList.add("health--ok");
+          const ago = agoHtml(d.lastAttemptAt);
+          line.innerHTML = ago ? `Last alert delivered ${ago}.` : "Last alert delivered.";
+        } else if (d.ok === false) {
+          box.classList.add("health--bad");
+          // consecutiveFailures is the streak; below 2 there is only "the last one".
+          const n = Math.max(1, d.consecutiveFailures);
+          const what = n > 1 ? `Last ${fmt(n)} alerts failed` : "The last alert failed";
+          const ago = agoHtml(d.lastAttemptAt);
+          line.innerHTML =
+            `${esc(what)} — ${esc(deliveryReason(d.reason, d.status))}` +
+            (ago ? ` Last tried ${ago}.` : "");
+        } else {
+          // Never attempted. Neutral: a team can go a long time without one.
+          line.textContent = "No alerts sent yet.";
+          notes.push("Nothing has needed one yet. Press Send test to check the URL works.");
+        }
+
+        // What is waiting to go out. Without this, "6 detections" on the
+        // dashboard and one message in the channel look like lost alerts.
+        const held = d.suppressedSinceLastAlert;
+        if (held > 0) {
+          const ev = d.suppressedEvents;
+          const from = ev > 0 ? ` — from ${fmt(ev)} paste${ev === 1 ? "" : "s"}` : "";
+          notes.push(
+            `${fmt(held)} detection${held === 1 ? "" : "s"} since the last alert, batched${from}. ` +
+              `${throttlePhrase(d.throttleWindowSeconds)}`,
+          );
+        }
+        sub.textContent = notes.join(" ");
+        sub.hidden = notes.length === 0;
+      }
+
+      /**
+       * The empty-list case is the one that would read as a lie: the switch is
+       * on, our catalogue is still running, and nothing says why. Say it beside
+       * the switch, and keep it in step as patterns come and go.
+       */
+      function syncReplaceWarning() {
+        const on = $("pol-replace").checked;
+        const empty = !settings || settings.policy.extraPatterns.length === 0;
+        $("pol-replace-box").classList.toggle("armed", on);
+        $("pol-replace-warn").hidden = !(on && empty);
       }
 
       function renderSites() {
@@ -1161,6 +1452,8 @@
               )
               .join("")}</tbody></table>`
           : '<div class="empty">No custom patterns — only the built-in detectors run.</div>';
+        // The list just changed, so whether "use only these" is a no-op did too.
+        syncReplaceWarning();
       }
 
       function renderSettings() {
@@ -1168,6 +1461,9 @@
         $("alert-min").value = settings.alertMinType;
         $("pol-block").checked = settings.policy.blockInsteadOfWarn;
         $("pol-lock").checked = settings.policy.requireSessionLock;
+        // Before renderPatterns(): it reads this box to decide whether to warn.
+        $("pol-replace").checked = settings.policy.replaceDefaultPatterns;
+        renderAlertHealth();
         renderSites();
         renderPatterns();
         $("policy-version").textContent = settings.policyVersion
@@ -1216,13 +1512,20 @@
         settings.alertMinType = $("alert-min").value;
         settings.policy.blockInsteadOfWarn = $("pol-block").checked;
         settings.policy.requireSessionLock = $("pol-lock").checked;
+        settings.policy.replaceDefaultPatterns = $("pol-replace").checked;
 
         btn.disabled = true;
         flash(statusEl, "Saving…", "");
         try {
+          // Only the three fields the server owns from here. policyVersion and
+          // the delivery health are its to report, not ours to echo back.
           const res = await api("/v1/team/settings", {
             method: "PUT",
-            body: JSON.stringify(settings),
+            body: JSON.stringify({
+              alertWebhook: settings.alertWebhook,
+              alertMinType: settings.alertMinType,
+              policy: settings.policy,
+            }),
           });
           // Take the server's copy when it sends one back (it owns
           // policyVersion); otherwise keep what we just wrote.
@@ -1254,11 +1557,39 @@
         try {
           await api("/v1/team/settings/test-alert", { method: "POST", body: "{}" });
           flash(st, "Test alert sent. It should be in your channel now.", "ok");
+          recordTestAttempt(true, null);
         } catch (e) {
           flash(st, explain(e, { fallback: ERROR_TEXT.delivery_failed }), "err");
+          // Only a real delivery attempt counts. A 401/403/400 never reached the
+          // webhook, so it must not be written into its health.
+          if (e && e.code === "delivery_failed") recordTestAttempt(false, e.data && e.data.status);
         } finally {
           $("alerts-test").disabled = false;
         }
+      }
+
+      /**
+       * The server counts a test as a real delivery attempt, so the health line
+       * above has just changed. Mirror it rather than re-reading /settings — a
+       * refetch would overwrite pattern and hostname edits nobody has saved yet.
+       */
+      function recordTestAttempt(ok, status) {
+        if (!settingsLoaded || !settings) return;
+        const prev = settings.alertDelivery;
+        const code = Math.floor(Number(status));
+        const known = Number.isFinite(code) && code >= 100 ? code : null;
+        settings.alertDelivery = normalizeDelivery({
+          ...prev,
+          known: true,
+          lastAttemptAt: new Date().toISOString(),
+          ok,
+          // Nothing is invented: a failure with no status stays reasonless
+          // rather than guessing between a timeout and a refusal.
+          status: ok ? null : known,
+          reason: ok ? "ok" : known ? `http_${known}` : null,
+          consecutiveFailures: ok ? 0 : prev.consecutiveFailures + 1,
+        });
+        renderAlertHealth();
       }
 
       function addBlockedSite() {
@@ -1577,6 +1908,9 @@
           if (e.key === "Enter") addBlockedSite();
         });
         $("pat-add").addEventListener("click", addPattern);
+        // Ticked with nothing to replace the catalogue with? Say so on the spot,
+        // not after a save that appears to have done something.
+        $("pol-replace").addEventListener("change", syncReplaceWarning);
 
         $("site-list").addEventListener("click", (e) => {
           const i = e.target.getAttribute?.("data-site");
