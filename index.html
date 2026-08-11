@@ -199,6 +199,18 @@
             transform: translateY(-1px);
             box-shadow: 0 0 0 1px rgba(114,255,255,0.6), 0 12px 30px -8px rgba(114,255,255,0.6);
         }
+        /* Secondary action — sits beside the primary CTA and reads as a button,
+           without competing with it for the click. */
+        .btn-ghost {
+            color: #d4d4d8;
+            border: 1px solid rgba(255,255,255,0.14);
+            transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+        }
+        .btn-ghost:hover {
+            color: #ffffff;
+            border-color: rgba(114,255,255,0.45);
+            background: rgba(114,255,255,0.06);
+        }
 
         /* ---- WhatsApp floating support button ---- */
         .wa-float {
@@ -419,18 +431,21 @@
                 <a href="#roadmap" class="hover:text-brand-cyan transition-colors">/roadmap</a>
             </div>
             
-            <div class="flex items-center gap-4">
-                <a href="https://github.com/Secureintent-Admin/Secureintent-Extension" target="_blank" class="hidden md:flex items-center gap-2 text-gray-400 hover:text-white transition-colors" aria-label="GitHub Repository">
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- The repo is proof, not a destination. The icon carries it and the
+                     label moves into the tooltip, so the two things people come here
+                     to click — sign in, install — sit together at the end of the row. -->
+                <a href="https://github.com/Secureintent-Admin/Secureintent-Extension" target="_blank" rel="noopener" class="hidden sm:inline-flex items-center justify-center w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/5 transition-colors" title="Auditable code on GitHub" aria-label="Auditable code on GitHub">
                     <i class="fa-brands fa-github text-lg" aria-hidden="true"></i>
-                    <span class="font-mono text-xs">Auditable Code</span>
                 </a>
+                <span class="hidden md:block w-px h-5 bg-white/10" aria-hidden="true"></span>
                 <!-- Existing customers need a way back in: plan, billing and the team console all live behind this. -->
-                <a href="/account.html" class="hidden md:flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
-                    <i class="fa-solid fa-user text-lg" aria-hidden="true"></i>
-                    <span class="font-mono text-xs">Sign in</span>
-                </a>
-                <a href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener" class="btn-primary hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full font-mono text-xs">
-                    <i class="fa-solid fa-download" aria-hidden="true"></i> Install SecureIntent
+                <a href="/account.html" class="btn-ghost hidden md:inline-flex items-center px-4 py-2 rounded-full font-mono text-xs whitespace-nowrap">Sign in</a>
+                <!-- Between 1024 and 1280 the six section links leave no room for the
+                     full label, and it used to wrap out of the pill. Drop the product
+                     name there; the logo two feet to the left already said it. -->
+                <a href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener" class="btn-primary hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full font-mono text-xs whitespace-nowrap">
+                    <i class="fa-solid fa-download" aria-hidden="true"></i> Install<span class="lg:hidden xl:inline"> SecureIntent</span>
                 </a>
                 <!-- Mobile menu toggle -->
                 <button id="mobile-menu-btn" type="button" class="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-full text-gray-200 hover:text-brand-cyan hover:bg-white/5 transition-colors" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
