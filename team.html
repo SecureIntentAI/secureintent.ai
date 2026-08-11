@@ -121,6 +121,129 @@
       h1 { font-family: var(--mono); font-size: 21px; margin: 0 0 4px; letter-spacing: -0.02em; }
       .sub { color: var(--muted); font-size: 13.5px; margin: 0 0 22px; }
 
+      /* ---- Console shell -------------------------------------------------
+         The console is four jobs, not one page: read the numbers, manage
+         people, write the policy, route the alerts. A sidebar makes each one
+         somewhere you can be, instead of a stop on a two-metre scroll — and
+         each nav item carries the state of the thing behind it, so the seat
+         count and a webhook that has started failing are visible from
+         wherever you happen to be standing. */
+      .shell { display: grid; grid-template-columns: 240px minmax(0, 1fr); align-items: start; }
+      .side {
+        position: sticky;
+        top: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        height: 100vh;
+        padding: 22px 14px;
+        border-right: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.015);
+      }
+      .side .brand { padding: 0 8px; }
+      .side .nav { display: flex; flex-direction: column; gap: 2px; }
+      .navitem {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 9px 11px;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        background: none;
+        color: var(--muted);
+        font: 600 13px/1 var(--sans);
+        text-align: left;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .navitem:hover:not([aria-disabled="true"]) { color: var(--text); background: rgba(255, 255, 255, 0.04); }
+      .navitem[aria-current="page"] {
+        color: var(--text);
+        background: rgba(114, 255, 255, 0.08);
+        border-color: rgba(114, 255, 255, 0.26);
+      }
+      .navitem[aria-current="page"] svg { color: var(--cyan); }
+      .navitem[aria-disabled="true"] { opacity: 0.42; cursor: not-allowed; }
+      .navitem svg { flex: none; color: var(--faint); }
+      .navitem .label { flex: 1; }
+      /* The live state each item carries: a seat count, or a dot for the
+         health of the thing behind it. Both are set from real data or hidden
+         — never a placeholder. */
+      .navitem .badge { font: 600 11px/1 var(--mono); color: var(--faint); }
+      .navitem[aria-current="page"] .badge { color: var(--muted); }
+      .navitem .sdot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
+      .navitem .sdot[hidden] { display: none; }
+      /* Scoped to .navitem to match the specificity of the rule above — as
+         bare classes these lost to it and every dot stayed grey. */
+      .navitem .sdot--ok { background: var(--ok); }
+      .navitem .sdot--bad { background: var(--danger); }
+      .navitem .sdot--dirty { background: #fbbf24; }
+      .side .foot { margin-top: auto; display: flex; flex-direction: column; gap: 10px; padding: 0 4px; }
+      .side .who { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+      .side .who strong { display: block; color: var(--text); font-size: 13.5px; }
+      .side .links { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+      .side .links .navlink { text-align: center; }
+      .side .links .navlink--signout { grid-column: 1 / -1; }
+      .side .links .navlink { padding: 6px 10px; font-size: 12px; }
+
+      .content { min-width: 0; padding: 0 30px 70px; max-width: 1060px; }
+      /* One header per view: what this page is, one line on what it does, and
+         the controls that belong to it. */
+      .viewhead {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
+        padding: 28px 0 16px;
+        margin-bottom: 22px;
+        border-bottom: 1px solid var(--border);
+      }
+      .viewhead h1 { font-size: 19px; margin: 0 0 6px; }
+      .viewhead .sub { margin: 0; max-width: 70ch; }
+      .view[hidden] { display: none; }
+      .view > .viewhead + section.block { margin-top: 0; }
+
+      @media (max-width: 880px) {
+        .shell { grid-template-columns: minmax(0, 1fr); }
+        .side {
+          position: static;
+          height: auto;
+          gap: 14px;
+          padding: 16px 16px 0;
+          border-right: 0;
+          border-bottom: 1px solid var(--border);
+        }
+        /* A row of tabs that scrolls sideways beats a hamburger here: four
+           destinations, and their badges are worth seeing at a glance. */
+        .side .nav {
+          flex-direction: row;
+          gap: 6px;
+          overflow-x: auto;
+          padding-bottom: 14px;
+          scrollbar-width: none;
+        }
+        .side .nav::-webkit-scrollbar { display: none; }
+        .navitem { width: auto; flex: none; white-space: nowrap; }
+        /* Brand, then who you are, then where you can go — the sidebar's
+           own order, stacked. The footer's margin-top:auto would otherwise
+           strand it at the bottom of a column with no spare height. */
+        .side .brand { order: 0; }
+        .side .foot { order: 1; margin-top: 0; gap: 8px; padding: 0; }
+        .side .nav { order: 2; }
+        .side .links { display: flex; flex-wrap: wrap; }
+        .side .links .navlink--signout { grid-column: auto; }
+        .content { padding: 0 16px 60px; }
+        .viewhead { padding-top: 20px; }
+      }
+      /* On a phone the four tabs only fit without their icons — and four
+         destinations in view beat three and a half plus a scroll. */
+      @media (max-width: 470px) {
+        .navitem { padding: 9px 10px; gap: 7px; }
+        .navitem svg { display: none; }
+      }
+
       .btn {
         border: 1px solid var(--border);
         background: rgba(255, 255, 255, 0.04);
@@ -288,6 +411,18 @@
       .flbl { width: 150px; font-size: 13px; color: var(--muted); }
       .field input, .field select { flex: 1; min-width: 240px; }
       .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+      /* Policy runs past a screenful, and every edit on it is pending until
+         this is pressed. It follows the page rather than waiting at the end. */
+      .actions--sticky {
+        position: sticky;
+        bottom: 0;
+        margin: 14px -18px -16px;
+        padding: 13px 18px;
+        border-top: 1px solid var(--border);
+        border-radius: 0 0 14px 14px;
+        background: rgba(10, 14, 26, 0.94);
+        backdrop-filter: blur(6px);
+      }
       .status { font-size: 12.5px; color: var(--muted); }
       .status.ok { color: var(--ok); }
       .status.err { color: var(--danger); }
@@ -381,8 +516,14 @@
         cursor: pointer;
       }
       .chip button:hover { color: var(--danger); }
-      #pat-label { min-width: 170px; }
-      #pat-regex { flex: 2; min-width: 240px; font-family: var(--mono); }
+      /* A field that grows to fill a 1000px panel reads as a mistake — cap
+         each one near the length of what actually goes in it. */
+      #pat-label { min-width: 170px; max-width: 280px; }
+      #pat-regex { flex: 2; min-width: 240px; max-width: 440px; font-family: var(--mono); }
+      #site-input { max-width: 420px; }
+      #invite-email { max-width: 380px; }
+      #alert-webhook { max-width: 460px; }
+      #alert-min { max-width: 460px; }
       #pat-type { flex: none; }
       .hide { display: none !important; }
       .invite { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
@@ -427,7 +568,9 @@
     <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
   </head>
   <body>
-    <div class="topbar">
+    <!-- The gate's header, shared with account.html. The console replaces it
+         with its own sidebar, so this hides once the console is up. -->
+    <div class="topbar" id="topbar">
       <a class="brand" href="/">
         <svg aria-hidden="true" viewBox="0 0 250 250" width="30" height="30">
           <path d="M 50,195 L 110,75" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round"></path>
@@ -445,7 +588,7 @@
       </nav>
     </div>
 
-    <div class="wrap">
+    <div class="wrap" id="gate-wrap">
       <!-- Signed out, or signed in without a team -->
       <div id="gate">
         <h1 id="gate-title">Loading…</h1>
@@ -500,12 +643,76 @@
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- The team console -->
-      <main id="console" class="hide">
-        <h1 id="team-name">Team</h1>
-        <p class="sub" id="team-sub"></p>
+    <!--
+      The team console. One sidebar, four views: the numbers, the people, the
+      policy, the alerts. It keeps id="console" so showGate() still has a single
+      element to hide, and every control below keeps the id its handler expects.
+    -->
+    <main class="shell hide" id="console">
+      <aside class="side">
+        <a class="brand" href="/">
+          <svg aria-hidden="true" viewBox="0 0 250 250" width="26" height="26">
+            <path d="M 50,195 L 110,75" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round"></path>
+            <path d="M 130,195 L 160,135" fill="none" stroke="#72FFFF" stroke-width="28" stroke-linecap="round"></path>
+            <circle cx="190" cy="75" r="14" fill="#72FFFF"></circle>
+          </svg>
+          <span class="brand-word">SecureIntent<span class="accent">.ai</span></span>
+        </a>
 
+        <nav class="nav" id="console-nav" aria-label="Team console">
+          <a class="navitem" href="#/overview" data-view="overview">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+              <path d="M2 14h12" stroke-linecap="round" />
+              <path d="M4 14V9m4 5V3m4 11V7" stroke-linecap="round" />
+            </svg>
+            <span class="label">Overview</span>
+          </a>
+          <a class="navitem" href="#/people" data-view="people">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+              <circle cx="6" cy="5.5" r="2.5" />
+              <path d="M1.5 13.5c0-2.2 2-3.6 4.5-3.6s4.5 1.4 4.5 3.6" stroke-linecap="round" />
+              <path d="M11 3.4a2.4 2.4 0 0 1 0 4.4M12.4 13.5c0-1.5-.5-2.6-1.4-3.3" stroke-linecap="round" />
+            </svg>
+            <span class="label">People</span>
+            <!-- Seats used, from the roster the server just sent. -->
+            <span class="badge" id="nav-seats"></span>
+          </a>
+          <a class="navitem" href="#/policy" data-view="policy">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+              <path d="M8 1.8 13 3.6v4c0 3-2.1 5.4-5 6.6-2.9-1.2-5-3.6-5-6.6v-4l5-1.8Z" stroke-linejoin="round" />
+            </svg>
+            <span class="label">Policy</span>
+            <span class="sdot" id="nav-policy-dot" hidden></span>
+          </a>
+          <a class="navitem" href="#/alerts" data-view="alerts">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+              <path d="M4 6.8a4 4 0 0 1 8 0c0 3 1 4 1 4H3s1-1 1-4Z" stroke-linejoin="round" />
+              <path d="M6.6 13.2a1.6 1.6 0 0 0 2.8 0" stroke-linecap="round" />
+            </svg>
+            <span class="label">Alerts</span>
+            <!-- Green once a webhook has delivered, red once it has stopped. -->
+            <span class="sdot" id="nav-alerts-dot" hidden></span>
+          </a>
+        </nav>
+
+        <div class="foot">
+          <p class="who">
+            <strong id="team-name">Team</strong>
+            <span id="team-sub"></span>
+          </p>
+          <div class="links">
+            <a class="navlink" href="/account.html">Account</a>
+            <a class="navlink" href="/">Home</a>
+            <button class="navlink navlink--signout" id="signout-side" type="button">Sign out</button>
+          </div>
+        </div>
+      </aside>
+
+      <div class="content">
+        <!-- Unpaid: this stays above every view, because it is the only thing
+             on the page worth doing until it clears. -->
         <div class="pending" id="pending" hidden>
           <div>
             <strong id="pending-title">We haven't seen your payment yet.</strong>
@@ -530,16 +737,13 @@
           </div>
         </div>
 
-        <div class="cards">
-          <div class="card"><div class="k">Seats</div><div class="v" id="c-seats">—</div></div>
-          <div class="card"><div class="k">Seats used</div><div class="v" id="c-used">—</div></div>
-          <div class="card"><div class="k" id="c-total-k">Detections · 30d</div><div class="v" id="c-total">—</div></div>
-          <div class="card"><div class="k" id="c-actors-k">People involved</div><div class="v" id="c-actors">—</div></div>
-        </div>
-
-        <section class="block">
-          <div class="blockhead">
-            <h2>Detections over time</h2>
+        <!-- ================= Overview ================= -->
+        <section class="view" id="view-overview" tabindex="-1" aria-labelledby="head-overview">
+          <div class="viewhead">
+            <div>
+              <h1 id="head-overview">Overview</h1>
+              <p class="sub">What your team's extensions caught, and the seats you're paying for.</p>
+            </div>
             <div class="headctl">
               <label class="ctl-lbl" for="range">Range</label>
               <select id="range" title="How far back every figure on this page reaches">
@@ -552,35 +756,58 @@
               </button>
             </div>
           </div>
-          <div class="panel">
-            <div class="chart" id="p-chart"></div>
-            <!-- The bars carry their day in a hover title, which a screen reader
-                 and a touchscreen both miss. This sentence is the same figures
-                 in words; the axis names each end of the range. -->
-            <p class="vh" id="chart-summary"></p>
-            <div class="axis" id="chart-axis" hidden>
-              <span id="axis-start"></span><span id="axis-end"></span>
+
+          <div class="cards">
+            <div class="card"><div class="k">Seats</div><div class="v" id="c-seats">—</div></div>
+            <div class="card"><div class="k">Seats used</div><div class="v" id="c-used">—</div></div>
+            <div class="card"><div class="k" id="c-total-k">Detections · 30d</div><div class="v" id="c-total">—</div></div>
+            <div class="card"><div class="k" id="c-actors-k">People involved</div><div class="v" id="c-actors">—</div></div>
+          </div>
+
+          <section class="block">
+            <h2>Detections over time</h2>
+            <div class="panel">
+              <div class="chart" id="p-chart"></div>
+              <!-- The bars carry their day in a hover title, which a screen reader
+                   and a touchscreen both miss. This sentence is the same figures
+                   in words; the axis names each end of the range. -->
+              <p class="vh" id="chart-summary"></p>
+              <div class="axis" id="chart-axis" hidden>
+                <span id="axis-start"></span><span id="axis-end"></span>
+              </div>
+            </div>
+          </section>
+
+          <section class="block" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px">
+            <div>
+              <h2>What was caught</h2>
+              <div class="panel" id="p-types"></div>
+            </div>
+            <div>
+              <h2>Where it was headed</h2>
+              <div class="panel" id="p-sites"></div>
+            </div>
+            <div>
+              <h2>What people chose</h2>
+              <div class="panel" id="p-actions"></div>
+            </div>
+          </section>
+
+          <p class="note">
+            Activity is shown for the team as a whole. SecureIntent never receives the text
+            anyone pastes — only that something was caught, what kind, and where it was going.
+          </p>
+        </section>
+
+        <!-- ================= People ================= -->
+        <section class="view" id="view-people" tabindex="-1" aria-labelledby="head-people" hidden>
+          <div class="viewhead">
+            <div>
+              <h1 id="head-people">People</h1>
+              <p class="sub">Who holds a seat, who has been invited, and how many seats you pay for.</p>
             </div>
           </div>
-        </section>
 
-        <section class="block" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px">
-          <div>
-            <h2>What was caught</h2>
-            <div class="panel" id="p-types"></div>
-          </div>
-          <div>
-            <h2>Where it was headed</h2>
-            <div class="panel" id="p-sites"></div>
-          </div>
-          <div>
-            <h2>What people chose</h2>
-            <div class="panel" id="p-actions"></div>
-          </div>
-        </section>
-
-        <section class="block">
-          <h2>People</h2>
           <div class="panel">
             <div class="invite" id="invite-row">
               <label class="vh" for="invite-email">Email address to invite</label>
@@ -606,78 +833,26 @@
               <thead><tr><th>Person</th><th>Email</th><th>Role</th><th></th></tr></thead>
               <tbody id="people"></tbody>
             </table>
-            <p class="note">
-              Activity is shown for the team as a whole. SecureIntent never receives the text
-              anyone pastes — only that something was caught, what kind, and where it was going.
-            </p>
           </div>
+          <p class="note">
+            A seat is a person. Removing someone frees their seat but keeps you on the same
+            subscription — use Change seats to pay for fewer.
+          </p>
         </section>
 
-        <!--
-          Admin-only. Both sections are `section.block`, so the same rule that
-          hides the dashboard for a team with no seats hides them too, and a
-          member never gets this far: loadTeam() sends non-admins to the gate.
-        -->
-        <section class="block">
-          <h2>Security alerts</h2>
-          <div class="panel">
-            <p class="note" style="margin-top: 0">
-              Post a message to Slack, Teams, or any HTTPS endpoint the moment the extension
-              catches something on one of your seats. The alert says what kind of secret it was
-              and where it was headed — never the text itself, which never leaves the machine.
-            </p>
-            <!-- Whether the last alert actually arrived. Populated from
-                 settings.alertDelivery; hidden until we have read it. -->
-            <div class="health" id="alert-health" hidden>
-              <span class="dot" aria-hidden="true"></span>
-              <div>
-                <div class="line" id="alert-health-line"></div>
-                <p class="sub" id="alert-health-sub" hidden></p>
-              </div>
-            </div>
-            <div class="field">
-              <label class="flbl" for="alert-webhook">Webhook URL</label>
-              <input id="alert-webhook" type="url" placeholder="https://hooks.slack.com/services/…" />
-            </div>
-            <div class="field">
-              <label class="flbl" for="alert-min">Alert me about</label>
-              <!-- Each option is a threshold: it alerts on that class and every
-                   louder one above it. The last one used to read "personal
-                   data", which sounded like the alert would carry some. Name
-                   what actually trips it instead. -->
-              <select id="alert-min">
-                <option value="private-key">Private keys only</option>
-                <option value="known-key">Private keys and known API keys</option>
-                <option value="env-credential">Private keys, API keys, and env credentials</option>
-                <option value="pii">Everything, including cards, emails and IPs</option>
-              </select>
-              <p class="note" id="alert-min-note" style="margin: 6px 0 0">
-                Card numbers are always checked. Emails and IP addresses are only
-                caught in large log pastes, where they aren't everyday chatter.
+        <!-- ================= Policy ================= -->
+        <section class="view" id="view-policy" tabindex="-1" aria-labelledby="head-policy" hidden>
+          <div class="viewhead">
+            <div>
+              <h1 id="head-policy">Policy</h1>
+              <p class="sub">
+                Rules that travel to the extension on every seat and are applied on the device.
+                They change what your colleagues can do, so read what each one costs them.
               </p>
             </div>
-            <div class="actions">
-              <button class="btn primary" id="alerts-save" type="button">Save changes</button>
-              <button class="btn" id="alerts-test" type="button">Send test</button>
-              <span class="status" id="alerts-status"></span>
-            </div>
-            <p class="note">
-              Leave the URL empty to turn alerts off. The test posts to the saved URL, so save
-              first if you've just changed it. Alerts and policy are one record — either Save
-              button writes both.
-            </p>
           </div>
-        </section>
 
-        <section class="block">
-          <h2>Team policy</h2>
           <div class="panel">
-            <p class="note" style="margin-top: 0">
-              These rules travel to the SecureIntent extension on every seat and are applied
-              on the device. They change what your colleagues can do, so read what each one
-              costs them before switching it on.
-            </p>
-
             <div class="opt">
               <input type="checkbox" id="pol-block" />
               <div>
@@ -773,15 +948,76 @@
               </div>
             </div>
 
-            <div class="actions">
+            <div class="actions actions--sticky">
               <button class="btn primary" id="policy-save" type="button">Save changes</button>
               <span class="status" id="policy-status"></span>
             </div>
             <p class="note" id="policy-version"></p>
           </div>
         </section>
-      </main>
-    </div>
+
+        <!-- ================= Alerts ================= -->
+        <section class="view" id="view-alerts" tabindex="-1" aria-labelledby="head-alerts" hidden>
+          <div class="viewhead">
+            <div>
+              <h1 id="head-alerts">Alerts</h1>
+              <p class="sub">
+                Where SecureIntent posts the moment the extension catches something on one of
+                your seats.
+              </p>
+            </div>
+          </div>
+
+          <div class="panel">
+            <p class="note" style="margin-top: 0">
+              Post a message to Slack, Teams, or any HTTPS endpoint. The alert says what kind of
+              secret it was and where it was headed — never the text itself, which never leaves
+              the machine.
+            </p>
+            <!-- Whether the last alert actually arrived. Populated from
+                 settings.alertDelivery; hidden until we have read it. -->
+            <div class="health" id="alert-health" hidden>
+              <span class="dot" aria-hidden="true"></span>
+              <div>
+                <div class="line" id="alert-health-line"></div>
+                <p class="sub" id="alert-health-sub" hidden></p>
+              </div>
+            </div>
+            <div class="field">
+              <label class="flbl" for="alert-webhook">Webhook URL</label>
+              <input id="alert-webhook" type="url" placeholder="https://hooks.slack.com/services/…" />
+            </div>
+            <div class="field">
+              <label class="flbl" for="alert-min">Alert me about</label>
+              <!-- Each option is a threshold: it alerts on that class and every
+                   louder one above it. The last one used to read "personal
+                   data", which sounded like the alert would carry some. Name
+                   what actually trips it instead. -->
+              <select id="alert-min">
+                <option value="private-key">Private keys only</option>
+                <option value="known-key">Private keys and known API keys</option>
+                <option value="env-credential">Private keys, API keys, and env credentials</option>
+                <option value="pii">Everything, including cards, emails and IPs</option>
+              </select>
+              <p class="note" id="alert-min-note" style="margin: 6px 0 0">
+                Card numbers are always checked. Emails and IP addresses are only
+                caught in large log pastes, where they aren't everyday chatter.
+              </p>
+            </div>
+            <div class="actions">
+              <button class="btn primary" id="alerts-save" type="button">Save changes</button>
+              <button class="btn" id="alerts-test" type="button">Send test</button>
+              <span class="status" id="alerts-status"></span>
+            </div>
+            <p class="note">
+              Leave the URL empty to turn alerts off. The test posts to the saved URL, so save
+              first if you've just changed it. Alerts and policy are one record — either Save
+              button writes both.
+            </p>
+          </div>
+        </section>
+      </div>
+    </main>
 
     <script>
       // Where Clerk should return people after they authenticate. Kept as one
@@ -1376,6 +1612,9 @@
         const line = $("alert-health-line");
         const sub = $("alert-health-sub");
         const d = settings && settings.alertDelivery;
+        // The same verdict rides the sidebar, so a webhook that has stopped
+        // delivering is visible from the other three views too.
+        syncDirty();
         // Nothing to report on: no webhook saved and nothing ever attempted, or
         // an API that doesn't tell us. Silence beats a made-up verdict.
         if (!d || !d.known || (!savedWebhook && d.ok === null && !d.suppressedSinceLastAlert)) {
@@ -1444,6 +1683,7 @@
               )
               .join("")}</div>`
           : '<div class="empty">Nothing blocked outright — the extension warns as usual everywhere.</div>';
+        syncDirty();
       }
 
       function renderPatterns() {
@@ -1462,6 +1702,7 @@
           : '<div class="empty">No custom patterns — only the built-in detectors run.</div>';
         // The list just changed, so whether "use only these" is a no-op did too.
         syncReplaceWarning();
+        syncDirty();
       }
 
       function renderSettings() {
@@ -1491,12 +1732,14 @@
           savedWebhook = settings.alertWebhook;
           settingsLoaded = true;
           renderSettings();
+          markSettingsSaved();
           setSettingsEnabled(true);
         } catch (e) {
           // Leave the controls disabled: writing defaults over a record we
           // failed to read would quietly undo someone's policy.
           settings = settings || normalizeSettings(null);
           renderSettings();
+          markSettingsSaved();
           const msg = explain(e, {
             fallback: "Couldn't load your settings. Reload the page to try again.",
           });
@@ -1541,6 +1784,7 @@
           settings = normalizeSettings(back || settings);
           savedWebhook = settings.alertWebhook;
           renderSettings();
+          markSettingsSaved();
           flash(statusEl, "Saved. Your team picks this up at their next config refresh.", "ok");
         } catch (e) {
           flash(statusEl, explain(e, { fallback: ERROR_TEXT["save failed"] }), "err");
@@ -1648,6 +1892,126 @@
         flash(st, `Added "${label}". Press Save changes to send it out.`, "ok");
       }
 
+      // ---------------------------------------------------------------------
+      // Views. Four jobs behind one sidebar, addressed by hash so the back
+      // button works and a link can point at the one you mean. The hash carries
+      // a slash (#/policy) so it can never collide with an element id on the
+      // page and make the browser jump to it instead.
+      // ---------------------------------------------------------------------
+      const VIEWS = ["overview", "people", "policy", "alerts"];
+      // Everything except the roster needs a live subscription behind it: with
+      // no seats there are no figures, and a policy nothing would enforce.
+      const VIEWS_NEED_SEATS = ["overview", "policy", "alerts"];
+      let currentView = null;
+      let seatsLive = false;
+
+      const viewFromHash = () => {
+        const name = String(location.hash || "").replace(/^#\/?/, "");
+        return VIEWS.includes(name) ? name : null;
+      };
+
+      /** Which nav items are reachable, and why not when they aren't. */
+      function syncNavLocks() {
+        VIEWS.forEach((name) => {
+          const item = document.querySelector(`.navitem[data-view="${name}"]`);
+          if (!item) return;
+          const locked = !seatsLive && VIEWS_NEED_SEATS.includes(name);
+          item.setAttribute("aria-disabled", locked ? "true" : "false");
+          if (locked) item.title = PAY_HINT;
+          else item.removeAttribute("title");
+        });
+      }
+
+      /**
+       * Show one view. `focus` moves the caret into it on a real click, so a
+       * keyboard user lands in the content they just asked for rather than back
+       * at the top of the document.
+       */
+      function showView(name, { focus = false, replace = false } = {}) {
+        let want = VIEWS.includes(name) ? name : "overview";
+        if (!seatsLive && VIEWS_NEED_SEATS.includes(want)) want = "people";
+        currentView = want;
+        VIEWS.forEach((v) => {
+          $(`view-${v}`).hidden = v !== want;
+          const item = document.querySelector(`.navitem[data-view="${v}"]`);
+          if (item) {
+            if (v === want) item.setAttribute("aria-current", "page");
+            else item.removeAttribute("aria-current");
+          }
+        });
+        const hash = `#/${want}`;
+        if (location.hash !== hash) {
+          if (replace) history.replaceState(null, "", location.pathname + location.search + hash);
+          else location.hash = hash;
+        }
+        if (focus) $(`view-${want}`).focus({ preventScroll: true });
+        // A new view starts at its own top; carrying the old scroll over lands
+        // people halfway down a page they have not seen.
+        window.scrollTo(0, 0);
+      }
+
+      /** Seats used, on the People item, so the number follows you around. */
+      function syncNavSeats(team) {
+        const el = $("nav-seats");
+        if (!el) return;
+        const seats = Math.floor(Number(team && team.seats));
+        if (!Number.isFinite(seats) || seats <= 0) {
+          el.textContent = "";
+          return;
+        }
+        el.textContent = `${fmt(team.seatsUsed)}/${fmt(seats)}`;
+      }
+
+      /** One dot's three states, written in one place. */
+      function setDot(id, kind) {
+        const el = $(id);
+        if (!el) return;
+        el.className = "sdot" + (kind ? ` sdot--${kind}` : "");
+        el.hidden = !kind;
+        el.title =
+          kind === "ok"
+            ? "Your last alert was delivered"
+            : kind === "bad"
+              ? "Your last alert failed to deliver"
+              : kind === "dirty"
+                ? "Unsaved changes"
+                : "";
+      }
+
+      /**
+       * Unsaved work has to be visible from the other three views, or splitting
+       * one long page into four turns "I edited that" into "I thought I saved
+       * it". Both dots light: alerts and policy are one record, so either Save
+       * writes whatever is outstanding on both.
+       */
+      function settingsSnapshot() {
+        if (!settings) return "";
+        return JSON.stringify({
+          webhook: $("alert-webhook").value.trim(),
+          min: $("alert-min").value,
+          block: $("pol-block").checked,
+          lock: $("pol-lock").checked,
+          replace: $("pol-replace").checked,
+          patterns: settings.policy.extraPatterns,
+          sites: settings.policy.blockedSites,
+        });
+      }
+      let savedSnapshot = "";
+      /** This is now the record the server holds — nothing outstanding. */
+      function markSettingsSaved() {
+        savedSnapshot = settingsSnapshot();
+        syncDirty();
+      }
+      function syncDirty() {
+        const dirty = settingsLoaded && settingsSnapshot() !== savedSnapshot;
+        setDot("nav-policy-dot", dirty ? "dirty" : null);
+        // A failing webhook outranks an unsaved edit on its own item: one is a
+        // reminder, the other is alerts going nowhere.
+        const d = settings && settings.alertDelivery;
+        const health = d && d.known && savedWebhook ? (d.ok === true ? "ok" : d.ok === false ? "bad" : null) : null;
+        setDot("nav-alerts-dot", health || (dirty ? "dirty" : null));
+      }
+
       /**
        * The one place that decides which of the gate's four faces is showing —
        * sign-in, buy, "you're covered", or an error — so a new branch can't
@@ -1656,6 +2020,8 @@
       function showGate({ title, sub = "", pitch = false, actions = false, member = false }) {
         $("gate").classList.remove("hide");
         $("console").classList.add("hide");
+        $("topbar").hidden = false;
+        $("gate-wrap").hidden = false;
         $("gate-title").textContent = title;
         $("gate-sub").textContent = sub;
         $("pitch").classList.toggle("hide", !pitch);
@@ -1727,6 +2093,11 @@
         }
         $("gate").classList.add("hide");
         $("console").classList.remove("hide");
+        // The console brings its own sidebar; two navs stacked is clutter. The
+        // gate's wrapper goes with it: emptied it still spends its own padding,
+        // which offsets the sticky sidebar and pushes its last row off screen.
+        $("topbar").hidden = true;
+        $("gate-wrap").hidden = true;
 
         const live = team.seats > 0;
         $("team-name").textContent = team.name || "Your team";
@@ -1734,13 +2105,17 @@
           ? `Business plan · ${team.seatsUsed} of ${team.seats} seats in use`
           : "Setting up";
         // No seats means no subscription reached us yet. Say so plainly rather
-        // than showing someone "1 / 0" and a wall of zeros.
+        // than showing someone "1 / 0" and a wall of zeros: the pending panel
+        // stays above every view, and the three views that need a subscription
+        // are locked until it clears.
         $("pending").hidden = live;
         if (!live) preparePendingBuy(team);
-        document.querySelectorAll(".cards, section.block").forEach((el) => {
-          const isPeople = el.querySelector("#people") !== null;
-          el.classList.toggle("hide", !live && !isPeople);
-        });
+        seatsLive = live;
+        syncNavSeats(team);
+        syncNavLocks();
+        // First paint honours a deep link (#/policy); later ones keep you where
+        // you were, unless what you were reading has just been locked.
+        showView(currentView || viewFromHash() || "overview", { replace: true });
         $("c-seats").textContent = fmt(team.seats);
         $("c-used").innerHTML = `${fmt(team.seatsUsed)} <small>/ ${fmt(team.seats)}</small>`;
         renderPeople(team);
@@ -1941,6 +2316,28 @@
         });
 
         $("signout").addEventListener("click", () => window.Clerk.signOut());
+        $("signout-side").addEventListener("click", () => window.Clerk.signOut());
+
+        // Sidebar navigation. The anchors carry real hrefs so they can be
+        // opened, copied and tabbed to like links; this only takes over to keep
+        // the scroll position and focus sane, and to refuse a locked view.
+        $("console-nav").addEventListener("click", (e) => {
+          const item = e.target.closest?.(".navitem");
+          if (!item) return;
+          e.preventDefault();
+          if (item.getAttribute("aria-disabled") === "true") return;
+          showView(item.dataset.view, { focus: true });
+        });
+        window.addEventListener("hashchange", () => {
+          const v = viewFromHash();
+          if (v && v !== currentView) showView(v);
+        });
+
+        // Edits that never reach the server until Save. The dot in the sidebar
+        // is the only thing that says so once you have walked to another view.
+        ["alert-webhook", "alert-min", "pol-block", "pol-lock", "pol-replace"].forEach((id) => {
+          $(id).addEventListener("input", syncDirty);
+        });
       }
 
       // Same theme as the account page: Clerk's defaults put white text on our

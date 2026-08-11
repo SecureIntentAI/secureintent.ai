@@ -28,10 +28,34 @@ directory statically for the API calls to work against a real origin.
 | --- | --- |
 | `index.html` | the landing page — ~1.6k lines, single-file, all sections inline (`#tiers`, `#architecture`, `#how-it-works`, `#coverage`, `#threat-intel`, `#advisors`, `#roadmap`, plus VDP / PGP / security.txt / status / billing modals). Waitlist form → `POST api.secureintent.ai/submit`. |
 | `account.html` | Clerk sign-in/sign-up + user profile, plan display, Paddle checkout, and billing portal. The extension's account destination. |
+| `team.html` | the Business/team admin console — see below. Sign-in gate, seat purchase, roster, policy, alerts. Admin-only: `loadTeam()` sends a member to the gate. |
 | `lifetime_promo.html` | Lifetime Pro redemption: email → 6-digit code → grant, via `/v1/promo`, `/v1/promo/start`, `/v1/promo/verify`. |
 | `advisory-board.html`, `privacy.html`, `tos.html` | static content pages. |
 | `todo.md` | pre-launch review findings (claim wording, fake scarcity counters, timezone-pinned countdown…). Read before touching marketing copy — several items are legal/FTC-risk claims, and some are owner-only decisions. |
 | `demo.mp4`, `og-image.png`, `favicon-*.png` | assets referenced by absolute `https://secureintent.ai/...` URLs in the meta tags. |
+
+## The team console (`team.html`)
+
+Two chromes in one file, and they never show together:
+
+- **The gate** — signed out, no team, or a member rather than an admin. Uses the `.topbar` header
+  that is kept **identical to `account.html`**; change one and change the other.
+- **The console** — `#console`, a `.shell` grid of a sticky sidebar plus a content column. It hides
+  the topbar *and* `#gate-wrap` (an emptied `.wrap` still spends 86px of padding, which offsets the
+  sticky sidebar and pushes its last row off screen).
+
+Four views — Overview, People, Policy, Alerts — live as `.view` sections, one visible at a time,
+addressed as `#/overview`…`#/alerts`. The slash keeps the hash from colliding with an element id
+(`#people` is the roster's `<tbody>`). `showView()` is the only thing that switches them; with no
+seats yet, `VIEWS_NEED_SEATS` locks all but People and the pending payment panel stays above them.
+
+The sidebar carries live state, which is the point of splitting the page up: the seat count on
+People, delivery health on Alerts (green/red), and an amber dot on both Policy and Alerts when there
+are unsaved edits — alerts and policy are one server record, so either Save writes both. Dot classes
+are scoped `.navitem .sdot--ok` to outrank `.navitem .sdot`.
+
+`test/team-console.check.js` drives all of the above in a headless Chromium against stubbed API
+responses — run it after touching the console (the header comment carries the command).
 
 ## Hosting, and the Cloudflare Pages standby
 
