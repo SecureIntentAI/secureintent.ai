@@ -369,11 +369,44 @@
       const params = new URLSearchParams(location.search);
       const installId = params.get("id") || "";
       const token = params.get("t") || "";
+      // Handed back so the answer row keeps the build the removal happened on.
+      // Without them the newest row wins with those columns blank, and the
+      // version an uninstall belongs to disappears from the table.
+      const build = {
+        version: params.get("v") || "",
+        browser: params.get("b") || "",
+        os: params.get("os") || "",
+      };
       // Same shape the Worker enforces — a junk id means the form can't land.
       const usable = /^[A-Za-z0-9-]{8,64}$/.test(installId);
 
       let reason = "";
-      let sent = false;
+
+      /**
+       * What this tab has already told the server.
+       *
+       * sessionStorage, not localStorage: it belongs to this tab and this visit,
+       * and it goes when the tab does — which is exactly the life of one
+       * uninstall. A reload, a second tap on the same answer, or pressing Send
+       * with nothing new to add all find their own payload here and send
+       * nothing. Changing the answer, or adding a note, does not — that is a
+       * different thing to say, and the newest row supersedes the last.
+       */
+      const SENT_KEY = `si_uninstall_sent:${installId}`;
+      function alreadySent(payload) {
+        try {
+          return sessionStorage.getItem(SENT_KEY) === payload;
+        } catch {
+          return false; // storage blocked — better to send twice than never
+        }
+      }
+      function remember(payload) {
+        try {
+          sessionStorage.setItem(SENT_KEY, payload);
+        } catch {
+          // Private mode, or storage disabled. Nothing here is worth failing for.
+        }
+      }
 
       /**
        * Fire and forget. A person on their way out must never be shown a
@@ -382,10 +415,20 @@
        */
       function report(comment) {
         if (!usable) return Promise.resolve();
+        const body = JSON.stringify({
+          installId,
+          token,
+          reason,
+          comment: comment || "",
+          ...build,
+        });
+        // The same thing said twice is not two answers.
+        if (alreadySent(body)) return Promise.resolve();
+        remember(body);
         return fetch(`${API}/v1/uninstall/feedback`, {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ installId, token, reason, comment: comment || "" }),
+          body,
           keepalive: true, // survives the tab closing straight after
         }).catch(() => {});
       }
@@ -399,9 +442,8 @@
         }
         // Recorded on the tap itself: most people will close the tab here, and
         // an answer that only counts if you press a second button is an answer
-        // we mostly don't get.
-        sent = true;
-        report("");
+        // we mostly don't get. Tapping the same one again sends nothing.
+        report($("comment").value.trim());
         $("note").hidden = false;
         $("comment").focus({ preventScroll: true });
       });
@@ -423,11 +465,8 @@
         $("noid").hidden = false;
       }
 
-      // If they picked a reason and then left without pressing Send, the tap
-      // already counted. Nothing to flush, nothing to warn about.
-      window.addEventListener("pagehide", () => {
-        if (!sent) return;
-      });
+      // Nothing to flush on the way out: the tap already counted, and anything
+      // typed after it went with Send.
     </script>
   </body>
 </html>
