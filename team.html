@@ -641,12 +641,20 @@
             </div>
             <div class="field">
               <label class="flbl" for="alert-min">Alert me about</label>
+              <!-- Each option is a threshold: it alerts on that class and every
+                   louder one above it. The last one used to read "personal
+                   data", which sounded like the alert would carry some. Name
+                   what actually trips it instead. -->
               <select id="alert-min">
                 <option value="private-key">Private keys only</option>
                 <option value="known-key">Private keys and known API keys</option>
                 <option value="env-credential">Private keys, API keys, and env credentials</option>
-                <option value="pii">Everything, including personal data</option>
+                <option value="pii">Everything, including cards, emails and IPs</option>
               </select>
+              <p class="note" id="alert-min-note" style="margin: 6px 0 0">
+                Card numbers are always checked. Emails and IP addresses are only
+                caught in large log pastes, where they aren't everyday chatter.
+              </p>
             </div>
             <div class="actions">
               <button class="btn primary" id="alerts-save" type="button">Save changes</button>
