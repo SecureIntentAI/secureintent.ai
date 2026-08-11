@@ -30,6 +30,7 @@ directory statically for the API calls to work against a real origin.
 | `account.html` | Clerk sign-in/sign-up + user profile, plan display, Paddle checkout, and billing portal. The extension's account destination. |
 | `team.html` | the Business/team admin console — see below. Sign-in gate, seat purchase, roster, policy, alerts. Admin-only: `loadTeam()` sends a member to the gate. |
 | `lifetime_promo.html` | Lifetime Pro redemption: email → 6-digit code → grant, via `/v1/promo`, `/v1/promo/start`, `/v1/promo/verify`. |
+| `uninstall.html` | where the browser lands after the extension is removed. Reads `?id`/`?t` from the Worker's redirect, posts one reason (and an optional note) to `/v1/uninstall/feedback`. Records on the *tap*, not on a second button — most people close the tab there. Opened directly, with no id, it says so and offers email instead. |
 | `advisory-board.html`, `privacy.html`, `tos.html` | static content pages. |
 | `todo.md` | pre-launch review findings (claim wording, fake scarcity counters, timezone-pinned countdown…). Read before touching marketing copy — several items are legal/FTC-risk claims, and some are owner-only decisions. |
 | `demo.mp4`, `og-image.png`, `favicon-*.png` | assets referenced by absolute `https://secureintent.ai/...` URLs in the meta tags. |
