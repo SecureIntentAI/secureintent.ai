@@ -1,0 +1,7 @@
+# Wrangler leaves this behind when the Pages standby is used.
+.wrangler/
+
+# Local tooling / OS noise.
+node_modules/
+.DS_Store
+*.log

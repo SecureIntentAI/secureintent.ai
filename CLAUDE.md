@@ -146,6 +146,18 @@ Keep the two capture blocks in sync — same keys (`si_creator`, `si_creator_med
 `si_creator_campaign`), same cookie domain. If a creator link ever points at a third page, copy the
 block there too.
 
+## Running it
+
+No build step and no dependencies — the pages are hand-written HTML with inline `<style>` and
+`<script>`. Serve the directory and open a page:
+
+```bash
+python3 -m http.server 3000        # then http://localhost:3000/team.html
+```
+
+Clerk and Paddle load from their CDNs, so a signed-in view needs the real origin or a stub — which
+is what `test/team-console.check.js` does (its header carries the command).
+
 ## Conventions
 
 - Dark "security terminal" theme: near-black `#050608` base, card surface `#0c0e12`, hairline
