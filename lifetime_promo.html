@@ -5,6 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
     <title>SecureIntent · Lifetime Pro</title>
+
+    <!--
+      This page decides which of its three panels to show in JavaScript, and a
+      link scraper does not run JavaScript. Without the tags below, LinkedIn read
+      the raw markup and picked the heading of the panel that says the offer has
+      closed, next to the claimed panel's sentence with its email placeholder
+      still empty — so a live offer previewed as "This offer has closed. …Pro is
+      tied to , for life."
+      These tags are the only thing a scraper reads, so the preview says what the
+      offer actually is regardless of which panel a visitor ends up seeing.
+    -->
+    <meta name="description" content="Claim SecureIntent Pro free, for life. Verify your email and Pro is tied to your account permanently — every paid feature, no subscription." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="SecureIntent.ai" />
+    <meta property="og:url" content="https://secureintent.ai/lifetime_promo.html" />
+    <meta property="og:title" content="SecureIntent Pro — free, for life" />
+    <meta property="og:description" content="Verify your email and Pro is tied to your account permanently. Every paid feature, no subscription, no card." />
+    <meta property="og:image" content="https://secureintent.ai/og-image.png" />
+    <meta property="og:image:secure_url" content="https://secureintent.ai/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="2400" />
+    <meta property="og:image:height" content="1260" />
+    <meta property="og:image:alt" content="SecureIntent — stop secrets before they reach AI. On-device DLP for developers." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:domain" content="secureintent.ai" />
+    <meta name="twitter:url" content="https://secureintent.ai/lifetime_promo.html" />
+    <meta name="twitter:title" content="SecureIntent Pro — free, for life" />
+    <meta name="twitter:description" content="Verify your email and Pro is tied to your account permanently. Every paid feature, no subscription, no card." />
+    <meta name="twitter:image" content="https://secureintent.ai/og-image.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
