@@ -41,8 +41,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
-    <!-- Analytics Tracking -->
-    <script src="https://d2mvefebd70kbz.cloudfront.net/scripts/019e657e-b4de-77a0-874f-2a5d6f66f410.js" async></script>
+    <!--
+      Removed: a third-party analytics script served from an unattributed
+      CloudFront distribution (a random subdomain, a UUID filename, no note of
+      whose it was). It had already been switched off at source and returned
+      only "// Tracking disabled", so it did nothing but was still the most
+      suspicious thing on the page — reputation engines flag anonymous scripts
+      on shared CDNs, and NordVPN began blocking this site as malware.
+      GA4 below is the analytics we actually use. If a vendor script is needed
+      again, name the vendor in a comment and pin it with an integrity hash.
+    -->
 
     <!-- Google Analytics 4 (GA4) — creator / UTM tracking -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-PSSL40SRTR"></script>
