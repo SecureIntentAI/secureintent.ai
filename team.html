@@ -588,6 +588,8 @@
       src="https://clerk.secureintent.ai/npm/@clerk/clerk-js@5/dist/clerk.browser.js"
     ></script>
     <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+      <!-- Sends Firefox visitors to the Mozilla listing; see install-links.js. -->
+    <script src="/install-links.js" defer></script>
   </head>
   <body>
     <!-- The gate's header, shared with account.html. The console replaces it
@@ -2169,7 +2171,11 @@
         setSettingsEnabled(false);
         // One source of truth for the store link; the markup carries it too so
         // the GA install_click selector still matches before this runs.
-        $("member-install").href = EXTENSION_URL;
+        // SI_INSTALL_URL is whichever store this browser can install from —
+        // Mozilla on Firefox, Chrome Web Store otherwise. Setting the href here
+        // happens long after install-links.js ran, so take the value rather than
+        // overwrite what it decided.
+        $("member-install").href = window.SI_INSTALL_URL || EXTENSION_URL;
 
         // Both buy forms are the same purchase: the gate's, and the one inside
         // the pending panel that rescues an abandoned checkout.

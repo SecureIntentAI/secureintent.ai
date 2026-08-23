@@ -119,14 +119,20 @@
       // can see — actual installs are not attributable. Paid conversion is picked
       // up later, on account.html, via POST /v1/attribution.
       document.addEventListener('DOMContentLoaded', function () {
+        // Both stores: install-links.js rewrites these to the Mozilla listing
+        // on Firefox, and a selector that only knew the Chrome URL would stop
+        // counting every Firefox click the moment it did.
         var links = document.querySelectorAll(
-          'a[href*="chromewebstore.google.com/detail/secureintent"]:not([href*="/reviews"])'
+          'a[href*="chromewebstore.google.com/detail/secureintent"]:not([href*="/reviews"]),' +
+          'a[href*="addons.mozilla.org"]'
         );
         links.forEach(function (a) {
           a.addEventListener('click', function () {
             gtag('event', 'install_click', {
               link_url: a.href,
               link_text: (a.textContent || '').trim().slice(0, 40),
+              // Which store the click was actually headed for.
+              store: a.getAttribute('data-store') || 'chrome',
               creator: window.SI_ATTR.creator || '(none)',
               // Named creator_campaign, not campaign: GA4 already has a built-in
               // `campaign` parameter, and reusing the name would mix Google's
@@ -137,6 +143,9 @@
         });
       });
     </script>
+
+    <!-- Sends Firefox visitors to the Mozilla listing; see install-links.js. -->
+    <script src="/install-links.js" defer></script>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>

@@ -165,9 +165,15 @@ is what `test/team-console.check.js` does (its header carries the command).
   CTA. Inter (sans) + Fira Code (mono). Full rationale in `docs/superpowers/specs/`.
 - Tailwind is the CDN build configured inline via `tailwind.config = {...}` in `index.html` — extend
   the theme there, not in a config file.
-- Analytics: GA4 (`G-PSSL40SRTR`) plus a CloudFront-hosted script. Install buttons fire an
-  `install_click` event by selecting `a[href*="chromewebstore.google.com/detail/secureintent"]`, so
-  keep that href shape for attribution to work.
+- Analytics: GA4 (`G-PSSL40SRTR`). Install buttons fire an `install_click` event, selected by store
+  host, so keep those href shapes for attribution to work. The event carries a `store` parameter
+  (`chrome` | `firefox`). A third-party CloudFront-hosted script used to load here too; it was
+  removed after NordVPN began blocking the domain as malware — an anonymous script on a shared CDN
+  is the shape reputation engines flag, and it had already been disabled at source.
+- **Install links are browser-aware.** Every button is written with the Chrome Web Store URL, and
+  `install-links.js` rewrites them to the Mozilla listing on Firefox. It runs on every page that has
+  an install button, and publishes `window.SI_INSTALL_URL` for pages that set an href from their own
+  script (`team.html` does, long after the rewrite ran). Reviews links are left pointing at Chrome.
 - Claims about privacy must match the product: raw pasted text never leaves the device, but the
   extension *does* send anonymized detection metadata (salted fingerprint + action + site). Don't
   write "zero telemetry" / "100% local" / absolute accuracy claims.
