@@ -637,6 +637,18 @@
           <p class="note" id="buy-price"></p>
           <p class="err" id="gate-err"></p>
         </div>
+        <!-- Someone whose lifetime plan already includes a team. They are not
+             buying anything, so this asks for the one thing still missing: a
+             name to put on the organisation. -->
+        <div id="comp-actions" class="hide">
+          <div class="invite" style="justify-content: center">
+            <label class="vh" for="comp-company">Company name</label>
+            <input id="comp-company" type="text" placeholder="Company name" />
+            <button class="btn primary" id="comp-activate" type="button">Activate team</button>
+          </div>
+          <p class="note" id="comp-note"></p>
+          <p class="err" id="comp-err"></p>
+        </div>
         <!-- A member has no roster and no billing, but they do have something to
              do here: get the extension on this browser. -->
         <div id="member-actions" class="hide">
@@ -1143,6 +1155,10 @@
         "no subscription":
           "We can't find a subscription for this team yet. If you've just paid, give it a minute and press Check again.",
         cannot_remove_self: "You can't remove yourself. Ask another admin to do it.",
+        no_team_grant:
+          "This account's plan doesn't include team seats. If you redeemed a Business promo code, sign in with that email.",
+        comp_team:
+          "Your team is already included with your plan — there's nothing to buy. Reload the page to manage it.",
         "checkout failed": `Couldn't open the payment form. Nothing has been charged — try again, or email ${BILLING_EMAIL}.`,
         "reconcile failed":
           "Couldn't reach our payment provider just now. Press Check again in a moment.",
@@ -2041,7 +2057,7 @@
        * sign-in, buy, "you're covered", or an error — so a new branch can't
        * leave another one's block on screen.
        */
-      function showGate({ title, sub = "", pitch = false, actions = false, member = false }) {
+      function showGate({ title, sub = "", pitch = false, actions = false, member = false, comp = false }) {
         $("gate").classList.remove("hide");
         $("console").classList.add("hide");
         $("topbar").hidden = false;
@@ -2050,6 +2066,7 @@
         $("gate-sub").textContent = sub;
         $("pitch").classList.toggle("hide", !pitch);
         $("gate-actions").classList.toggle("hide", !actions);
+        $("comp-actions").classList.toggle("hide", !comp);
         $("member-actions").classList.toggle("hide", !member);
       }
 
@@ -2078,6 +2095,14 @@
       }
 
       function openSeatsEditor() {
+        // A comped team has no subscription to prorate against, so the server
+        // would 404 this. Say why instead of opening a form that cannot save.
+        if (currentTeam && currentTeam.comp) {
+          $("team-err").textContent =
+            "Your seats come with your plan, so there's no subscription to change. Email " +
+            BILLING_EMAIL + " if you need more.";
+          return;
+        }
         const now = Math.floor(Number(currentTeam && currentTeam.seats));
         $("seats-input").value = String(Number.isFinite(now) && now >= MIN_SEATS ? now : MIN_SEATS);
         $("seats-edit").hidden = false;
@@ -2093,9 +2118,23 @@
         // ?reconcile=1 makes the server ask Paddle directly instead of waiting on
         // a webhook. Costs a Paddle call, so it's for the first look after
         // checkout and the retry button — never for a plain read.
-        let { team } = await api(reconcile ? "/v1/team?reconcile=1" : "/v1/team");
+        const res = await api(reconcile ? "/v1/team?reconcile=1" : "/v1/team");
+        let team = res.team;
         currentTeam = team || null;
         if (!team) {
+          // A lifetime plan that includes seats has already paid for this team,
+          // so showing it a price and a card form would be wrong twice over.
+          const grantSeats = Number(res.grantSeats) || 0;
+          if (grantSeats > 0) {
+            showGate({
+              title: "Activate your team",
+              sub: "Your plan includes " + grantSeats + " seats. Name your team and they're yours — there's nothing to pay.",
+              comp: true,
+            });
+            $("comp-note").textContent =
+              grantSeats + " seats, included with your plan. No card, no renewal.";
+            return;
+          }
           showGate({ title: "Set up your team", pitch: true, actions: true });
           updatePrice($("buy-seats"), $("buy-price"));
           return;
@@ -2176,6 +2215,31 @@
         // happens long after install-links.js ran, so take the value rather than
         // overwrite what it decided.
         $("member-install").href = window.SI_INSTALL_URL || EXTENSION_URL;
+
+        // Activation, not purchase: the seats already belong to this account, so
+        // this only names the organisation and asks the server to open it.
+        $("comp-activate").addEventListener("click", async () => {
+          const err = $("comp-err");
+          const btn = $("comp-activate");
+          err.textContent = "";
+          const companyName = $("comp-company").value.trim();
+          if (!companyName) {
+            err.textContent = "Company name is required.";
+            return;
+          }
+          btn.disabled = true;
+          try {
+            await api("/v1/team/claim", {
+              method: "POST",
+              body: JSON.stringify({ companyName }),
+            });
+            await loadTeam();
+          } catch (e) {
+            err.textContent = explain(e);
+          } finally {
+            btn.disabled = false;
+          }
+        });
 
         // Both buy forms are the same purchase: the gate's, and the one inside
         // the pending panel that rescues an abandoned checkout.
