@@ -2,6 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <!-- Staging/production safety guard — must load first; a no-op on production. -->
+    <script src="/staging-guard.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
     <title>SecureIntent · Account</title>
@@ -1270,7 +1272,15 @@
         }
       }
 
-      if (window.Clerk) {
+      if (!window.SI_IS_PROD) {
+        // Staging: never initialise live auth/billing. Send reviewers to the live account.
+        const el = $("loading");
+        if (el) {
+          el.innerHTML =
+            'Account sign-in runs on the live site. ' +
+            '<a href="https://secureintent.ai/account.html" style="color:#72FFFF">Open the live account &rarr;</a>';
+        }
+      } else if (window.Clerk) {
         main();
       } else {
         window.addEventListener("load", () => {

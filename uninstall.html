@@ -2,6 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <!-- Staging/production safety guard — must load first; a no-op on production. -->
+    <script src="/staging-guard.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
     <title>SecureIntent · Uninstalled</title>
@@ -491,6 +493,22 @@
 
       // Nothing to flush on the way out: the tap already counted, and anything
       // typed after it went with Send.
+    </script>
+    <!-- Staging-only notice. Safety itself is guaranteed by staging-guard.js,
+         which blocks every api.secureintent.ai call off production. -->
+    <script>
+      if (!window.SI_IS_PROD) {
+        document.addEventListener("DOMContentLoaded", function () {
+          var bar = document.createElement("div");
+          bar.textContent =
+            "Staging preview — uninstall feedback is recorded only on the live site.";
+          bar.style.cssText =
+            "position:fixed;left:0;right:0;top:0;z-index:9999;background:#052656;color:#72FFFF;" +
+            "font:600 13px/1.4 'Fira Code',monospace;text-align:center;padding:8px 14px;" +
+            "border-bottom:1px solid rgba(114,255,255,.3)";
+          document.body.appendChild(bar);
+        });
+      }
     </script>
   </body>
 </html>

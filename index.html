@@ -2,6 +2,8 @@
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
+    <!-- Staging/production safety guard — must load first; a no-op on production. -->
+    <script src="/staging-guard.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- SEO & Search Intent Meta Tags -->
@@ -52,8 +54,16 @@
       again, name the vendor in a comment and pin it with an integrity hash.
     -->
 
-    <!-- Google Analytics 4 (GA4) — creator / UTM tracking -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-PSSL40SRTR"></script>
+    <!-- Google Analytics 4 (GA4) — creator / UTM tracking. Loaded on production
+         only; staging-guard.js sets window.SI_IS_PROD=false off production. -->
+    <script>
+      if (window.SI_IS_PROD) {
+        var _ga = document.createElement('script');
+        _ga.async = true;
+        _ga.src = 'https://www.googletagmanager.com/gtag/js?id=G-PSSL40SRTR';
+        document.head.appendChild(_ga);
+      }
+    </script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
@@ -108,9 +118,13 @@
 
       // Attach the stored creator to every GA4 hit as a user property, so reports
       // still attribute a returning visitor whose session source is "direct".
-      gtag('config', 'G-PSSL40SRTR', {
-        user_properties: { creator: window.SI_ATTR.creator || '(none)' }
-      });
+      // Production only — on staging GA4 never loads, so this is skipped and the
+      // install_click gtag() calls below become harmless no-ops.
+      if (window.SI_IS_PROD) {
+        gtag('config', 'G-PSSL40SRTR', {
+          user_properties: { creator: window.SI_ATTR.creator || '(none)' }
+        });
+      }
 
       // Fire an "install_click" event whenever an Install button (→ Chrome Web Store)
       // is clicked, so installs attribute to each creator's UTM link. Mark
