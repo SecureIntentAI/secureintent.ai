@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <!-- Staging/production safety guard — must load first; a no-op on production. -->
+    <script src="/staging-guard.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO & Search Intent Meta Tags -->
+    <title>SecureIntent · Roadmap</title>
+    <meta name="description" content="What SecureIntent has shipped and what is coming next — transparent development.">
+    <link rel="canonical" href="https://secureintent.ai/roadmap.html" />
+    
+    <!-- Standard Favicon Block -->
+    <link rel="icon" type="image/png" href="favicon-32x32.png" sizes="32x32" />
+    <link rel="icon" type="image/png" href="favicon-16x16.png" sizes="16x16" />
+    
+    <!-- Open Graph / Social Media Meta Tags -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="SecureIntent.ai">
+    <meta property="og:url" content="https://secureintent.ai/roadmap.html">
+    <meta property="og:title" content="SecureIntent · Roadmap">
+    <meta property="og:description" content="Stop credentials from reaching AI. Protect every prompt.">
+    <meta property="og:image" content="https://secureintent.ai/og-image.png">
+    <meta property="og:image:secure_url" content="https://secureintent.ai/og-image.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="2400">
+    <meta property="og:image:height" content="1260">
+    <meta property="og:image:alt" content="SecureIntent — stop secrets before they reach AI. On-device DLP for developers.">
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:domain" content="secureintent.ai">
+    <meta name="twitter:url" content="https://secureintent.ai/">
+    <meta name="twitter:title" content="SecureIntent · Roadmap">
+    <meta name="twitter:description" content="Stop credentials from reaching AI. Protect every prompt.">
+    <meta name="twitter:image" content="https://secureintent.ai/og-image.png">
+    <meta name="twitter:image:alt" content="SecureIntent — stop secrets before they reach AI. On-device DLP for developers.">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!--
+      Removed: a third-party analytics script served from an unattributed
+      CloudFront distribution (a random subdomain, a UUID filename, no note of
+      whose it was). It had already been switched off at source and returned
+      only "// Tracking disabled", so it did nothing but was still the most
+      suspicious thing on the page — reputation engines flag anonymous scripts
+      on shared CDNs, and NordVPN began blocking this site as malware.
+      GA4 below is the analytics we actually use. If a vendor script is needed
+      again, name the vendor in a comment and pin it with an integrity hash.
+    -->
+
+    <!-- Google Analytics 4 (GA4) — creator / UTM tracking. Loaded on production
+         only; staging-guard.js sets window.SI_IS_PROD=false off production. -->
+    <script>
+      if (window.SI_IS_PROD) {
+        var _ga = document.createElement('script');
+        _ga.async = true;
+        _ga.src = 'https://www.googletagmanager.com/gtag/js?id=G-PSSL40SRTR';
+        document.head.appendChild(_ga);
+      }
+    </script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      // --- Creator attribution (first touch) -------------------------------
+      // Creator links look like:
+      //   https://secureintent.ai/?utm_source=<creator>&utm_medium=creator&utm_campaign=<campaign>
+      // GA4 reads the UTMs itself, but only for THAT session — a visitor who comes
+      // back directly later would land in "direct". So the first creator we ever
+      // see is also stored for 90 days, in localStorage (this page) and in a cookie
+      // on .secureintent.ai (so account.html can replay it to the API after sign-in,
+      // which is what ties a creator to real signups and paid subscriptions).
+      // First touch wins: a later link never overwrites an earlier one.
+      window.SI_ATTR = (function () {
+        var KEY = 'si_creator', MAX_AGE = 7776000; // 90d
+        function readCookie(name) {
+          var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+          return m ? decodeURIComponent(m[1]) : null;
+        }
+        function writeCookie(name, value) {
+          // Share the cookie across secureintent.ai subdomains (account.html and the
+          // extension both read it). A domain attribute is only legal on that domain,
+          // so a local dev copy on localhost writes a host-only cookie instead.
+          var scoped = /(^|\.)secureintent\.ai$/.test(location.hostname)
+            ? ';domain=.secureintent.ai' : '';
+          document.cookie = name + '=' + encodeURIComponent(value) + scoped +
+            ';path=/;max-age=' + MAX_AGE + ';SameSite=Lax';
+        }
+        function get(name) {
+          try { return localStorage.getItem(name) || readCookie(name); }
+          catch (e) { return readCookie(name); }
+        }
+        function set(name, value) {
+          try { localStorage.setItem(name, value); } catch (e) {}
+          writeCookie(name, value);
+        }
+        var p = new URLSearchParams(location.search);
+        // ?ref= is the short hand-written form; utm_source is what GA4 reads.
+        var creator = (p.get('ref') || p.get('utm_source') || '').trim();
+        if (creator && !get(KEY)) {
+          set(KEY, creator);
+          set(KEY + '_medium', (p.get('utm_medium') || 'creator').trim());
+          set(KEY + '_campaign', (p.get('utm_campaign') || '').trim());
+        }
+        return {
+          creator: get(KEY) || null,
+          medium: get(KEY + '_medium') || null,
+          campaign: get(KEY + '_campaign') || null
+        };
+      })();
+
+      // Attach the stored creator to every GA4 hit as a user property, so reports
+      // still attribute a returning visitor whose session source is "direct".
+      // Production only — on staging GA4 never loads, so this is skipped and the
+      // install_click gtag() calls below become harmless no-ops.
+      if (window.SI_IS_PROD) {
+        gtag('config', 'G-PSSL40SRTR', {
+          user_properties: { creator: window.SI_ATTR.creator || '(none)' }
+        });
+      }
+
+      // Fire an "install_click" event whenever an Install button (→ Chrome Web Store)
+      // is clicked, so installs attribute to each creator's UTM link. Mark
+      // "install_click" as a Key event in GA4 to use it as the conversion.
+      // NOTE: the Web Store drops query params, so this click is the last thing we
+      // can see — actual installs are not attributable. Paid conversion is picked
+      // up later, on account.html, via POST /v1/attribution.
+      document.addEventListener('DOMContentLoaded', function () {
+        // Both stores: install-links.js rewrites these to the Mozilla listing
+        // on Firefox, and a selector that only knew the Chrome URL would stop
+        // counting every Firefox click the moment it did.
+        var links = document.querySelectorAll(
+          'a[href*="chromewebstore.google.com/detail/secureintent"]:not([href*="/reviews"]),' +
+          'a[href*="addons.mozilla.org"]'
+        );
+        links.forEach(function (a) {
+          a.addEventListener('click', function () {
+            gtag('event', 'install_click', {
+              link_url: a.href,
+              link_text: (a.textContent || '').trim().slice(0, 40),
+              // Which store the click was actually headed for.
+              store: a.getAttribute('data-store') || 'chrome',
+              creator: window.SI_ATTR.creator || '(none)',
+              // Named creator_campaign, not campaign: GA4 already has a built-in
+              // `campaign` parameter, and reusing the name would mix Google's
+              // campaign values with ours in the same custom dimension.
+              creator_campaign: window.SI_ATTR.campaign || '(none)'
+            });
+          });
+        });
+      });
+    </script>
+
+    <!-- Sends Firefox visitors to the Mozilla listing; see install-links.js. -->
+    <script src="/install-links.js" defer></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            bg: '#050608',
+                            bg2: '#080a0d',
+                            card: '#0c0e12',
+                            surface: '#0f1217',
+                            line: 'rgba(255,255,255,0.06)',
+                            navy: '#052656',
+                            cyan: '#72FFFF',
+                            wa: '#25D366'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    boxShadow: {
+                        'neon': '0 0 15px rgba(114, 255, 255, 0.3)',
+                        'neon-hover': '0 0 25px rgba(114, 255, 255, 0.6)',
+                        'tooltip': '0 10px 30px -5px rgba(5, 38, 86, 0.8)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #050608;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        /* Fixed nav overlaps anchor targets — offset jump so headings clear it */
+        section[id], main[id] {
+            scroll-margin-top: 6rem;
+        }
+
+        /* ---- Refined Security Terminal: depth + hierarchy ---- */
+        /* Unified card surface with gradient top + hairline border */
+        .si-card {
+            background: linear-gradient(180deg, #12151b 0%, #0c0e12 55%);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 0.75rem;
+            transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+        }
+        .si-card:hover {
+            border-color: rgba(114, 255, 255, 0.28);
+            transform: translateY(-2px);
+        }
+        /* Single high-contrast PRIMARY CTA — stands out from ambient cyan */
+        .btn-primary {
+            background: linear-gradient(180deg, #ffffff 0%, #b9fbff 100%);
+            color: #041014;
+            font-weight: 700;
+            box-shadow: 0 0 0 1px rgba(114,255,255,0.35), 0 8px 24px -8px rgba(114,255,255,0.45);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+        }
+        .btn-primary:hover {
+            filter: brightness(1.04);
+            transform: translateY(-1px);
+            box-shadow: 0 0 0 1px rgba(114,255,255,0.6), 0 12px 30px -8px rgba(114,255,255,0.6);
+        }
+        /* Secondary action — sits beside the primary CTA and reads as a button,
+           without competing with it for the click. */
+        .btn-ghost {
+            color: #d4d4d8;
+            border: 1px solid rgba(255,255,255,0.14);
+            transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+        }
+        .btn-ghost:hover {
+            color: #ffffff;
+            border-color: rgba(114,255,255,0.45);
+            background: rgba(114,255,255,0.06);
+        }
+
+        /* ---- WhatsApp floating support button ---- */
+        .wa-float {
+            position: fixed;
+            right: 1.25rem;
+            bottom: 1.25rem;
+            z-index: 60;
+            width: 56px;
+            height: 56px;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #25D366;
+            color: #fff;
+            box-shadow: 0 8px 24px -6px rgba(37,211,102,0.5), 0 0 0 6px rgba(37,211,102,0.12);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            animation: waPop 0.4s ease-out 0.6s both;
+        }
+        .wa-float:hover {
+            transform: scale(1.06);
+            box-shadow: 0 10px 30px -6px rgba(37,211,102,0.65), 0 0 0 8px rgba(37,211,102,0.16);
+        }
+        .wa-float i { font-size: 26px; }
+        .wa-float .wa-label {
+            position: absolute;
+            right: 68px;
+            white-space: nowrap;
+            background: #0c0e12;
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #fff;
+            font-size: 12px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            opacity: 0;
+            transform: translateX(6px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            pointer-events: none;
+        }
+        .wa-float:hover .wa-label { opacity: 1; transform: translateX(0); }
+        @keyframes waPop {
+            from { opacity: 0; transform: scale(0.6); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @media (max-width: 640px) {
+            .wa-float { width: 52px; height: 52px; right: 1rem; bottom: 1rem; }
+            .wa-float i { font-size: 24px; }
+        }
+
+        /* Star rating */
+        .stars { color: #FFC93C; letter-spacing: 1px; }
+
+        /* ---- Reviews auto-scrolling marquee ---- */
+        .review-marquee {
+            overflow: hidden;
+            padding: 6px 0;
+            -webkit-mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+            mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+        }
+        .review-marquee-track {
+            display: flex;
+            gap: 1.5rem;
+            width: max-content;
+            animation: reviewScroll 70s linear infinite;
+            will-change: transform;
+        }
+        .review-marquee:hover .review-marquee-track { animation-play-state: paused; }
+        .review-slide {
+            flex: 0 0 auto;
+            width: 340px;
+        }
+        @media (max-width: 640px) { .review-slide { width: 82vw; } }
+        @keyframes reviewScroll {
+            from { transform: translateX(0); }
+            to   { transform: translateX(calc(-50% - 0.75rem)); } /* half + half a gap for seamless loop */
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .review-marquee-track { animation: none; }
+            .review-marquee { overflow-x: auto; }
+        }
+        
+        .glass-nav { 
+            backdrop-filter: blur(12px); 
+            -webkit-backdrop-filter: blur(12px); 
+        }
+        
+        .text-glow-cyan { 
+            text-shadow: 0 0 15px rgba(114, 255, 255, 0.4); 
+        }
+
+        .border-glow {
+            border: 1px solid rgba(114, 255, 255, 0.3);
+            box-shadow: inset 0 0 20px rgba(114, 255, 255, 0.05);
+        }
+
+        /* Tooltip entry animation */
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-tooltip {
+            animation: slideUpFade 0.3s ease-out forwards;
+        }
+
+        /* Custom Scrollbar for Legal Modals */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(114, 255, 255, 0.3); }
+
+        /* Aceternity Effects */
+        .spotlight-card {
+            position: relative;
+        }
+        .spotlight-card::before {
+            content: "";
+            position: absolute;
+            top: var(--y, 50%);
+            left: var(--x, 50%);
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(114, 255, 255, 0.08) 0%, transparent 70%);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 0;
+        }
+        .spotlight-card:hover::before {
+            opacity: 1;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+        .animate-shimmer {
+            background-size: 200% auto;
+            animation: shimmer 5s linear infinite;
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); opacity: 0.4; }
+            50% { transform: scale(1.1); opacity: 0.6; }
+        }
+        .animate-breathe {
+            animation: breathe 10s ease-in-out infinite alternate;
+        }
+        .animate-breathe-delay {
+            animation: breathe 12s ease-in-out infinite alternate;
+            animation-delay: 2s;
+        }
+
+        .fade-up-section {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+        .fade-up-section.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Marquee Animation */
+        .marquee-wrapper {
+            mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+            -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+        }
+        @keyframes scroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(calc(-50% - 0.5rem)); }
+        }
+        .animate-scroll {
+            animation: scroll 25s linear infinite;
+        }
+        .animate-scroll:hover {
+            animation-play-state: paused;
+        }
+
+        /* Pulse for countdown */
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .colon-pulse {
+            animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased selection:bg-brand-cyan selection:text-black">
+    <!-- Decorative Background -->
+    <div class="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0 bg-[#050505]">
+        <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-brand-navy rounded-full mix-blend-screen filter blur-[150px] opacity-40 animate-breathe"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-brand-cyan rounded-full mix-blend-screen filter blur-[180px] opacity-10 animate-breathe-delay"></div>
+        <div class="absolute inset-0" style="background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 30px 30px; mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%); -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);"></div>
+    </div>
+
+    <!-- Floating Pill Navigation -->
+    <div class="fixed top-6 left-0 w-full z-50 pointer-events-none flex flex-col items-center px-4">
+        <nav class="w-full max-w-7xl bg-[#0a0a0a]/70 glass-nav border border-white/10 rounded-full px-6 h-16 flex items-center justify-between gap-x-4 shadow-2xl pointer-events-auto relative">
+            <a href="index.html" class="flex items-center gap-3 text-white" aria-label="SecureIntent home">
+                <svg aria-label="SecureIntent Logo" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 250" class="h-8 w-auto text-white">
+                    <path d="M 50,195 L 110,75" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round"></path>
+                    <path d="M 130,195 L 160,135" fill="none" stroke="#72FFFF" stroke-width="28" stroke-linecap="round"></path>
+                    <circle cx="190" cy="75" r="14" fill="#72FFFF"></circle>
+                </svg>
+                <span class="font-bold text-lg md:text-xl tracking-tight hidden sm:block">SecureIntent<span class="text-brand-cyan">.ai</span></span>
+            </a>
+            <div class="hidden lg:flex items-center gap-5 xl:gap-6 text-[11px] xl:text-xs font-mono text-gray-400 whitespace-nowrap">
+                <a href="solutions.html" class="hover:text-brand-cyan transition-colors">/solutions</a>
+                <a href="about.html" class="hover:text-brand-cyan transition-colors">/about</a>
+                <a href="roadmap.html" class="hover:text-brand-cyan transition-colors text-brand-cyan">/roadmap</a>
+                <a href="business.html" class="hover:text-brand-cyan transition-colors">/business</a>
+                <a href="index.html#tiers" class="hover:text-brand-cyan transition-colors">/pricing</a>
+            </div>
+            <div class="flex items-center gap-2 sm:gap-3">
+                <a href="https://github.com/Secureintent-Admin/Secureintent-Extension" target="_blank" rel="noopener" class="hidden sm:inline-flex items-center justify-center w-9 h-9 rounded-full text-gray-400 hover:text-white hover:bg-white/5 transition-colors" title="Auditable code on GitHub" aria-label="Auditable code on GitHub">
+                    <i class="fa-brands fa-github text-lg" aria-hidden="true"></i>
+                </a>
+                <span class="hidden md:block w-px h-5 bg-white/10" aria-hidden="true"></span>
+                <a href="/account.html" class="btn-ghost hidden md:inline-flex items-center px-4 py-2 rounded-full font-mono text-xs whitespace-nowrap">Sign in</a>
+                <a href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener" class="btn-primary hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full font-mono text-xs whitespace-nowrap">
+                    <i class="fa-solid fa-download" aria-hidden="true"></i> Install<span class="lg:hidden xl:inline"> SecureIntent</span>
+                </a>
+                <button id="mobile-menu-btn" type="button" class="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-full text-gray-200 hover:text-brand-cyan hover:bg-white/5 transition-colors" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+                    <i class="fa-solid fa-bars text-lg" aria-hidden="true"></i>
+                </button>
+            </div>
+        </nav>
+        <div id="mobile-menu" class="lg:hidden hidden w-full max-w-7xl mt-3 bg-[#0a0a0a]/95 glass-nav border border-white/10 rounded-2xl px-2 py-2 shadow-2xl pointer-events-auto">
+            <nav class="flex flex-col font-mono text-sm text-gray-300">
+                <a href="solutions.html" class="px-4 py-3 rounded-xl hover:bg-white/5 hover:text-brand-cyan transition-colors">/solutions</a>
+                <a href="about.html" class="px-4 py-3 rounded-xl hover:bg-white/5 hover:text-brand-cyan transition-colors">/about</a>
+                <a href="roadmap.html" class="px-4 py-3 rounded-xl hover:bg-white/5 hover:text-brand-cyan transition-colors text-brand-cyan">/roadmap</a>
+                <a href="business.html" class="px-4 py-3 rounded-xl hover:bg-white/5 hover:text-brand-cyan transition-colors">/business</a>
+                <a href="index.html#tiers" class="px-4 py-3 rounded-xl hover:bg-white/5 hover:text-brand-cyan transition-colors">/pricing</a>
+                <a href="/account.html" class="px-4 py-3 rounded-xl hover:bg-white/5 hover:text-brand-cyan transition-colors">/sign-in</a>
+                <a href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener" class="sm:hidden px-4 py-3 mt-1 rounded-xl text-center btn-primary font-bold">Install SecureIntent</a>
+            </nav>
+        </div>
+    </div>
+
+    <main class="pt-32 pb-8 px-6 relative z-10">
+      <div class="max-w-4xl mx-auto text-center mb-4">
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-navy/30 border border-brand-cyan/30 text-brand-cyan font-mono text-xs uppercase tracking-wider">Roadmap</div>
+      </div>
+    </main>
+    <!-- Roadmap Section -->
+    <section id="roadmap" class="py-20 relative z-10 border-t border-white/5 bg-[#050505] fade-up-section overflow-hidden">
+        <div class="max-w-4xl mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold mb-4">Development Roadmap</h2>
+                <p class="font-sans text-gray-300 text-sm md:text-base">Transparent shipping. Watch us build the ultimate DLP engine.</p>
+            </div>
+
+            <div class="relative border-l border-white/10 ml-6 md:ml-12">
+                
+                <!-- Phase 1: Current -->
+                <div class="relative flex gap-6 mt-0">
+                    <div class="flex flex-col items-center">
+                        <div class="w-12 h-12 rounded-full bg-green-500/10 border-2 border-green-500 flex items-center justify-center relative z-10 -ml-6">
+                            <i class="fa-solid fa-check text-green-500 text-lg" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                    <div class="pb-12 pt-2">
+                        <p class="text-green-500 font-mono text-xs font-bold uppercase tracking-widest mb-1">Shipped</p>
+                        <h4 class="text-white font-bold text-lg mb-2">Private Developer Beta</h4>
+                        <p class="text-gray-400 text-sm leading-relaxed max-w-lg">Core entropy and regex engines shipped, intercepting pastes for our closed cohort with the telemetry pipeline hardened.</p>
+                    </div>
+                </div>
+
+                <!-- Phase 2: Launch -->
+                <div class="relative flex gap-6 mt-12">
+                    <div class="flex flex-col items-center">
+                        <div class="w-12 h-12 rounded-full bg-green-500/10 border-2 border-green-500 flex items-center justify-center relative z-10 -ml-6">
+                            <i class="fa-solid fa-check text-green-500 text-lg" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                    <div class="pb-12 pt-2">
+                        <p class="text-green-500 font-mono text-xs font-bold uppercase tracking-widest mb-1">Shipped · Jul 2026</p>
+                        <h4 class="text-white font-bold text-lg mb-2">Public Launch & Pro Toolkit</h4>
+                        <p class="text-gray-400 text-sm leading-relaxed max-w-lg">Live on the Chrome Web Store. The free tier is open globally, alongside the Pro Toolkit (Ghost Log Sanitiser, Dehydrate &amp; Rehydrate, Session Lock).</p>
+                    </div>
+                </div>
+
+                <!-- Phase 3: Business Pro Features -->
+                <div class="relative flex gap-6 mt-12">
+                    <div class="flex flex-col items-center">
+                        <div class="w-12 h-12 rounded-full bg-brand-cyan/20 border-2 border-brand-cyan flex items-center justify-center relative z-10 -ml-6 shadow-[0_0_15px_rgba(114,255,255,0.3)]">
+                            <i class="fa-solid fa-users-gear text-brand-cyan text-lg" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                    <div class="pb-12 pt-2">
+                        <p class="text-brand-cyan font-mono text-xs font-bold uppercase tracking-widest mb-1">Current Phase · In Progress</p>
+                        <h4 class="text-white font-bold text-lg mb-2">Business Pro Rollout</h4>
+                        <p class="text-gray-400 text-sm leading-relaxed max-w-lg">Building the enterprise toolkit: Custom Tokens for organisations, Team Policy Sync, zero-retention Security-Team Alerts, and the Shadow AI Discovery dashboard.</p>
+                    </div>
+                </div>
+
+                <!-- Phase 4: Browser Expansion -->
+                <div class="relative flex gap-6 mt-12">
+                    <div class="flex flex-col items-center">
+                        <div class="w-12 h-12 rounded-full bg-[#111] border border-brand-cyan flex items-center justify-center relative z-10 -ml-6 shadow-[0_0_15px_rgba(114,255,255,0.2)]">
+                            <i class="fa-solid fa-globe text-brand-cyan text-lg" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                    <div class="pb-12 pt-2">
+                        <p class="text-brand-cyan font-mono text-xs font-bold uppercase tracking-widest mb-1">Up Next</p>
+                        <h4 class="text-white font-bold text-lg mb-2">Firefox Support</h4>
+                        <p class="text-gray-400 text-sm leading-relaxed max-w-lg">Native support and optimized performance for Mozilla Firefox, expanding beyond Chrome, Edge, and Opera.</p>
+                    </div>
+                </div>
+
+                <!-- Phase 5: Desktop App -->
+                <div class="relative flex gap-6 mt-12">
+                    <div class="flex flex-col items-center">
+                        <div class="w-12 h-12 rounded-full bg-[#111] border border-gray-600 flex items-center justify-center relative z-10 -ml-6">
+                            <i class="fa-solid fa-desktop text-gray-400 text-lg" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                    <div class="pt-2">
+                        <p class="text-gray-400 font-mono text-xs font-bold uppercase tracking-widest mb-1">September 2026</p>
+                        <h4 class="text-white font-bold text-lg mb-2 text-gray-400">Native Desktop Application</h4>
+                        <p class="text-gray-400 text-sm leading-relaxed max-w-lg">Bringing zero retention prompt protection directly to the OS layer for system wide DLP.</p>
+                    </div>
+                </div>
+                
+            </div>
+            
+            <div class="mt-16 text-center">
+                <a href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener" class="btn-primary inline-flex items-center gap-2 px-8 py-4 font-mono rounded-lg">
+                    <i class="fa-solid fa-download" aria-hidden="true"></i> Install SecureIntent
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <footer class="border-t border-white/5 bg-[#050505] pt-16 pb-8 text-center text-sm text-gray-400 font-mono relative z-10">
+        <div class="flex justify-center mb-8 text-gray-400">
+            <!-- FULL LOGO SVG (Icon + Text) -->
+            <svg aria-label="SecureIntent Full Logo" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 250" class="h-16 w-auto text-white">
+                <path d="M 60,185 L 120,65" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round"></path>
+                <path d="M 140,185 L 170,125" fill="none" stroke="#72FFFF" stroke-width="28" stroke-linecap="round"></path>
+                <circle cx="200" cy="65" r="14" fill="#72FFFF"></circle>
+                <text x="250" y="145" font-family="'Fira Code', monospace" font-weight="600" font-size="52" fill="currentColor" letter-spacing="-2">SecureIntent<tspan fill="#72FFFF">.ai</tspan></text>
+            </svg>
+        </div>
+        
+        <p class="mt-4 text-xs">A free, auditable tool for developers. Your pasted content never leaves your device.</p>
+
+        <!-- Comprehensive Trust & Resource Links -->
+        <div class="mt-12 grid grid-cols-2 md:grid-cols-4 gap-8 text-left max-w-4xl mx-auto px-6 border-t border-white/5 pt-12">
+            <div class="flex flex-col gap-3">
+                <span class="text-white font-bold text-xs uppercase tracking-wider mb-1">Product</span>
+                <a href="index.html#tiers" class="text-xs hover:text-brand-cyan transition-colors">Pricing & Tiers</a>
+                <a href="/account.html" class="text-xs hover:text-brand-cyan transition-colors">Sign in / Account</a>
+                <a href="index.html#architecture" class="text-xs hover:text-brand-cyan transition-colors">Architecture</a>
+                <a href="https://github.com/Secureintent-Admin/Secureintent-Extension" target="_blank" class="text-xs hover:text-brand-cyan transition-colors">Source Code</a>
+            </div>
+            <div class="flex flex-col gap-3">
+                <span class="text-white font-bold text-xs uppercase tracking-wider mb-1">Trust Center</span>
+                <a href="#" onclick="openModal('modal-status'); return false;" class="text-xs hover:text-brand-cyan transition-colors flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> System Status</a>
+                <a href="index.html#architecture" class="text-xs hover:text-brand-cyan transition-colors">Compliance Roadmap</a>
+            </div>
+            <div class="flex flex-col gap-3">
+                <span class="text-white font-bold text-xs uppercase tracking-wider mb-1">Researchers</span>
+                <a href="#" onclick="openModal('modal-vdp'); return false;" class="text-xs hover:text-brand-cyan transition-colors">Vulnerability Disclosure (VDP)</a>
+                <a href="#" onclick="openModal('modal-pgp'); return false;" class="text-xs hover:text-brand-cyan transition-colors">PGP Public Key</a>
+                <a href="#" onclick="openModal('modal-sectxt'); return false;" class="text-xs hover:text-brand-cyan transition-colors font-mono">security.txt</a>
+            </div>
+            <div class="flex flex-col gap-3">
+                <span class="text-white font-bold text-xs uppercase tracking-wider mb-1">Legal</span>
+                <a href="privacy.html" class="text-xs hover:text-brand-cyan transition-colors">Privacy Policy</a>
+                <a href="tos.html" class="text-xs hover:text-brand-cyan transition-colors">Terms of Service</a>
+            </div>
+        </div>
+
+        <!-- Contact Section -->
+        <div class="mt-8 max-w-4xl mx-auto px-6 border-t border-white/5 pt-8 flex flex-col md:flex-row justify-center items-center gap-6 text-sm">
+            <span class="text-white font-bold text-xs uppercase tracking-wider md:mr-4">Contact</span>
+            <a href="mailto:info@secureintent.ai" class="text-xs hover:text-brand-cyan transition-colors text-brand-cyan">info@secureintent.ai</a>
+            <span class="hidden md:block text-white/20">|</span>
+            <a href="mailto:SOC@secureintent.ai" class="text-xs hover:text-brand-cyan transition-colors text-brand-cyan">SOC@secureintent.ai</a>
+            <span class="hidden md:block text-white/20">|</span>
+            <a href="#" onclick="openModal('modal-billing'); return false;" class="text-xs hover:text-brand-cyan transition-colors text-brand-cyan">Billing Support</a>
+            <span class="hidden md:block text-white/20">|</span>
+            <a href="https://wa.me/447848523845?text=Hi%20SecureIntent%20support%2C%20I%20have%20a%20question%20about%20" target="_blank" rel="noopener" class="text-xs hover:text-brand-cyan transition-colors text-brand-cyan inline-flex items-center gap-1.5"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> WhatsApp Support</a>
+        </div>
+        
+        <div class="mt-12 mb-4 text-[10px] text-gray-400 flex flex-col items-center gap-1">
+            <span class="font-bold text-gray-400">SECUREINTENT.AI LTD</span>
+            <span>Company Number: 17237217</span>
+            <span>124-128 City Road, London, England, EC1V 2NX</span>
+        </div>
+
+        <div class="mt-6 flex flex-wrap justify-center gap-6">
+            <a href="https://github.com/Secureintent-Admin/Secureintent-Extension" target="_blank" aria-label="Visit SecureIntent on GitHub" class="hover:text-brand-cyan transition-colors"><i class="fa-brands fa-github text-xl" aria-hidden="true"></i></a>
+            <a href="https://x.com/Secureintent_ai" target="_blank" aria-label="Visit SecureIntent on X (Twitter)" class="hover:text-brand-cyan transition-colors"><i class="fa-brands fa-x-twitter text-xl" aria-hidden="true"></i></a>
+            <a href="https://www.linkedin.com/in/julia-w-346646402/" target="_blank" aria-label="Visit Julia's LinkedIn Profile" class="hover:text-brand-cyan transition-colors"><i class="fa-brands fa-linkedin text-xl" aria-hidden="true"></i></a>
+            <a href="https://www.youtube.com/@Secureintent" target="_blank" aria-label="Visit SecureIntent on YouTube" class="hover:text-brand-cyan transition-colors"><i class="fa-brands fa-youtube text-xl" aria-hidden="true"></i></a>
+            <a href="https://www.tiktok.com/@secureintent.ai" target="_blank" aria-label="Visit SecureIntent on TikTok" class="hover:text-brand-cyan transition-colors"><i class="fa-brands fa-tiktok text-xl" aria-hidden="true"></i></a>
+            <a href="https://www.instagram.com/secureintent.ai/" target="_blank" aria-label="Visit SecureIntent on Instagram" class="hover:text-brand-cyan transition-colors"><i class="fa-brands fa-instagram text-xl" aria-hidden="true"></i></a>
+            <a href="https://www.facebook.com/profile.php?id=61590081345330" target="_blank" aria-label="Visit SecureIntent on Facebook" class="hover:text-brand-cyan transition-colors"><i class="fa-brands fa-facebook text-xl" aria-hidden="true"></i></a>
+        </div>
+    </footer>
+
+    <script>
+      (function(){var b=document.getElementById('mobile-menu-btn'),m=document.getElementById('mobile-menu');if(b&&m){var set=function(o){m.classList.toggle('hidden',!o);b.setAttribute('aria-expanded',String(o));var i=b.querySelector('i');if(i)i.className=o?'fa-solid fa-xmark text-lg':'fa-solid fa-bars text-lg';};b.addEventListener('click',function(){set(m.classList.contains('hidden'));});m.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){set(false);});});}})();
+      document.addEventListener('DOMContentLoaded',function(){var o=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)e.target.classList.add('visible');});},{threshold:0.1});document.querySelectorAll('.fade-up-section').forEach(function(s){o.observe(s);});});
+      document.querySelectorAll('.spotlight-card').forEach(function(c){c.addEventListener('mousemove',function(e){var r=c.getBoundingClientRect();c.style.setProperty('--x',(e.clientX-r.left)+'px');c.style.setProperty('--y',(e.clientY-r.top)+'px');});});
+      function openModal(){} function closeModal(){}
+    </script>
+</body>
+</html>
