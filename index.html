@@ -662,7 +662,7 @@
                     
                     <h3 class="text-xl font-bold mb-2 text-white">Business Pro</h3>
                     <p class="text-gray-400 text-sm mb-6 h-10">Organisation-wide protection with team controls and security alerts.</p>
-                    <div class="text-3xl font-bold font-mono mb-8 text-white">$9 <span class="text-sm text-gray-400 font-sans">/seat/mo &middot; 3 seats minimum</span></div>
+                    <div class="text-3xl font-bold font-mono mb-8 text-white">$12 <span class="text-sm text-gray-400 font-sans">/seat/mo &middot; 3 seats minimum</span></div>
                     
                     <ul class="space-y-4 mb-8 flex-1 relative z-10">
                         <li class="flex items-start gap-3 text-sm text-gray-300">
@@ -676,6 +676,14 @@
                         <li class="flex items-start gap-3 text-sm text-gray-300">
                             <i class="fa-solid fa-bell text-white mt-1" aria-hidden="true"></i>
                             <span><strong>Security-Team Alerts:</strong> Zero-retention webhook notifications for critical incidents.</span>
+                        </li>
+                        <li class="flex items-start gap-3 text-sm text-gray-300">
+                            <i class="fa-solid fa-key text-white mt-1" aria-hidden="true"></i>
+                            <span><strong>Custom Keys:</strong> Add your company's unique credentials and tokens so the extension detects and protects them too.</span>
+                        </li>
+                        <li class="flex items-start gap-3 text-sm text-gray-300">
+                            <i class="fa-solid fa-desktop text-white mt-1" aria-hidden="true"></i>
+                            <span><strong>Early Desktop Access:</strong> Business Pro extension licenses get early access to the Business Desktop Application.</span>
                         </li>
                         <li class="flex items-start gap-3 text-sm text-gray-300">
                             <i class="fa-solid fa-users-gear text-white mt-1" aria-hidden="true"></i>
@@ -758,6 +766,55 @@
 
         </div>
     </section>
+
+    <!-- Enquiry CTA Section -->
+    <section id="enquiry" class="py-20 relative z-10 border-t border-white/5 bg-[#080808] fade-up-section" style="scroll-margin-top:6rem;">
+        <div class="max-w-xl mx-auto px-6">
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-navy/30 border border-brand-cyan/30 text-brand-cyan font-mono text-xs uppercase tracking-wider mb-6">Get in touch</div>
+                <h2 class="text-3xl font-bold mb-4">Talk to us about your team.</h2>
+                <p class="font-sans text-gray-300 text-sm md:text-base leading-relaxed">Rolling out SecureIntent across a team, or want early access to the desktop application? Leave your details and we will be in touch.</p>
+            </div>
+            <div class="bg-[#111] border border-brand-cyan/20 rounded-2xl p-8 shadow-[0_0_20px_rgba(114,255,255,0.05)]">
+                <form id="enquiry-form-landing" data-enquiry novalidate>
+                    <div class="grid gap-4">
+                        <div>
+                            <label for="lenq-name" class="block text-xs font-mono uppercase tracking-wider text-gray-400 mb-1.5">Name</label>
+                            <input id="lenq-name" name="name" type="text" autocomplete="name" required class="w-full bg-[#0a0a0a] border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:border-brand-cyan focus:outline-none transition-colors" placeholder="Your name">
+                        </div>
+                        <div>
+                            <label for="lenq-email" class="block text-xs font-mono uppercase tracking-wider text-gray-400 mb-1.5">Email address</label>
+                            <input id="lenq-email" name="email" type="email" autocomplete="email" required class="w-full bg-[#0a0a0a] border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:border-brand-cyan focus:outline-none transition-colors" placeholder="you@company.com">
+                        </div>
+                        <div>
+                            <label for="lenq-phone" class="block text-xs font-mono uppercase tracking-wider text-gray-400 mb-1.5">Contact number</label>
+                            <input id="lenq-phone" name="phone" type="tel" autocomplete="tel" class="w-full bg-[#0a0a0a] border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:border-brand-cyan focus:outline-none transition-colors" placeholder="+44 …">
+                        </div>
+                        <button type="submit" class="btn-primary inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-mono text-sm mt-1 relative z-10">Send enquiry</button>
+                        <p id="lenq-err" class="text-xs text-red-400 hidden">Please enter your name and a valid email.</p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+    <script>
+      (function () {
+        var f = document.getElementById('enquiry-form-landing');
+        if (!f) return;
+        f.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var name = (document.getElementById('lenq-name').value || '').trim();
+          var email = (document.getElementById('lenq-email').value || '').trim();
+          var err = document.getElementById('lenq-err');
+          if (!name || !/.+@.+\..+/.test(email)) { if (err) err.classList.remove('hidden'); return; }
+          var esc = function (s) { return s.replace(/[<>&]/g, ''); };
+          f.innerHTML = '<div class="text-center py-8">' +
+            '<div class="text-brand-cyan text-4xl mb-3"><i class="fa-solid fa-circle-check"></i></div>' +
+            '<p class="text-white font-bold mb-1">Thanks, ' + esc(name) + '.</p>' +
+            '<p class="text-gray-400 text-sm">We will be in touch at ' + esc(email) + ' shortly.</p></div>';
+        });
+      })();
+    </script>
 
     <!-- Footer -->
     <footer class="border-t border-white/5 bg-[#050505] pt-16 pb-8 text-center text-sm text-gray-400 font-mono relative z-10">
