@@ -7,9 +7,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <!-- SEO & Search Intent Meta Tags -->
-    <title>SecureIntent · Solutions</title>
-    <meta name="description" content="How SecureIntent protects every surface where your team uses AI — browser, desktop, Shadow AI visibility and MCP.">
-    <link rel="canonical" href="https://secureintent.ai/solutions.html" />
+    <title>SecureIntent · Architecture</title>
+    <meta name="description" content="How SecureIntent protects you without ever seeing your code: on-device detection in the browser extension and the desktop application, plus MCP and agent security.">
+    <link rel="canonical" href="https://secureintent.ai/architecture.html" />
     
     <!-- Standard Favicon Block -->
     <link rel="icon" type="image/png" href="favicon-32x32.png" sizes="32x32" />
@@ -18,8 +18,8 @@
     <!-- Open Graph / Social Media Meta Tags -->
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="SecureIntent.ai">
-    <meta property="og:url" content="https://secureintent.ai/solutions.html">
-    <meta property="og:title" content="SecureIntent · Solutions">
+    <meta property="og:url" content="https://secureintent.ai/architecture.html">
+    <meta property="og:title" content="SecureIntent · Architecture">
     <meta property="og:description" content="Stop credentials from reaching AI. Protect every prompt.">
     <meta property="og:image" content="https://secureintent.ai/og-image.png">
     <meta property="og:image:secure_url" content="https://secureintent.ai/og-image.png">
@@ -32,7 +32,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:domain" content="secureintent.ai">
     <meta name="twitter:url" content="https://secureintent.ai/">
-    <meta name="twitter:title" content="SecureIntent · Solutions">
+    <meta name="twitter:title" content="SecureIntent · Architecture">
     <meta name="twitter:description" content="Stop credentials from reaching AI. Protect every prompt.">
     <meta name="twitter:image" content="https://secureintent.ai/og-image.png">
     <meta name="twitter:image:alt" content="SecureIntent — stop secrets before they reach AI. On-device DLP for developers.">
@@ -450,9 +450,9 @@
                 </svg>
                 <span class="font-bold text-lg md:text-xl tracking-tight hidden sm:block">SecureIntent<span class="text-brand-cyan">.ai</span></span>
             </a>
-            <div class="hidden lg:flex items-center gap-5 xl:gap-6 text-[11px] xl:text-xs font-mono text-gray-400 whitespace-nowrap">
-                <a href="solutions.html" class="hover:text-brand-cyan transition-colors text-brand-cyan">/solutions</a>
-                <a href="architecture.html" class="hover:text-brand-cyan transition-colors">/architecture</a>
+            <div class="hidden lg:flex items-center gap-4 xl:gap-5 text-[11px] xl:text-xs font-mono text-gray-400 whitespace-nowrap">
+                <a href="solutions.html" class="hover:text-brand-cyan transition-colors">/solutions</a>
+                <a href="architecture.html" class="hover:text-brand-cyan transition-colors text-brand-cyan">/architecture</a>
                 <a href="about.html" class="hover:text-brand-cyan transition-colors">/about</a>
                 <a href="roadmap.html" class="hover:text-brand-cyan transition-colors">/roadmap</a>
                 <a href="business.html" class="hover:text-brand-cyan transition-colors">/business</a>
@@ -474,8 +474,8 @@
         </nav>
         <div id="mobile-menu" class="lg:hidden hidden w-full max-w-7xl mt-3 bg-[#0a0a0a]/95 glass-nav border border-white/10 rounded-2xl px-2 py-2 shadow-2xl pointer-events-auto">
             <nav class="flex flex-col font-mono text-sm text-gray-300">
-                <a href="solutions.html" class="px-4 py-3 rounded-xl hover:bg-white/5 hover:text-brand-cyan transition-colors text-brand-cyan">/solutions</a>
-                <a href="architecture.html" class="px-4 py-3 rounded-xl hover:bg-white/5 hover:text-brand-cyan transition-colors">/architecture</a>
+                <a href="solutions.html" class="px-4 py-3 rounded-xl hover:bg-white/5 hover:text-brand-cyan transition-colors">/solutions</a>
+                <a href="architecture.html" class="px-4 py-3 rounded-xl hover:bg-white/5 hover:text-brand-cyan transition-colors text-brand-cyan">/architecture</a>
                 <a href="about.html" class="px-4 py-3 rounded-xl hover:bg-white/5 hover:text-brand-cyan transition-colors">/about</a>
                 <a href="roadmap.html" class="px-4 py-3 rounded-xl hover:bg-white/5 hover:text-brand-cyan transition-colors">/roadmap</a>
                 <a href="business.html" class="px-4 py-3 rounded-xl hover:bg-white/5 hover:text-brand-cyan transition-colors">/business</a>
@@ -486,248 +486,288 @@
         </div>
     </div>
 
-    <main class="pt-40 pb-24 px-6 relative z-10">
-      <div class="max-w-4xl mx-auto">
-
-        <div class="text-center max-w-3xl mx-auto mb-14">
-          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-navy/30 border border-brand-cyan/30 text-brand-cyan font-mono text-xs uppercase tracking-wider mb-5">Solutions</div>
-          <h1 class="text-4xl md:text-5xl font-bold leading-tight mb-4">Protection that keeps up with how you use AI.</h1>
-          <p class="text-gray-300 text-sm md:text-base leading-relaxed">Start free in the browser, then extend the same protection across your whole workflow. Built for individual developers and for teams.</p>
-        </div>
-
-        <!-- Standout: Browser Extension -->
-        <section class="fade-up-section mb-14">
-          <div class="si-card border-glow p-8 md:p-10">
-            <div class="flex items-start justify-between gap-4 mb-5 flex-wrap">
-              <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-xl bg-brand-navy/40 border border-brand-cyan/30 flex items-center justify-center text-brand-cyan text-xl shrink-0"><i class="fa-solid fa-puzzle-piece" aria-hidden="true"></i></div>
-                <div>
-                  <h2 class="text-2xl font-bold text-white leading-tight">Browser Extension</h2>
-                  <p class="text-gray-400 text-sm">The fastest way to make AI safe to use.</p>
-                </div>
-              </div>
-              <span class="text-[10px] font-mono uppercase tracking-widest px-2 py-1 rounded border text-green-400 border-green-500/40 bg-green-500/10 whitespace-nowrap">Available now</span>
-            </div>
-
-            <p class="text-gray-300 text-sm md:text-base leading-relaxed mb-8">SecureIntent watches for secrets, credentials, API keys, tokens, JWTs and sensitive data the moment you paste, and steps in before anything reaches the model. You keep working at full speed while it does the checking for you.</p>
-
-            <div class="grid md:grid-cols-2 gap-x-8 gap-y-5 mb-8">
-              <div class="flex items-start gap-3">
-            <div class="text-brand-cyan mt-0.5 w-5 text-center"><i class="fa-solid fa-key" aria-hidden="true"></i></div>
-            <div>
-              <p class="text-white text-sm font-semibold mb-0.5">Local detection</p>
-              <p class="text-gray-400 text-sm leading-relaxed">RegEx and entropy scoring catch API keys, tokens, JWTs, credentials and PII on device, so you never stop to self-censor.</p>
-            </div>
-          </div>
-              <div class="flex items-start gap-3">
-            <div class="text-brand-cyan mt-0.5 w-5 text-center"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></div>
-            <div>
-              <p class="text-white text-sm font-semibold mb-0.5">Intercept before paste</p>
-              <p class="text-gray-400 text-sm leading-relaxed">Sensitive content is caught before it reaches ChatGPT, Claude, Copilot and other tools, without breaking your flow.</p>
-            </div>
-          </div>
-              <div class="flex items-start gap-3">
-            <div class="text-brand-cyan mt-0.5 w-5 text-center"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i></div>
-            <div>
-              <p class="text-white text-sm font-semibold mb-0.5">Anonymise and Paste</p>
-              <p class="text-gray-400 text-sm leading-relaxed">Swap sensitive values for safe placeholders in one click and keep moving.</p>
-            </div>
-          </div>
-              <div class="flex items-start gap-3">
-            <div class="text-brand-cyan mt-0.5 w-5 text-center"><i class="fa-solid fa-droplet" aria-hidden="true"></i></div>
-            <div>
-              <p class="text-white text-sm font-semibold mb-0.5">Dehydrate and Rehydrate</p>
-              <p class="text-gray-400 text-sm leading-relaxed">Salts and anonymises tokens on the way out, then restores them locally when the model replies, so answers stay usable.</p>
-            </div>
-          </div>
-              <div class="flex items-start gap-3">
-            <div class="text-brand-cyan mt-0.5 w-5 text-center"><i class="fa-solid fa-ghost" aria-hidden="true"></i></div>
-            <div>
-              <p class="text-white text-sm font-semibold mb-0.5">Ghost Log Sanitiser</p>
-              <p class="text-gray-400 text-sm leading-relaxed">Strips secrets out of logs and stack traces before you share them for debugging.</p>
-            </div>
-          </div>
-              <div class="flex items-start gap-3">
-            <div class="text-brand-cyan mt-0.5 w-5 text-center"><i class="fa-solid fa-lock" aria-hidden="true"></i></div>
-            <div>
-              <p class="text-white text-sm font-semibold mb-0.5">Session Lock</p>
-              <p class="text-gray-400 text-sm leading-relaxed">Protects cloud-console and sensitive sessions from accidental exposure.</p>
-            </div>
-          </div>
-              <div class="flex items-start gap-3">
-            <div class="text-brand-cyan mt-0.5 w-5 text-center"><i class="fa-solid fa-bolt" aria-hidden="true"></i></div>
-            <div>
-              <p class="text-white text-sm font-semibold mb-0.5">Built for flow</p>
-              <p class="text-gray-400 text-sm leading-relaxed">Runs silently in the background and never arbitrarily blocks your prompt.</p>
-            </div>
-          </div>
-              <div class="flex items-start gap-3">
-            <div class="text-brand-cyan mt-0.5 w-5 text-center"><i class="fa-solid fa-microchip" aria-hidden="true"></i></div>
-            <div>
-              <p class="text-white text-sm font-semibold mb-0.5">Zero raw-data retention</p>
-              <p class="text-gray-400 text-sm leading-relaxed">Evaluation happens on device; your raw pasted text never leaves your machine.</p>
-            </div>
-          </div>
-            </div>
-
-            <div class="border-t border-white/10 pt-7">
-              <h3 class="text-lg font-bold text-white mb-1">For individual developers and teams</h3>
-              <p class="text-gray-400 text-sm leading-relaxed mb-5">Developers install it free in seconds. Teams get organisation-wide protection and control on top of everything above:</p>
-              <ul class="grid md:grid-cols-2 gap-x-8 gap-y-3 mb-7">
-                <li class="flex items-start gap-3 text-sm">
-              <i class="fa-solid fa-check text-brand-cyan mt-1" aria-hidden="true"></i>
-              <span class="text-gray-300"><span class="text-white font-semibold">Team Policy Sync.</span> Push organisational detection rules to everyone, so protection is consistent across the team.</span>
-            </li>
-                <li class="flex items-start gap-3 text-sm">
-              <i class="fa-solid fa-check text-brand-cyan mt-1" aria-hidden="true"></i>
-              <span class="text-gray-300"><span class="text-white font-semibold">Security-Team Alerts.</span> Zero-retention webhook notifications for critical incidents, without exposing prompt content.</span>
-            </li>
-                <li class="flex items-start gap-3 text-sm">
-              <i class="fa-solid fa-check text-brand-cyan mt-1" aria-hidden="true"></i>
-              <span class="text-gray-300"><span class="text-white font-semibold">Custom Tokens.</span> Add organisation-specific secret patterns so your own credentials are recognised.</span>
-            </li>
-                <li class="flex items-start gap-3 text-sm">
-              <i class="fa-solid fa-check text-brand-cyan mt-1" aria-hidden="true"></i>
-              <span class="text-gray-300"><span class="text-white font-semibold">Shadow AI Discovery.</span> See which AI tools are in use across the team, so you understand risk without reading prompts.</span>
-            </li>
-                <li class="flex items-start gap-3 text-sm">
-              <i class="fa-solid fa-check text-brand-cyan mt-1" aria-hidden="true"></i>
-              <span class="text-gray-300"><span class="text-white font-semibold">Team console.</span> Manage seats, roster, policy and alerts from one admin view.</span>
-            </li>
-                <li class="flex items-start gap-3 text-sm">
-              <i class="fa-solid fa-check text-brand-cyan mt-1" aria-hidden="true"></i>
-              <span class="text-gray-300"><span class="text-white font-semibold">Customer Advisory Board.</span> Direct access to the founders and the roadmap for the features you need.</span>
-            </li>
-              </ul>
-              <div class="flex flex-wrap gap-3">
-                <a href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener" class="btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-lg font-mono text-sm"><i class="fa-solid fa-download" aria-hidden="true"></i> Install free</a>
-                <a href="#enquiry" class="btn-ghost inline-flex items-center gap-2 px-6 py-3 rounded-lg font-mono text-sm">Talk to us about teams</a>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Developer Desktop Application -->
-        <section class="fade-up-section mb-14">
-          <div class="si-card p-8 md:p-10">
-            <div class="flex items-start justify-between gap-4 mb-5 flex-wrap">
-              <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-xl bg-brand-navy/40 border border-brand-cyan/30 flex items-center justify-center text-brand-cyan text-xl shrink-0"><i class="fa-solid fa-desktop" aria-hidden="true"></i></div>
-                <div>
-                  <h2 class="text-2xl font-bold text-white leading-tight">Developer Desktop Application</h2>
-                  <p class="text-gray-400 text-sm">Protection beyond the browser, everywhere you work.</p>
-                </div>
-              </div>
-              <span class="text-[10px] font-mono uppercase tracking-widest px-2 py-1 rounded border text-amber-400 border-amber-500/40 bg-amber-500/10 whitespace-nowrap">Beta · September</span>
-            </div>
-
-            <p class="text-gray-300 text-sm md:text-base leading-relaxed mb-8">AI has moved out of the browser. SecureIntent Desktop brings the same protection to terminals, IDEs, desktop AI apps and the system clipboard, so your whole workflow is covered without slowing you down.</p>
-
-            <div class="grid md:grid-cols-2 gap-x-8 gap-y-5 mb-8">
-              <div class="flex items-start gap-3">
-            <div class="text-brand-cyan mt-0.5 w-5 text-center"><i class="fa-solid fa-clipboard" aria-hidden="true"></i></div>
-            <div>
-              <p class="text-white text-sm font-semibold mb-0.5">System-wide clipboard protection</p>
-              <p class="text-gray-400 text-sm leading-relaxed">Redacts secrets on copy across every app, so you are protected in terminals, IDEs and desktop AI tools, not just the browser.</p>
-            </div>
-          </div>
-              <div class="flex items-start gap-3">
-            <div class="text-brand-cyan mt-0.5 w-5 text-center"><i class="fa-solid fa-terminal" aria-hidden="true"></i></div>
-            <div>
-              <p class="text-white text-sm font-semibold mb-0.5">Terminal-aware</p>
-              <p class="text-gray-400 text-sm leading-relaxed">Understands terminal copy-on-select so command-line secrets are handled correctly.</p>
-            </div>
-          </div>
-              <div class="flex items-start gap-3">
-            <div class="text-brand-cyan mt-0.5 w-5 text-center"><i class="fa-solid fa-id-card" aria-hidden="true"></i></div>
-            <div>
-              <p class="text-white text-sm font-semibold mb-0.5">JWT detect and decode</p>
-              <p class="text-gray-400 text-sm leading-relaxed">Spots and decodes tokens so you can see what is sensitive at a glance.</p>
-            </div>
-          </div>
-              <div class="flex items-start gap-3">
-            <div class="text-brand-cyan mt-0.5 w-5 text-center"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></div>
-            <div>
-              <p class="text-white text-sm font-semibold mb-0.5">Undo and restore</p>
-              <p class="text-gray-400 text-sm leading-relaxed">Every redaction is recoverable, so protection never costs you work.</p>
-            </div>
-          </div>
-              <div class="flex items-start gap-3">
-            <div class="text-brand-cyan mt-0.5 w-5 text-center"><i class="fa-solid fa-desktop" aria-hidden="true"></i></div>
-            <div>
-              <p class="text-white text-sm font-semibold mb-0.5">OS-level gating</p>
-              <p class="text-gray-400 text-sm leading-relaxed">Sanitises PII, IP and secrets before they leave the machine, regardless of the target app.</p>
-            </div>
-          </div>
-              <div class="flex items-start gap-3">
-            <div class="text-brand-cyan mt-0.5 w-5 text-center"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i></div>
-            <div>
-              <p class="text-white text-sm font-semibold mb-0.5">Redaction log</p>
-              <p class="text-gray-400 text-sm leading-relaxed">A local record of what was protected, so you and your team can review activity.</p>
-            </div>
-          </div>
-            </div>
-
-            <div class="rounded-xl border border-brand-cyan/25 bg-brand-cyan/[0.04] p-6 mb-8">
-              <div class="flex items-center gap-3 mb-2">
-                <i class="fa-solid fa-diagram-project text-brand-cyan" aria-hidden="true"></i>
-                <h3 class="text-white font-bold">MCP and agent security</h3>
-                <span class="text-[10px] font-mono uppercase tracking-widest px-2 py-1 rounded border text-brand-cyan border-brand-cyan/40 bg-brand-cyan/10 whitespace-nowrap">In development</span>
-              </div>
-              <p class="text-gray-300 text-sm leading-relaxed">AI is moving past copy and paste. Assistants and agents now connect directly to your files, databases, services and internal tools through MCP (Model Context Protocol), which creates a new boundary where sensitive data can leak without anyone pasting anything. SecureIntent is extending its security model to that layer: discovering MCP connections, telling approved servers from unapproved ones, and applying policy so agents stay productive without exposing what they should not.</p>
-            </div>
-
-            <a href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener" class="btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-lg font-mono text-sm"><i class="fa-solid fa-flask" aria-hidden="true"></i> Join the Desktop beta</a>
-          </div>
-        </section>
-
-        <!-- Enquiry form -->
-        <section id="enquiry" class="fade-up-section" style="scroll-margin-top:6rem;">
-          <div class="si-card p-8 md:p-10 max-w-xl mx-auto">
-            <h2 class="text-2xl font-bold text-white mb-1">Talk to us</h2>
-            <p class="text-gray-400 text-sm mb-6">Tell us about your team and we will be in touch.</p>
-            <form id="enquiry-form" novalidate>
-              <div class="grid gap-4">
-                <div>
-                  <label for="enq-name" class="block text-xs font-mono uppercase tracking-wider text-gray-400 mb-1.5">Name</label>
-                  <input id="enq-name" name="name" type="text" autocomplete="name" required class="w-full bg-[#0a0a0a] border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:border-brand-cyan focus:outline-none transition-colors" placeholder="Your name">
-                </div>
-                <div>
-                  <label for="enq-email" class="block text-xs font-mono uppercase tracking-wider text-gray-400 mb-1.5">Email address</label>
-                  <input id="enq-email" name="email" type="email" autocomplete="email" required class="w-full bg-[#0a0a0a] border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:border-brand-cyan focus:outline-none transition-colors" placeholder="you@company.com">
-                </div>
-                <div>
-                  <label for="enq-phone" class="block text-xs font-mono uppercase tracking-wider text-gray-400 mb-1.5">Contact number</label>
-                  <input id="enq-phone" name="phone" type="tel" autocomplete="tel" class="w-full bg-[#0a0a0a] border border-white/10 rounded-lg px-4 py-3 text-sm text-white placeholder-gray-600 focus:border-brand-cyan focus:outline-none transition-colors" placeholder="+44 …">
-                </div>
-                <button type="submit" class="btn-primary inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-mono text-sm mt-1">Send enquiry</button>
-                <p id="enq-err" class="text-xs text-red-400 hidden">Please enter your name and a valid email.</p>
-              </div>
-            </form>
-          </div>
-        </section>
-
+    <main class="pt-32 pb-6 px-6 relative z-10">
+      <div class="max-w-3xl mx-auto text-center">
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-navy/30 border border-brand-cyan/30 text-brand-cyan font-mono text-xs uppercase tracking-wider mb-6">Architecture</div>
+        <h1 class="text-3xl md:text-4xl font-bold mb-5 leading-tight">Designed by cybersecurity heavyweights.</h1>
+        <p class="font-sans text-gray-300 text-sm md:text-base leading-relaxed">
+          Built by industry veterans. We designed SecureIntent for peace of mind:
+          <span class="text-brand-cyan font-bold">detection runs on-device and your raw pasted text never leaves your machine</span> — only anonymized detection metadata is sent.
+          Business users can deploy knowing we never store, see, or touch your code.
+        </p>
       </div>
-      <script>
-        (function () {
-          var f = document.getElementById('enquiry-form');
-          if (!f) return;
-          f.addEventListener('submit', function (e) {
-            e.preventDefault();
-            var name = document.getElementById('enq-name').value.trim();
-            var email = document.getElementById('enq-email').value.trim();
-            var err = document.getElementById('enq-err');
-            var okEmail = /.+@.+\..+/.test(email);
-            if (!name || !okEmail) { if (err) err.classList.remove('hidden'); return; }
-            var esc = function (s) { return s.replace(/[<>&]/g, ''); };
-            f.innerHTML = '<div class="text-center py-8">' +
-              '<div class="text-brand-cyan text-4xl mb-3"><i class="fa-solid fa-circle-check"></i></div>' +
-              '<p class="text-white font-bold mb-1">Thanks, ' + esc(name) + '.</p>' +
-              '<p class="text-gray-400 text-sm">We will be in touch at ' + esc(email) + ' shortly.</p></div>';
-          });
-        })();
-      </script>
     </main>
+
+    <section class="pt-10 pb-2 px-6 relative z-10 fade-up-section">
+      <div class="max-w-7xl mx-auto text-center">
+        <span class="inline-block text-[10px] font-mono uppercase tracking-widest px-2 py-1 rounded border text-brand-cyan border-brand-cyan/40 bg-brand-cyan/5 mb-4">Browser · Available now</span>
+        <h2 class="text-2xl md:text-3xl font-bold">Extension architecture</h2>
+      </div>
+    </section>
+
+    <!-- Architecture Section -->
+    <section id="architecture" class="py-20 relative z-10 border-t border-white/5 fade-up-section">
+        <div class="max-w-7xl mx-auto px-6">
+            
+            <div class="text-center mb-10">
+                <div class="inline-flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-brand-cyan font-mono text-xs sm:text-sm mb-6 bg-brand-cyan/5 px-4 sm:px-6 py-2.5 rounded-2xl sm:rounded-full border border-brand-cyan/20 max-w-full">
+                    <span class="whitespace-nowrap"><i class="fa-solid fa-copy" aria-hidden="true"></i> Copy</span>
+                    <i class="fa-solid fa-arrow-right text-brand-cyan/40 text-xs" aria-hidden="true"></i>
+                    <span class="whitespace-nowrap"><i class="fa-solid fa-microchip" aria-hidden="true"></i> Detect in RAM</span>
+                    <i class="fa-solid fa-arrow-right text-brand-cyan/40 text-xs" aria-hidden="true"></i>
+                    <span class="whitespace-nowrap"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Sanitise</span>
+                    <i class="fa-solid fa-arrow-right text-brand-cyan/40 text-xs" aria-hidden="true"></i>
+                    <span class="whitespace-nowrap"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Prompt</span>
+                </div>
+                <h2 class="text-3xl font-bold mb-4">Trust through transparency.</h2>
+                <p class="font-sans text-gray-300 text-sm md:text-base">How we protect you without ever seeing your code.</p>
+            </div>
+
+            <div class="bg-brand-card border-glow rounded-2xl p-8 md:p-12 relative overflow-hidden">
+                <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#72FFFF_1px,transparent_1px)] [background-size:20px_20px]"></div>
+
+                <div class="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
+                    
+                    <div class="flex-1 text-center w-full">
+                        <div class="w-16 h-16 mx-auto bg-[#111] border border-white/20 rounded-xl flex items-center justify-center text-2xl text-gray-300 mb-4 shadow-lg">
+                            <i class="fa-regular fa-clipboard" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="font-bold text-white mb-2 font-mono text-sm">1. Intercept Event</h3>
+                        <p class="text-xs text-gray-400 leading-relaxed">User triggers a copy paste inside the browser.</p>
+                    </div>
+
+                    <div class="hidden md:block text-brand-cyan text-2xl opacity-50"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></div>
+                    <div class="block md:hidden text-brand-cyan text-2xl opacity-50"><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></div>
+
+                    <div class="flex-1 text-center w-full relative">
+                        <div class="absolute -top-4 inset-x-0 flex justify-center">
+                            <span class="bg-brand-cyan text-black text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest shadow-neon">Volatile Memory</span>
+                        </div>
+                        <div class="w-20 h-20 mx-auto bg-brand-navy border border-brand-cyan rounded-xl flex items-center justify-center text-3xl text-brand-cyan mb-4 shadow-neon">
+                            <i class="fa-solid fa-brain" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="font-bold text-white mb-2 font-mono text-sm">2. Local AI Evaluation</h3>
+                        <p class="text-xs text-gray-400 leading-relaxed">Extension runs regex and entropy scoring in RAM. No disk writes.</p>
+                    </div>
+
+                    <div class="hidden md:block text-brand-cyan text-2xl opacity-50"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></div>
+                    <div class="block md:hidden text-brand-cyan text-2xl opacity-50"><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></div>
+
+                    <div class="flex-1 text-center w-full">
+                        <div class="w-16 h-16 mx-auto bg-[#111] border border-white/20 rounded-xl flex items-center justify-center text-2xl text-brand-cyan mb-4 shadow-neon">
+                            <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="font-bold text-white mb-2 font-mono text-sm">3. Guided Sanitisation</h3>
+                        <p class="text-xs text-gray-400 leading-relaxed">User is guided locally. Choose to block the paste or securely anonymise the keys using AI guardrails before sending.</p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Compact Features & Trust Section -->
+    <section id="how-it-works" class="py-20 relative z-10 border-t border-white/5 fade-up-section">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                <!-- Feature 1 -->
+                <div class="spotlight-card bg-brand-card border border-white/10 p-6 rounded-xl bento-glow group">
+                    <div class="text-brand-cyan mb-4 text-xl"><i class="fa-brands fa-github" aria-hidden="true"></i></div>
+                    <h3 class="text-base font-bold mb-2 text-white">100% Auditable Code</h3>
+                    <p class="text-gray-400 text-xs leading-relaxed">Security tools shouldn't be black boxes. Our entire extension codebase is publicly verifiable and auditable.</p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="spotlight-card bg-brand-card border border-white/10 p-6 rounded-xl bento-glow group">
+                    <div class="text-brand-cyan mb-4 text-xl"><i class="fa-solid fa-droplet" aria-hidden="true"></i></div>
+                    <h3 class="text-base font-bold mb-2 text-white">Dehydrate & Rehydrate</h3>
+                    <p class="text-gray-400 text-xs leading-relaxed">Automatically salt and anonymize tokens. Our engine securely rehydrates keys in local RAM upon LLM reply.</p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="spotlight-card bg-brand-card border border-white/10 p-6 rounded-xl bento-glow group">
+                    <div class="text-brand-cyan mb-4 text-xl"><i class="fa-solid fa-bolt" aria-hidden="true"></i></div>
+                    <h3 class="text-base font-bold mb-2 text-white">Built for Flow State</h3>
+                    <p class="text-gray-400 text-xs leading-relaxed">Sits silently in the background. It never arbitrarily blocks your prompt, it just sanitizes the paste.</p>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="spotlight-card bg-brand-card border border-white/10 p-6 rounded-xl bento-glow group">
+                    <div class="text-brand-cyan mb-4 text-xl"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></div>
+                    <h3 class="text-base font-bold mb-2 text-white">Advanced Entropy</h3>
+                    <p class="text-gray-400 text-xs leading-relaxed">Regex isn't enough. Shannon entropy scoring catches zero days and undocumented keys automatically.</p>
+                </div>
+
+                <!-- Trust 1 -->
+                <div class="spotlight-card bg-brand-navy/10 border border-brand-cyan/20 p-6 rounded-xl bento-glow">
+                    <h3 class="text-white font-bold text-sm mb-2 font-mono"><i class="fa-solid fa-box-open text-brand-cyan mr-2" aria-hidden="true"></i>Reproducible Builds</h3>
+                    <p class="text-xs text-gray-400 leading-relaxed font-mono">Public GitHub pipeline guarantees the Web Store binary matches our source code byte for byte.</p>
+                </div>
+
+                <!-- Trust 2 -->
+                <div class="spotlight-card bg-brand-navy/10 border border-brand-cyan/20 p-6 rounded-xl bento-glow">
+                    <h3 class="text-white font-bold text-sm mb-2 font-mono"><i class="fa-solid fa-file-contract text-brand-cyan mr-2" aria-hidden="true"></i>Enterprise Compliant</h3>
+                    <p class="text-xs text-gray-400 leading-relaxed font-mono">Zero retention infrastructure designed to align with SOC 2 Type II and ISO 27001 standards.</p>
+                </div>
+
+                <!-- Trust 3 -->
+                <div class="spotlight-card bg-brand-navy/10 border border-brand-cyan/20 p-6 rounded-xl bento-glow">
+                    <h3 class="text-white font-bold text-sm mb-2 font-mono"><i class="fa-solid fa-user-secret text-brand-cyan mr-2" aria-hidden="true"></i>Hacker Safe Harbor</h3>
+                    <p class="text-xs text-gray-400 leading-relaxed font-mono">We welcome ethical hackers. Report vulnerabilities securely under our VDP via PGP encryption.</p>
+                </div>
+
+                <!-- Trust 4 -->
+                <div class="spotlight-card bg-brand-navy/10 border border-brand-cyan/20 p-6 rounded-xl bento-glow">
+                    <h3 class="text-white font-bold text-sm mb-2 font-mono"><i class="fa-solid fa-shield-halved text-brand-cyan mr-2" aria-hidden="true"></i>Permissions</h3>
+                    <p class="text-xs text-gray-400 leading-relaxed font-mono">Requires <code class="text-brand-cyan">storage</code> and <code class="text-brand-cyan">activeTab</code> only. No global clipboard read, no background tracking.</p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Coverage & Detection Section -->
+    <section id="coverage" class="py-20 relative z-10 border-t border-white/5 fade-up-section">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold mb-4">Uncompromising coverage. <br><span class="text-transparent bg-clip-text bg-gradient-to-r from-brand-cyan to-blue-400">High-accuracy detection.</span></h2>
+                <p class="font-sans text-gray-300 text-sm md:text-base">Tuned for near-zero false negatives within protected platforms. Works everywhere you do.</p>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-8">
+                <!-- What We Detect -->
+                <div class="spotlight-card bg-brand-card border border-white/10 rounded-2xl p-8 hover:border-brand-cyan/50 transition-colors">
+                    <h3 class="text-xl font-bold mb-6 flex items-center gap-3 text-white">
+                        <i class="fa-solid fa-key text-brand-cyan" aria-hidden="true"></i> Secrets Detected
+                    </h3>
+                    <div class="flex flex-wrap gap-3">
+                        <span class="px-3 py-1.5 bg-[#111] border border-white/10 rounded-md font-mono text-xs text-gray-300 relative z-10">AWS Access Keys</span>
+                        <span class="px-3 py-1.5 bg-[#111] border border-white/10 rounded-md font-mono text-xs text-gray-300 relative z-10">OpenAI (sk)</span>
+                        <span class="px-3 py-1.5 bg-[#111] border border-white/10 rounded-md font-mono text-xs text-gray-300 relative z-10">Anthropic (sk ant)</span>
+                        <span class="px-3 py-1.5 bg-[#111] border border-white/10 rounded-md font-mono text-xs text-gray-300 relative z-10">GCP Service Accounts</span>
+                        <span class="px-3 py-1.5 bg-[#111] border border-white/10 rounded-md font-mono text-xs text-gray-300 relative z-10">Stripe (sk live)</span>
+                        <span class="px-3 py-1.5 bg-[#111] border border-white/10 rounded-md font-mono text-xs text-gray-300 relative z-10">GitHub Tokens</span>
+                        <span class="px-3 py-1.5 bg-[#111] border border-white/10 rounded-md font-mono text-xs text-gray-300 relative z-10">Slack (xox)</span>
+                        <span class="px-3 py-1.5 bg-[#111] border border-white/10 rounded-md font-mono text-xs text-gray-300 relative z-10">JWTs</span>
+                        <span class="px-3 py-1.5 bg-[#111] border border-white/10 rounded-md font-mono text-xs text-gray-300 relative z-10">Credit Cards (Luhn)</span>
+                        <span class="px-3 py-1.5 bg-brand-cyan/10 border border-brand-cyan/40 rounded-md font-mono text-xs text-brand-cyan shadow-neon relative z-10">High Entropy Zero Days</span>
+                    </div>
+                </div>
+
+                <!-- Where It Works (Marquee Style) -->
+                <div class="spotlight-card bg-brand-card border border-white/10 rounded-2xl p-8 hover:border-brand-cyan/50 transition-colors flex flex-col justify-center overflow-hidden">
+                    <h3 class="text-xl font-bold mb-8 flex items-center justify-center gap-3 text-white">
+                        <i class="fa-solid fa-globe text-brand-cyan" aria-hidden="true"></i> Protected Platforms
+                    </h3>
+                    
+                    <!-- Infinite Scrolling Ribbon with Checkmarks -->
+                    <div class="marquee-wrapper w-full overflow-hidden flex relative z-10 py-2">
+                        <div class="flex gap-4 min-w-max animate-scroll">
+                            <!-- Set 1 -->
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> ChatGPT</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Claude</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Copilot</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Jira</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Slack</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Notion</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Pastebin</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Gmail</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Web IDEs</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Microsoft Edge</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Brave</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Vivaldi</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Opera</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Incognito</div>
+                            
+                            <!-- Duplicate Set 2 for seamless loop -->
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> ChatGPT</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Claude</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Copilot</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Jira</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Slack</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Notion</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Pastebin</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Gmail</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Web IDEs</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Microsoft Edge</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Brave</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Vivaldi</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Opera</div>
+                            <div class="flex items-center gap-2 bg-[#111] border border-white/10 px-4 py-2 rounded-full text-gray-300 font-mono text-xs"><i class="fa-solid fa-check text-green-500/80" aria-hidden="true"></i> Incognito</div>
+                        </div>
+                    </div>
+                    
+                    <p class="mt-6 text-xs text-gray-400 font-mono pt-4 text-center relative z-10"><span class="text-brand-cyan">+ Anywhere else you paste.</span> The extension universally intercepts the browser clipboard event.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Desktop application architecture -->
+    <section id="desktop-architecture" class="py-20 relative z-10 border-t border-white/5 fade-up-section">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-10">
+                <span class="inline-block text-[10px] font-mono uppercase tracking-widest px-2 py-1 rounded border text-amber-400 border-amber-500/40 bg-amber-500/10 mb-4">Desktop · Beta · September</span>
+                <h2 class="text-2xl md:text-3xl font-bold mb-4">Desktop application architecture.</h2>
+                <p class="font-sans text-gray-300 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">The same on-device guarantee, extended past the browser to terminals, IDEs, desktop AI apps and the local agents your team runs.</p>
+            </div>
+
+            <div class="bg-brand-card border-glow rounded-2xl p-8 md:p-12 relative overflow-hidden">
+                <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#72FFFF_1px,transparent_1px)] [background-size:20px_20px]"></div>
+                <div class="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
+
+                    <div class="flex-1 text-center w-full">
+                        <div class="w-16 h-16 mx-auto bg-[#111] border border-white/20 rounded-xl flex items-center justify-center text-2xl text-gray-300 mb-4 shadow-lg">
+                            <i class="fa-solid fa-terminal" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="font-bold text-white mb-2 font-mono text-sm">1. Local Observation</h3>
+                        <p class="text-xs text-gray-400 leading-relaxed">A lightweight desktop agent watches the system clipboard and the AI tools you use outside the browser.</p>
+                    </div>
+
+                    <div class="hidden md:block text-brand-cyan text-2xl opacity-50"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></div>
+                    <div class="block md:hidden text-brand-cyan text-2xl opacity-50"><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></div>
+
+                    <div class="flex-1 text-center w-full relative">
+                        <div class="absolute -top-4 inset-x-0 flex justify-center">
+                            <span class="bg-brand-cyan text-black text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest shadow-neon">Volatile Memory</span>
+                        </div>
+                        <div class="w-20 h-20 mx-auto bg-brand-navy border border-brand-cyan rounded-xl flex items-center justify-center text-3xl text-brand-cyan mb-4 shadow-neon">
+                            <i class="fa-solid fa-microchip" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="font-bold text-white mb-2 font-mono text-sm">2. On-Device Evaluation</h3>
+                        <p class="text-xs text-gray-400 leading-relaxed">The same regex and entropy engine scores content in RAM on your machine. No disk writes, no cloud round trip.</p>
+                    </div>
+
+                    <div class="hidden md:block text-brand-cyan text-2xl opacity-50"><i class="fa-solid fa-chevron-right" aria-hidden="true"></i></div>
+                    <div class="block md:hidden text-brand-cyan text-2xl opacity-50"><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></div>
+
+                    <div class="flex-1 text-center w-full">
+                        <div class="w-16 h-16 mx-auto bg-[#111] border border-white/20 rounded-xl flex items-center justify-center text-2xl text-brand-cyan mb-4 shadow-neon">
+                            <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="font-bold text-white mb-2 font-mono text-sm">3. Policy &amp; Guardrails</h3>
+                        <p class="text-xs text-gray-400 leading-relaxed">Block, redact, or securely anonymise the content before it reaches the model, guided by your local policy.</p>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- MCP callout -->
+            <div class="mt-8 bg-[#111] border border-brand-cyan/20 p-8 rounded-2xl flex flex-col md:flex-row items-start gap-6 shadow-[0_0_20px_rgba(114,255,255,0.05)]">
+                <div class="w-14 h-14 rounded-xl bg-brand-navy/30 flex items-center justify-center text-brand-cyan border border-brand-cyan/30 shrink-0 text-xl">
+                    <i class="fa-solid fa-diagram-project" aria-hidden="true"></i>
+                </div>
+                <div>
+                    <div class="flex flex-wrap items-center gap-3 mb-2">
+                        <h3 class="text-white font-bold text-lg">MCP and agent security</h3>
+                        <span class="text-[10px] font-mono uppercase tracking-widest px-2 py-1 rounded border text-amber-400 border-amber-500/40 bg-amber-500/10">In development</span>
+                    </div>
+                    <p class="font-sans text-gray-300 text-sm md:text-base leading-relaxed">AI is moving past copy and paste. Assistants and agents now connect directly to files, databases, services and internal tools through MCP (Model Context Protocol), a new boundary where sensitive data can leak without anyone pasting anything. SecureIntent is extending the same detect and sanitise guardrail to that layer: discovering MCP connections, telling approved servers from unapproved ones, and applying policy so agents stay productive without exposing what they should not.</p>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <footer class="border-t border-white/5 bg-[#050505] pt-16 pb-8 text-center text-sm text-gray-400 font-mono relative z-10">
         <div class="flex justify-center mb-8 text-gray-400">
