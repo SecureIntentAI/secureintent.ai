@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>SecureIntent · Shadow AI Discovery · Local V1</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --base: #050507;
+        --panel: #0a0e1a;
+        --panel2: #0d1220;
+        --cyan: #72ffff;
+        --text: #f4f6f8;
+        --muted: #8b949e;
+        --faint: #5a626b;
+        --danger: #ff6b6b;
+        --warn: #fbbf24;
+        --ok: #34d399;
+        --border: rgba(255, 255, 255, 0.09);
+        --sans: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+        --mono: "SFMono-Regular", Consolas, monospace;
+      }
+      * { box-sizing: border-box; }
+      [hidden] { display: none !important; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: radial-gradient(circle at 50% -10%, #0b1530, var(--base) 60%);
+        color: var(--text);
+        font-family: var(--sans);
+      }
+      button, select { font: inherit; }
+      button { cursor: pointer; }
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 16px max(20px, calc((100vw - 1180px) / 2));
+        border-bottom: 1px solid var(--border);
+        background: rgba(5, 5, 7, 0.9);
+        backdrop-filter: blur(18px);
+      }
+      .brand { font-size: 19px; font-weight: 800; letter-spacing: -0.03em; }
+      .brand span { color: var(--cyan); }
+      .local {
+        margin-left: 10px;
+        padding: 4px 7px;
+        border: 1px solid rgba(251, 191, 36, 0.35);
+        border-radius: 6px;
+        color: var(--warn);
+        font: 700 10px/1 var(--mono);
+        letter-spacing: 0.07em;
+      }
+      .top-actions, .filters, .row-actions { display: flex; align-items: center; gap: 8px; }
+      .wrap { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 34px 0 64px; }
+      .heading { display: flex; justify-content: space-between; align-items: flex-end; gap: 18px; }
+      h1 { margin: 0 0 7px; font-size: clamp(24px, 3vw, 36px); letter-spacing: -0.04em; }
+      h2 { margin: 0; font-size: 16px; }
+      .sub, .note { color: var(--muted); font-size: 13px; line-height: 1.55; }
+      .sub { margin: 0; }
+      .privacy {
+        margin: 22px 0;
+        padding: 11px 14px;
+        border: 1px solid rgba(114, 255, 255, 0.22);
+        border-radius: 10px;
+        background: rgba(114, 255, 255, 0.05);
+        color: #c9ffff;
+        font-size: 12.5px;
+      }
+      .error {
+        margin: 18px 0;
+        padding: 12px 14px;
+        border: 1px solid rgba(255, 107, 107, 0.4);
+        border-radius: 10px;
+        background: rgba(255, 107, 107, 0.08);
+        color: #fecaca;
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 18px;
+      }
+      .card, .panel {
+        border: 1px solid var(--border);
+        background: linear-gradient(155deg, rgba(15, 23, 42, 0.86), rgba(7, 10, 18, 0.94));
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.18);
+      }
+      .card { min-height: 108px; padding: 16px; border-radius: 13px; }
+      .card .k { color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+      .card .v { margin-top: 13px; font: 700 25px/1 var(--mono); }
+      .card .detail { margin-top: 7px; color: var(--faint); font-size: 11px; }
+      .grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(300px, 0.8fr); gap: 18px; }
+      .panel { min-width: 0; margin-bottom: 18px; border-radius: 15px; overflow: hidden; }
+      .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 16px 18px; border-bottom: 1px solid var(--border); }
+      .panel-body { padding: 18px; }
+      .btn, select {
+        min-height: 36px;
+        padding: 8px 11px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+      }
+      .btn:hover, select:hover { border-color: rgba(114, 255, 255, 0.4); }
+      .btn.primary { border-color: #0891b2; background: #0e7490; }
+      .btn.danger { border-color: rgba(255, 107, 107, 0.35); color: #fecaca; }
+      .btn:disabled, select:disabled { cursor: wait; opacity: 0.5; }
+      .trend { display: grid; grid-template-columns: 86px minmax(0, 1fr) 90px; gap: 10px; align-items: center; margin: 10px 0; }
+      .trend-day, .trend-n { color: var(--muted); font: 11px var(--mono); }
+      .trend-n { text-align: right; }
+      .track { display: flex; height: 12px; overflow: hidden; border-radius: 999px; background: rgba(255, 255, 255, 0.04); }
+      .seg.visit { background: #22d3ee; }
+      .seg.paste { background: #8b5cf6; }
+      .seg.dlp { background: #fb7185; }
+      .legend { display: flex; flex-wrap: wrap; gap: 14px; color: var(--muted); font-size: 11px; }
+      .legend i { display: inline-block; width: 8px; height: 8px; margin-right: 5px; border-radius: 50%; }
+      .empty { padding: 32px 10px; color: var(--muted); text-align: center; }
+      .table-wrap { overflow-x: auto; }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      th, td { padding: 12px 14px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; }
+      th { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+      tbody tr:last-child td { border-bottom: 0; }
+      .tool-name { font-weight: 700; }
+      .host, .seat { color: var(--muted); font: 11px var(--mono); }
+      .pill { display: inline-block; padding: 4px 7px; border-radius: 999px; font-size: 10px; font-weight: 700; }
+      .pill.sanctioned { background: rgba(52, 211, 153, 0.12); color: #6ee7b7; }
+      .pill.recognized { background: rgba(34, 211, 238, 0.12); color: #67e8f9; }
+      .pill.review { background: rgba(251, 191, 36, 0.12); color: #fde68a; }
+      .pill.blocked, .pill.cancelled { background: rgba(255, 107, 107, 0.12); color: #fecaca; }
+      .pill.sanitised { background: rgba(52, 211, 153, 0.12); color: #6ee7b7; }
+      .pill.warning_bypassed { background: rgba(251, 191, 36, 0.12); color: #fde68a; }
+      .row-actions { flex-wrap: wrap; }
+      .row-actions .btn, .row-actions select { min-height: 30px; padding: 5px 8px; font-size: 11px; }
+      .ledger { grid-column: 1 / -1; }
+      .pager { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-top: 1px solid var(--border); }
+      @media (max-width: 1040px) { .cards { grid-template-columns: repeat(3, 1fr); } .grid { grid-template-columns: 1fr; } .ledger { grid-column: auto; } }
+      @media (max-width: 620px) {
+        .topbar, .heading { align-items: flex-start; flex-direction: column; }
+        .wrap { width: min(100% - 24px, 1180px); padding-top: 24px; }
+        .cards { grid-template-columns: repeat(2, 1fr); }
+        .trend { grid-template-columns: 72px minmax(0, 1fr); }
+        .trend-n { display: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">SecureIntent<span>.ai</span><span class="local">LOCAL V1</span></div>
+      <div class="top-actions">
+        <span class="note" id="updated">Not loaded</span>
+        <button class="btn" id="refresh" type="button">Refresh</button>
+      </div>
+    </header>
+    <main class="wrap">
+      <div class="heading">
+        <div>
+          <h1>Shadow AI Discovery</h1>
+          <p class="sub">Recognised AI activity and paste-risk signals across this test organisation.</p>
+        </div>
+        <div class="filters">
+          <label class="note" for="range">Reporting window</label>
+          <select id="range"><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select>
+        </div>
+      </div>
+      <div class="privacy">Hostname-only reporting · paste attempts and byte counts do not prove submission · no prompt text or secret values are collected · people appear as pseudonymous Seat IDs.</div>
+      <div class="error" id="error" role="alert" hidden></div>
+
+      <section class="cards" aria-label="Shadow AI summary">
+        <div class="card"><div class="k">Discovered tools</div><div class="v" id="c-tools">—</div><div class="detail">Visited recognised services</div></div>
+        <div class="card"><div class="k">Recognised visits</div><div class="v" id="c-visits">—</div><div class="detail">Top-level page loads</div></div>
+        <div class="card"><div class="k">Unsanctioned usage</div><div class="v" id="c-unsanctioned">—</div><div class="detail">Share of recognised visits</div></div>
+        <div class="card"><div class="k">Paste attempts</div><div class="v" id="c-pastes">—</div><div class="detail">Attempts, not submissions</div></div>
+        <div class="card"><div class="k">Attempted volume</div><div class="v" id="c-bytes">—</div><div class="detail">Text-paste bytes</div></div>
+        <div class="card"><div class="k">Sensitive events</div><div class="v" id="c-sensitive">—</div><div class="detail" id="c-risk">— higher-risk tools</div></div>
+      </section>
+
+      <div class="grid">
+        <section class="panel" aria-labelledby="trend-title">
+          <div class="panel-head"><div><h2 id="trend-title">Usage trend</h2><div class="note">Visits, paste attempts, and sensitive paste outcomes by day</div></div></div>
+          <div class="panel-body">
+            <div class="legend"><span><i class="seg visit"></i>Visits</span><span><i class="seg paste"></i>Paste attempts</span><span><i class="seg dlp"></i>Sensitive events</span></div>
+            <div id="trends"></div>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="definitions-title">
+          <div class="panel-head"><h2 id="definitions-title">V1 definitions</h2></div>
+          <div class="panel-body note">
+            <p><strong>Usage</strong> is a recognised AI-domain visit, not proof that a person submitted a prompt.</p>
+            <p><strong>Unsanctioned</strong> means the organisation has not marked that recognised service as sanctioned.</p>
+            <p><strong>Prevent pasting</strong> applies the extension’s paste policy. It does not block access to the website.</p>
+          </div>
+        </section>
+
+        <section class="panel ledger" aria-labelledby="tools-title">
+          <div class="panel-head"><div><h2 id="tools-title">Discovered tools</h2><div class="note">Organisation-specific classification and paste policy</div></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Tool</th><th>Classification</th><th>Visits</th><th>Paste attempts</th><th>Attempted volume</th><th>Active seats</th><th>Actions</th></tr></thead><tbody id="tools"></tbody></table></div>
+        </section>
+
+        <section class="panel ledger" aria-labelledby="ledger-title">
+          <div class="panel-head"><div><h2 id="ledger-title">DLP event ledger</h2><div class="note">Detection metadata and outcome only—never pasted content or secret values</div></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Time</th><th>Seat ID</th><th>Destination</th><th>Detection reason</th><th>Outcome</th><th>Findings</th></tr></thead><tbody id="ledger"></tbody></table></div>
+          <div class="pager"><span class="note" id="ledger-count">—</span><div class="row-actions"><button class="btn" id="prev" type="button" disabled>Previous</button><button class="btn" id="next" type="button" disabled>Next</button></div></div>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      const API = "http://127.0.0.1:8791";
+      const HEADERS = { "X-SI-Shadow-Test": "1", "Content-Type": "application/json" };
+      const $ = (id) => document.getElementById(id);
+      const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+      const fmt = (value) => (Number(value) || 0).toLocaleString();
+      const bytes = (value) => {
+        const n = Number(value) || 0;
+        if (n < 1024) return `${fmt(n)} B`;
+        if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+        return `${(n / 1024 / 1024).toFixed(1)} MB`;
+      };
+      const outcome = { blocked: "Blocked", cancelled: "Cancelled", sanitised: "Sanitised & pasted", warning_bypassed: "Pasted despite warning" };
+      let token = null;
+      let report = null;
+      let offset = 0;
+      const limit = 25;
+
+      async function api(path, body) {
+        const response = await fetch(API + path, {
+          method: body === undefined ? "GET" : "POST",
+          headers: { ...HEADERS, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+          cache: "no-store",
+        });
+        const value = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(value.error || `HTTP ${response.status}`);
+        return value;
+      }
+
+      async function authenticate() {
+        const session = await api("/v1/shadow/test-session", { scenario: "business-admin", consent: true });
+        token = session.token;
+      }
+
+      function renderSummary(summary) {
+        $("c-tools").textContent = fmt(summary.totalTools);
+        $("c-visits").textContent = fmt(summary.totalVisits);
+        $("c-unsanctioned").textContent = `${Number(summary.unsanctionedUsagePercent || 0).toFixed(1)}%`;
+        $("c-pastes").textContent = fmt(summary.pasteAttempts);
+        $("c-bytes").textContent = bytes(summary.pasteBytes);
+        $("c-sensitive").textContent = fmt(summary.sensitiveEvents);
+        $("c-risk").textContent = `${fmt(summary.highRiskDestinations)} higher-risk tools`;
+      }
+
+      function renderTrends(rows) {
+        const root = $("trends");
+        if (!rows.length) { root.innerHTML = '<div class="empty">No recognised activity in this window</div>'; return; }
+        const max = Math.max(1, ...rows.map((row) => Number(row.visits) + Number(row.pastes) + Number(row.sensitiveEvents)));
+        root.innerHTML = rows.map((row) => {
+          const visits = Number(row.visits) || 0;
+          const pastes = Number(row.pastes) || 0;
+          const sensitive = Number(row.sensitiveEvents) || 0;
+          return `<div class="trend"><span class="trend-day">${esc(row.day)}</span><span class="track" title="${visits} visits, ${pastes} paste attempts, ${sensitive} sensitive events"><i class="seg visit" style="width:${visits / max * 100}%"></i><i class="seg paste" style="width:${pastes / max * 100}%"></i><i class="seg dlp" style="width:${sensitive / max * 100}%"></i></span><span class="trend-n">${fmt(visits)} / ${fmt(pastes)} / ${fmt(sensitive)}</span></div>`;
+        }).join("");
+      }
+
+      function renderTools(tools) {
+        const root = $("tools");
+        if (!tools.length) { root.innerHTML = '<tr><td colspan="7" class="empty">No AI tools discovered yet</td></tr>'; return; }
+        root.innerHTML = tools.map((tool) => `<tr data-service="${esc(tool.serviceId)}"><td><div class="tool-name">${esc(tool.name)}</div><div class="host">${esc((tool.observedHostnames || [tool.hostname]).join(", "))}</div></td><td><span class="pill ${esc(tool.classification)}">${tool.classification === "sanctioned" ? "Tier 1 · Sanctioned" : tool.classification === "review" ? "Tier 3 · Review" : "Tier 2 · Recognised"}</span></td><td>${fmt(tool.visits)}</td><td>${fmt(tool.pastes)}</td><td>${bytes(tool.bytes)}</td><td>${fmt(tool.activeSeats)}</td><td><div class="row-actions"><select data-classification aria-label="Classification for ${esc(tool.name)}"><option value="recognized" ${tool.classification === "recognized" ? "selected" : ""}>Recognised</option><option value="sanctioned" ${tool.classification === "sanctioned" ? "selected" : ""}>Sanctioned</option><option value="review" ${tool.classification === "review" ? "selected" : ""}>Review / higher risk</option></select><button class="btn ${tool.pasteBlocked ? "danger" : ""}" data-paste-blocked="${tool.pasteBlocked ? "false" : "true"}" type="button">${tool.pasteBlocked ? "Allow pasting" : "Prevent pasting"}</button></div></td></tr>`).join("");
+      }
+
+      function renderLedger(data) {
+        const root = $("ledger");
+        if (!data.events.length) root.innerHTML = '<tr><td colspan="6" class="empty">No sensitive events in this window</td></tr>';
+        else root.innerHTML = data.events.map((event) => `<tr><td>${esc(new Date(event.timestamp).toLocaleString())}</td><td class="seat">${esc(event.seatLabel)}</td><td><div>${esc(event.hostname)}</div><div class="host">${esc(event.serviceId)}</div></td><td>${esc(event.reason)}</td><td><span class="pill ${esc(event.action)}">${esc(outcome[event.action] || event.action)}</span></td><td>${fmt(event.findingCount)}</td></tr>`).join("");
+        $("ledger-count").textContent = `${fmt(data.total)} events · ${offset + 1}-${Math.min(offset + data.events.length, data.total) || 0}`;
+        $("prev").disabled = offset === 0;
+        $("next").disabled = data.nextOffset === null;
+        $("next").dataset.offset = data.nextOffset ?? "";
+      }
+
+      async function load() {
+        $("refresh").disabled = true;
+        $("error").hidden = true;
+        try {
+          if (!token) await authenticate();
+          const days = Number($("range").value);
+          const [dashboard, ledger] = await Promise.all([
+            api("/v1/shadow/admin/dashboard", { days }),
+            api("/v1/shadow/admin/ledger", { days, limit, offset }),
+          ]);
+          report = dashboard;
+          renderSummary(dashboard.summary);
+          renderTrends(dashboard.trends);
+          renderTools(dashboard.tools);
+          renderLedger(ledger);
+          $("updated").textContent = `Updated ${new Date(dashboard.generatedAt).toLocaleTimeString()}`;
+        } catch (error) {
+          $("error").textContent = `Local Shadow API unavailable: ${error.message}. Start the backend on port 8791.`;
+          $("error").hidden = false;
+        } finally { $("refresh").disabled = false; }
+      }
+
+      async function updatePolicy(serviceId, change, control) {
+        control.disabled = true;
+        try {
+          await api("/v1/shadow/admin/policy", { serviceId, ...change });
+          await load();
+        } catch (error) {
+          $("error").textContent = `Policy update failed: ${error.message}`;
+          $("error").hidden = false;
+        } finally { control.disabled = false; }
+      }
+
+      $("tools").addEventListener("change", (event) => {
+        const control = event.target.closest("[data-classification]");
+        if (!control) return;
+        const row = control.closest("[data-service]");
+        updatePolicy(row.dataset.service, { classification: control.value }, control);
+      });
+      $("tools").addEventListener("click", (event) => {
+        const control = event.target.closest("[data-paste-blocked]");
+        if (!control) return;
+        const row = control.closest("[data-service]");
+        updatePolicy(row.dataset.service, { pasteBlocked: control.dataset.pasteBlocked === "true" }, control);
+      });
+      $("refresh").addEventListener("click", load);
+      $("range").addEventListener("change", () => { offset = 0; load(); });
+      $("prev").addEventListener("click", () => { offset = Math.max(0, offset - limit); load(); });
+      $("next").addEventListener("click", (event) => { offset = Number(event.currentTarget.dataset.offset); load(); });
+      window.addEventListener("DOMContentLoaded", load);
+      window.setInterval(load, 60_000);
+    </script>
+  </body>
+</html>
