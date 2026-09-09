@@ -122,9 +122,12 @@ let browser;
   );
   check(!(await page.locator("body").innerText()).includes("PRIVATE PASTED CONTENT"), "private content appeared");
 
-  await page.locator('tr[data-service="chatgpt"] select').selectOption("sanctioned");
+  await page
+    .locator('tr[data-service="chatgpt"]')
+    .getByRole("button", { name: "Mark as sanctioned", exact: true })
+    .click();
   await page.waitForTimeout(150);
-  await page.locator('tr[data-service="chatgpt"] button').click();
+  await page.locator('tr[data-service="chatgpt"] [data-paste-blocked]').click();
   await page.waitForFunction(() => document.getElementById("refresh").disabled === false);
   check(
     policyUpdates.some((value) => value.serviceId === "chatgpt" && value.classification === "sanctioned"),

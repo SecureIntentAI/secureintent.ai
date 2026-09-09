@@ -272,7 +272,7 @@
       function renderTools(tools) {
         const root = $("tools");
         if (!tools.length) { root.innerHTML = '<tr><td colspan="7" class="empty">No AI tools discovered yet</td></tr>'; return; }
-        root.innerHTML = tools.map((tool) => `<tr data-service="${esc(tool.serviceId)}"><td><div class="tool-name">${esc(tool.name)}</div><div class="host">${esc((tool.observedHostnames || [tool.hostname]).join(", "))}</div></td><td><span class="pill ${esc(tool.classification)}">${tool.classification === "sanctioned" ? "Tier 1 · Sanctioned" : tool.classification === "review" ? "Tier 3 · Review" : "Tier 2 · Recognised"}</span></td><td>${fmt(tool.visits)}</td><td>${fmt(tool.pastes)}</td><td>${bytes(tool.bytes)}</td><td>${fmt(tool.activeSeats)}</td><td><div class="row-actions"><select data-classification aria-label="Classification for ${esc(tool.name)}"><option value="recognized" ${tool.classification === "recognized" ? "selected" : ""}>Recognised</option><option value="sanctioned" ${tool.classification === "sanctioned" ? "selected" : ""}>Sanctioned</option><option value="review" ${tool.classification === "review" ? "selected" : ""}>Review / higher risk</option></select><button class="btn ${tool.pasteBlocked ? "danger" : ""}" data-paste-blocked="${tool.pasteBlocked ? "false" : "true"}" type="button">${tool.pasteBlocked ? "Allow pasting" : "Prevent pasting"}</button></div></td></tr>`).join("");
+        root.innerHTML = tools.map((tool) => `<tr data-service="${esc(tool.serviceId)}"><td><div class="tool-name">${esc(tool.name)}</div><div class="host">${esc((tool.observedHostnames || [tool.hostname]).join(", "))}</div></td><td><span class="pill ${esc(tool.classification)}">${tool.classification === "sanctioned" ? "Tier 1 · Sanctioned" : tool.classification === "review" ? "Tier 3 · Review" : "Tier 2 · Recognised"}</span></td><td>${fmt(tool.visits)}</td><td>${fmt(tool.pastes)}</td><td>${bytes(tool.bytes)}</td><td>${fmt(tool.activeSeats)}</td><td><div class="row-actions"><button class="btn primary" data-classification="${tool.classification === "sanctioned" ? "recognized" : "sanctioned"}" type="button">${tool.classification === "sanctioned" ? "Remove sanction" : "Mark as sanctioned"}</button><button class="btn" data-classification="${tool.classification === "review" ? "recognized" : "review"}" type="button">${tool.classification === "review" ? "Mark recognised" : "Needs review"}</button><button class="btn ${tool.pasteBlocked ? "danger" : ""}" data-paste-blocked="${tool.pasteBlocked ? "false" : "true"}" type="button">${tool.pasteBlocked ? "Allow pasting" : "Prevent pasting"}</button></div></td></tr>`).join("");
       }
 
       function renderLedger(data) {
@@ -318,13 +318,17 @@
         } finally { control.disabled = false; }
       }
 
-      $("tools").addEventListener("change", (event) => {
-        const control = event.target.closest("[data-classification]");
-        if (!control) return;
-        const row = control.closest("[data-service]");
-        updatePolicy(row.dataset.service, { classification: control.value }, control);
-      });
       $("tools").addEventListener("click", (event) => {
+        const classification = event.target.closest("[data-classification]");
+        if (classification) {
+          const row = classification.closest("[data-service]");
+          updatePolicy(
+            row.dataset.service,
+            { classification: classification.dataset.classification },
+            classification,
+          );
+          return;
+        }
         const control = event.target.closest("[data-paste-blocked]");
         if (!control) return;
         const row = control.closest("[data-service]");
