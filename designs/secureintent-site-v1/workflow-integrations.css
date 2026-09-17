@@ -1,0 +1,86 @@
+/* Trust and tools component from the redesign, scoped to How it works. */
+.workflow-integrations {
+  --workflow-muted: #a4a9ab;
+  --workflow-subtle: #90989b;
+  --workflow-accent: #a9ecda;
+  --workflow-border: #252a2c;
+  padding-top: 23px;
+  text-align: center;
+  border-bottom: 1px solid var(--workflow-border);
+}
+[data-theme="light"] .workflow-integrations {
+  --workflow-muted: #596367;
+  --workflow-subtle: #616d72;
+  --workflow-accent: #13775f;
+  --workflow-border: #e9edee;
+}
+.workflow-proof,
+.workflow-proof a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.workflow-proof { gap: 22px; color: var(--workflow-muted); font-size: 12px; }
+.workflow-proof a { gap: 8px; min-height: 32px; }
+.workflow-proof a:hover { color: var(--ink); }
+.workflow-proof strong { color: var(--ink); font-weight: 500; }
+.workflow-proof .icon { width: 12px; height: 12px; }
+.workflow-stars { color: var(--workflow-accent); font-size: 10px; letter-spacing: 2px; }
+.workflow-proof-divider { width: 1px; height: 12px; background: var(--workflow-border); }
+.workflow-tools { padding: 56px 0 51px; }
+.workflow-tools-label { color: var(--workflow-subtle); font-size: 10px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; }
+.workflow-platforms { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 28px 65px; margin-top: 24px; color: var(--workflow-muted); opacity: .9; }
+.workflow-platforms > span { display: flex; align-items: center; gap: 7px; font-size: 21px; font-weight: 550; letter-spacing: -.06em; white-space: nowrap; }
+.workflow-platforms .icon { width: 22px; height: 22px; }
+.workflow-platforms .platform-claude { font-family: Georgia, serif; font-size: 24px; font-weight: 400; letter-spacing: -.05em; }
+.workflow-platforms .platform-claude > span { font-family: Inter, system-ui, sans-serif; font-size: 26px; }
+.workflow-platforms .platform-slack { font-size: 24px; font-weight: 650; }
+.workflow-platforms .platform-slack > span { font-size: 31px; font-weight: 500; line-height: 1; }
+.workflow-platforms .platform-notion > span { font-family: Georgia, serif; border: 1.5px solid currentColor; font-size: 17px; line-height: 20px; width: 21px; height: 22px; border-radius: 2px; text-align: center; margin-right: 2px; }
+.workflow-platforms .platform-gmail > span { font-size: 23px; font-weight: 650; line-height: 1; margin-right: 2px; }
+.workflow-platforms .platform-flower { font-size: 27px; line-height: 1; }
+.workflow-tools-note { font-size: 12px; color: var(--workflow-subtle); margin-top: 24px; }
+@media (max-width: 900px) {
+  .workflow-platforms { gap: 24px 36px; }
+}
+@media (max-width: 600px) {
+  .workflow-proof { flex-direction: column; gap: 4px; font-size: 11px; }
+  .workflow-proof-divider { display: none; }
+  .workflow-tools { padding: 36px 0; }
+  .workflow-tools-label { font-size: 9px; }
+  .workflow-platforms { display: grid; grid-template-columns: repeat(2, max-content); gap: 24px 32px; }
+  .workflow-platforms > span { font-size: 19px; }
+  .workflow-platforms .platform-claude, .workflow-platforms .platform-slack { font-size: 22px; }
+}
+.workflow-marquee {
+  container-type: inline-size;
+  overflow: hidden;
+  margin-top: 24px;
+  padding-block: 8px;
+  mask-image: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent);
+}
+.workflow-marquee-track { display: flex; width: max-content; }
+.workflow-marquee .workflow-platforms {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  justify-content: space-around;
+  min-width: 100cqw;
+  gap: 65px;
+  margin: 0;
+  padding-right: 65px;
+}
+@keyframes workflow-logo-scroll {
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .workflow-marquee-track { animation: workflow-logo-scroll 28s linear infinite; }
+  .workflow-marquee:hover .workflow-marquee-track,
+  .workflow-integrations:focus-within .workflow-marquee-track { animation-play-state: paused; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workflow-marquee { mask-image: none; }
+  .workflow-marquee-track { display: block; width: auto; }
+  .workflow-marquee .workflow-platforms { flex-wrap: wrap; min-width: 0; gap: 24px 32px; padding: 0; }
+  .workflow-marquee .workflow-platforms[aria-hidden="true"] { display: none; }
+}

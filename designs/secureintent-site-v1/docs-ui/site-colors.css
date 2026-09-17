@@ -1,0 +1,44 @@
+/* v2.1 palette; the redesign's typography, layout and content stay intact. */
+:root {
+  --bg: #050608;
+  --surface: #0d171d;
+  --surface-raised: #15303a;
+  --text: #f3f6fa;
+  --muted: #bdc9d6;
+  --subtle: #a3b2c3;
+  --border: #344353;
+  --border-soft: #20303d;
+  --mint: #72ffff;
+  --cyan: #72ffff;
+  --accent: #72ffff;
+  --accent-soft: #0d252e;
+  --accent-border: #26535c;
+  --on-accent: #052656;
+  --header-bg: #050608ed;
+  --shadow: 0 16px 50px #00000030;
+}
+:root[data-theme="light"] {
+  --bg: #ffffff;
+  --surface: #f6fbfc;
+  --surface-raised: #e9f4f6;
+  --text: #173346;
+  --muted: #345463;
+  --subtle: #4e6b78;
+  --border: #d9e5e9;
+  --border-soft: #e9f2f5;
+  --mint: #197d86;
+  --cyan: #197d86;
+  --accent: #197d86;
+  --accent-soft: #e9f4f6;
+  --accent-border: #bddce1;
+  --on-accent: #ffffff;
+  --header-bg: #ffffffed;
+  --shadow: 0 12px 36px #19465b10;
+}
+[data-theme="light"] .button-mint { background: #193c50; border-color: #193c50; }
+[data-theme="light"] .button-mint:hover { background: #285269; border-color: #285269; }
+.docs-example-video { max-width: 900px; margin: 64px auto 0; }
+.docs-example-video h2 { margin-bottom: 20px; }
+.docs-example-video video { width: 100%; display: block; border: 1px solid var(--border); border-radius: 12px; }
+.docs-example-video p { margin-top: 12px; color: var(--muted); font-size: 13px; }
+.local-page .playground-wrap { width: 100%; }

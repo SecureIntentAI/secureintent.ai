@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <script src="../../staging-guard.js"></script>
+  <script>(function(){try{document.documentElement.dataset.theme=localStorage.getItem('si_site_theme')==='light'?'light':'dark';}catch(_){document.documentElement.dataset.theme='dark';}})();</script>
+  <meta name="theme-color" content="#050608" id="theme-color">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="description" content="See how SecureIntent protects credentials and sensitive information before an AI prompt is sent.">
+  <title>How it works · SecureIntent</title>
+  <base href="/designs/secureintent-site-v1/">
+  <link rel="icon" href="../../favicon-32x32.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="../../install-links.js" defer></script>
+  <link rel="stylesheet" href="how-it-works.css">
+  <link rel="stylesheet" href="workflow-integrations.css?v=20260915-marquee">
+  <link rel="stylesheet" href="workflow-features.css?v=20260915">
+  <script src="workflow-integrations.js?v=20260915-marquee" defer></script>
+  <script src="how-it-works.js?v=20260915-menu-cleanup" defer></script>
+</head>
+<body>
+  <svg class="svg-library" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 10a9 9 0 1 1 2.7 8.4M3 4v6h6"/></symbol>
+    <symbol id="i-up-right" viewBox="0 0 24 24"><path d="M6 18 18 6M6 6h12v12"/></symbol>
+    <symbol id="i-github" viewBox="0 0 24 24"><path d="M9 19c-4.3 1.3-4.3-2.2-6-2.7M15 22v-3.3a2.9 2.9 0 0 0-.8-2.2c2.7-.3 5.6-1.3 5.6-6A4.7 4.7 0 0 0 18.5 7a4.3 4.3 0 0 0-.1-3.5s-1-.3-3.6 1.3a12.3 12.3 0 0 0-6.6 0C5.6 3.2 4.6 3.5 4.6 3.5A4.3 4.3 0 0 0 4.5 7a4.7 4.7 0 0 0-1.3 3.5c0 4.7 2.9 5.7 5.6 6a2.9 2.9 0 0 0-.8 2.2V22"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6l-8-3Z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-paste" viewBox="0 0 24 24"><path d="M8 4h8v4H8z"/><path d="M7 6H5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2"/><path d="m9 15 2 2 4-4"/></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9m-3 3 2 2m-5 1 2 2"/></symbol>
+    <symbol id="i-mask" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/><path d="M7 4v4m5 2v4m5 2v4"/></symbol>
+    <symbol id="i-device" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="13" rx="2"/><path d="M2 20h20m-13-4-1 4m7-4 1 4"/></symbol>
+    <symbol id="i-brain" viewBox="0 0 24 24"><path d="M9 4a3 3 0 0 0-5 2 3 3 0 0 0-1 5 3 3 0 0 0 2 5 3 3 0 0 0 5 1m0-13a3 3 0 0 1 5 2 3 3 0 0 1 1 5 3 3 0 0 1-2 5 3 3 0 0 1-5 1m3-12v16"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></symbol>
+    <symbol id="i-flow" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="18" r="2"/><path d="M8 6h4a2 2 0 0 1 2 2v8m0 0-2-2m2 2 2-2"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.3 14a8.5 8.5 0 0 1-10.3-10.3A8.5 8.5 0 1 0 20.3 14Z"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></symbol>
+  </svg>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand" aria-label="SecureIntent home"><svg class="brand-mark" viewBox="0 0 250 250" aria-hidden="true"><path d="M50 195 110 75" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round"/><path d="m130 195 30-60" fill="none" stroke="var(--accent)" stroke-width="28" stroke-linecap="round"/><circle cx="190" cy="75" r="14" fill="var(--accent)"/></svg><span>SecureIntent<span class="brand-suffix">.ai</span></span></a>
+      <nav class="desktop-nav" aria-label="Main navigation"><a href="solutions.html">Solutions</a><a href="how-it-works.html" aria-current="page">How it works</a><a href="architecture.html">Architecture</a><a href="business.html">Business</a><a href="roadmap.html">Roadmap</a><a href="about.html">About</a></nav>
+      <div class="header-actions"><div class="theme-switch" role="group" aria-label="Colour theme"><button class="theme-option" type="button" data-set-theme="dark" aria-pressed="true"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-moon"/></svg> Dark</button><button class="theme-option" type="button" data-set-theme="light" aria-pressed="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-sun"/></svg> Light</button></div><button class="theme-toggle-mobile" type="button" id="theme-toggle" aria-label="Switch to light mode"><svg class="icon" aria-hidden="true"><use href="#i-sun"/></svg></button><a href="../../account.html" class="sign-in">Sign in</a><a class="button install-button" href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener">Install SecureIntent <svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow"/></svg></a><button class="menu-toggle" id="menu-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-nav"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button></div>
+    </div>
+    <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation" hidden><a href="index.html">Home</a><a href="solutions.html">Solutions</a><a href="how-it-works.html" aria-current="page">How it works</a><a href="architecture.html">Architecture</a><a href="business.html">Business</a><a href="roadmap.html">Roadmap</a><a href="about.html">About</a><a href="customers.html">Customers</a><a href="account.html">Sign in</a><a class="button" href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener">Install SecureIntent</a></nav>
+  </header>
+
+  <main id="main" tabindex="-1">
+    <section class="hero container" aria-labelledby="hero-title">
+      <div class="hero-light" aria-hidden="true"></div>
+      <div class="hero-copy"><div class="eyebrow"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-flow"/></svg> How SecureIntent works</div><h1 id="hero-title">A safer path from <span class="accent">prompt to answer.</span></h1><p>SecureIntent catches credentials and sensitive values before they reach AI. You keep the useful context, decide what to protect, and continue without losing your flow.</p><div class="hero-actions"><a class="button" href="#workflow">See the workflow <svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow"/></svg></a><a class="text-action" href="solutions.html">Explore solutions <svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow"/></svg></a></div></div>
+      <div class="hero-summary" data-glow><div class="summary-head"><span><svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg> Protection in the browser</span><span class="live-dot">Ready</span></div><div class="summary-route"><span>Your prompt</span><i aria-hidden="true"></i><span>SecureIntent</span><i aria-hidden="true"></i><span>Your AI tool</span></div><div class="summary-footer"><span><svg class="icon icon-sm" aria-hidden="true"><use href="#i-device"/></svg> Detection runs on-device</span><span><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"/></svg> You choose the action</span></div></div>
+    </section>
+
+    <section class="workflow-integrations container" aria-label="Trust and supported workflows">
+      <div class="workflow-proof">
+        <a href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener noreferrer"><span class="workflow-stars" aria-hidden="true">★★★★★</span><span><strong>4.9</strong> on the Chrome Web Store</span><svg class="icon" aria-hidden="true"><use href="#i-up-right"/></svg></a>
+        <span class="workflow-proof-divider" aria-hidden="true"></span>
+        <a href="https://github.com/Secureintent-Admin/Secureintent-Extension" target="_blank" rel="noopener noreferrer"><svg class="icon" aria-hidden="true"><use href="#i-github"/></svg>Source you can inspect<svg class="icon" aria-hidden="true"><use href="#i-up-right"/></svg></a>
+      </div>
+      <div class="workflow-tools">
+        <p class="workflow-tools-label">Right at home in your workflow</p>
+        <div class="workflow-platforms" aria-label="Browser tools">
+          <span><span class="platform-flower" aria-hidden="true">✳</span>ChatGPT</span>
+          <span class="platform-claude"><span aria-hidden="true">✳</span>Claude</span>
+          <span><svg class="icon" aria-hidden="true"><use href="#i-github"/></svg>GitHub</span>
+          <span class="platform-slack"><span aria-hidden="true">#</span>slack</span>
+          <span class="platform-notion"><span aria-hidden="true">N</span>Notion</span>
+          <span class="platform-gmail"><span aria-hidden="true">M</span>Gmail</span>
+        </div>
+        <p class="workflow-tools-note">For the browser tools you use every day.</p>
+      </div>
+    </section>
+
+    <section class="workflow-features container" id="product-capabilities" aria-label="Detect, anonymise and restore">
+        <div class="feature-grid">
+          <article class="feature" aria-label="Detect">
+            <div class="feature-visual detection-visual" aria-hidden="true">
+              <div class="visual-topline">
+                <span>prompt.txt</span><span class="mini-badge">1 FOUND</span>
+              </div>
+              <div class="scan-lines">
+                <span>Connecting to production…</span
+                ><span>region: us-east-1</span
+                ><span class="scan-highlight"
+                  ><i class="scan-dot"></i>AWS_ACCESS_KEY_ID=<b
+                    >••••••••</b
+                  ></span
+                ><span>request_id: 8f42a7</span><span>Ready to debug.</span>
+              </div>
+              <div class="scan-result">
+                <svg class="icon"><use href="#i-shield" /></svg>Sensitive
+                information detected
+              </div>
+            </div>
+            <span class="feature-index">01 — DETECT</span>
+            <p>
+              API keys, tokens, credentials, and more. Local detection spots
+              secrets before they become part of your prompt.
+            </p>
+            <a class="feature-link" href="docs/browser-protection.html#what-detects"
+              >Explore detection<svg class="icon"><use href="#i-arrow" /></svg
+            ></a>
+          </article>
+          <article class="feature" aria-label="Anonymise">
+            <div class="feature-visual redact-visual" aria-hidden="true">
+              <div class="visual-topline">
+                <span>Your prompt, protected</span
+                ><svg class="icon"><use href="#i-check" /></svg>
+              </div>
+              <div class="redact-message">
+                <span>Help me connect to the API using</span>
+                <div class="redact-before">sk_test_••••••••••••••••</div>
+                <div class="redact-arrow">
+                  <svg class="icon"><use href="#i-arrow" /></svg>
+                </div>
+                <div class="redact-after">[API_KEY_1]</div>
+                <span>and explain the response.</span>
+              </div>
+            </div>
+            <span class="feature-index">02 — ANONYMISE</span>
+            <p>
+              Replace sensitive values with placeholders. Your AI gets the
+              information it needs, while your secrets stay private.
+            </p>
+            <a class="feature-link" href="docs/browser-protection.html#actions"
+              >See how anonymisation works<svg class="icon">
+                <use href="#i-arrow" /></svg
+            ></a>
+          </article>
+          <article class="feature" aria-label="Restore — Pro">
+            <div class="feature-visual restore-visual" aria-hidden="true">
+              <div class="visual-topline">
+                <span>Local session vault</span
+                ><svg class="icon"><use href="#i-lock" /></svg>
+              </div>
+              <div class="vault-row">
+                <span>[API_KEY_1]</span><span>••••••••••</span
+                ><svg class="icon"><use href="#i-lock" /></svg>
+              </div>
+              <div class="vault-row">
+                <span>[TOKEN_2]</span><span>••••••••••</span
+                ><svg class="icon"><use href="#i-lock" /></svg>
+              </div>
+              <div class="vault-restore">
+                <svg class="icon"><use href="#i-reset" /></svg>Restore when you
+                need it<svg class="icon"><use href="#i-check" /></svg>
+              </div>
+              <div class="vault-local">
+                <span class="status-dot"></span>Stays in your local session
+              </div>
+            </div>
+            <span class="feature-index"
+              >03 — RESTORE <span class="pro-label">PRO</span></span
+            >
+            <p>
+              Restore anonymised values later in the same session. Go from an AI
+              answer to working code with less manual cleanup.
+            </p>
+            <a class="feature-link" href="docs/developer-pro.html#dehydrate"
+              >Understand local restore<svg class="icon">
+                <use href="#i-arrow" /></svg
+            ></a>
+          </article>
+        </div>
+    </section>
+
+    <section class="workflow-section container" id="workflow" aria-labelledby="workflow-title"><div class="section-intro"><div><div class="eyebrow">The workflow</div><h2 id="workflow-title">Four moments.<br><span class="accent">One protected prompt.</span></h2></div><p>Select each moment to see what happens before your prompt reaches AI.</p></div>
+      <div class="workflow-shell" data-active="detect">
+        <div class="workflow-tabs" role="group" aria-label="Explore the protection workflow"><button type="button" data-workflow-step="paste" aria-pressed="false" aria-controls="workflow-detail"><span>01</span><strong>Paste</strong><small>Bring in your context</small></button><button type="button" data-workflow-step="detect" aria-pressed="true" aria-controls="workflow-detail"><span>02</span><strong>Detect</strong><small>Find sensitive values</small></button><button type="button" data-workflow-step="protect" aria-pressed="false" aria-controls="workflow-detail"><span>03</span><strong>Protect</strong><small>Choose an action</small></button><button type="button" data-workflow-step="continue" aria-pressed="false" aria-controls="workflow-detail"><span>04</span><strong>Continue</strong><small>Keep the useful context</small></button></div>
+        <div class="workflow-stage">
+          <div class="prompt-app" aria-label="Illustrative prompt protection workflow"><div class="app-bar"><span class="app-dots" aria-hidden="true"><i></i><i></i><i></i></span><span><svg class="icon icon-sm" aria-hidden="true"><use href="#i-brain"/></svg> AI workspace</span><span class="app-state" id="app-state">Review before sending</span></div><div class="app-content"><p class="app-label">Your prompt</p><p class="prompt-message">Can you help me debug this connection?</p><div class="prompt-code"><span>client = connect(</span><span class="sensitive-code" id="sensitive-code">API_KEY=<b>••••••••••••</b></span><span>)</span></div><div class="protection-intercept" id="protection-intercept"><div><span class="intercept-icon"><svg class="icon" aria-hidden="true"><use href="#i-key"/></svg></span><span><strong>Credential detected</strong><small>Review before this value reaches the model.</small></span></div><span class="intercept-action" id="intercept-action"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-mask"/></svg> Anonymise and Paste</span></div><div class="answer-preview" id="answer-preview"><span><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"/></svg> Prompt sent with <code>[API_KEY_1]</code></span><p>Here’s how to verify the connection configuration…</p></div></div></div>
+          <aside class="workflow-detail" id="workflow-detail" aria-live="polite" aria-atomic="true"><span class="detail-number">02</span><div><div class="detail-label">On-device evaluation</div><h3 id="detail-title">Detect before paste.</h3><p id="detail-copy">SecureIntent checks pasted content for credentials, tokens, JWTs and sensitive values on your device before it is sent to an AI tool.</p><div class="detail-note" id="detail-note"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-device"/></svg><span>Your raw pasted text stays on your machine.</span></div></div></aside>
+        </div>
+        <div class="team-overlay"><span class="overlay-title"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg><span><strong>Team policy layer</strong><small>Extend the same workflow across your organisation</small></span></span><span>Shared detection rules</span><span>Security-team alerts</span><span>Visibility into AI use</span><a href="#team-layer" aria-label="See team protection"><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+      </div>
+    </section>
+
+    <section class="principles container" aria-labelledby="principles-title"><div class="section-intro compact"><div><div class="eyebrow">Designed for real work</div><h2 id="principles-title">Protection that does not<br><span class="accent">break your momentum.</span></h2></div></div><div class="principle-grid"><article data-glow><span class="principle-icon"><svg class="icon" aria-hidden="true"><use href="#i-device"/></svg></span><span class="principle-number">01</span><h3>Start on your device</h3><p>Detection runs locally, where your work begins. SecureIntent identifies credentials, tokens, JWTs and sensitive values at the point of paste.</p></article><article data-glow><span class="principle-icon"><svg class="icon" aria-hidden="true"><use href="#i-mask"/></svg></span><span class="principle-number">02</span><h3>Keep the context</h3><p>Choose to anonymise sensitive values with placeholders, so the model receives the context it needs without the original credential.</p></article><article data-glow><span class="principle-icon"><svg class="icon" aria-hidden="true"><use href="#i-flow"/></svg></span><span class="principle-number">03</span><h3>Continue with control</h3><p>SecureIntent is built to support the workflow. It guides the decision at the sensitive moment instead of arbitrarily blocking your prompt.</p></article></div></section>
+
+    <section class="coverage container" aria-labelledby="coverage-title"><div class="coverage-copy"><div class="eyebrow">Where it works</div><h2 id="coverage-title">One protection model.<br><span class="accent">More places to work.</span></h2><p>Start in the browser today, then extend protection to the tools, teams and agent workflows that shape how you use AI.</p><a class="text-action" href="solutions.html">See all solutions <svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow"/></svg></a></div><div class="coverage-list"><article data-glow><span class="coverage-icon"><svg class="icon" aria-hidden="true"><use href="#i-paste"/></svg></span><div><span class="availability">Available now</span><h3>Browser Extension</h3><p>Protect prompts in browser-based AI tools when you paste.</p></div></article><article data-glow><span class="coverage-icon"><svg class="icon" aria-hidden="true"><use href="#i-device"/></svg></span><div><span class="roadmap-note">Desktop beta</span><h3>Developer Desktop</h3><p>Bring protection to terminals, IDEs, desktop AI tools and the system clipboard.</p></div></article><article data-glow><span class="coverage-icon"><svg class="icon" aria-hidden="true"><use href="#i-brain"/></svg></span><div><span class="development-note">In development</span><h3>MCP and agent security</h3><p>Apply the same policy model to the tools agents connect to.</p></div></article></div></section>
+
+    <section class="team-section" id="team-layer" aria-labelledby="team-title"><div class="container team-grid"><div><div class="eyebrow">For teams</div><h2 id="team-title">The workflow stays simple.<br><span class="accent">The protection scales.</span></h2></div><div class="team-copy"><p>Developers keep their existing workflow. Teams add shared detection rules, organisation-specific patterns, security alerts and a central view of AI use.</p><a class="button secondary" href="solutions.html#teams">Explore team protection <svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow"/></svg></a></div></div></section>
+
+    <section class="closing container" aria-labelledby="closing-title"><div><div class="eyebrow">Start with the browser</div><h2 id="closing-title">Protect every prompt.</h2><p>Install SecureIntent free and put a guardrail between your credentials and AI.</p></div><div class="closing-actions"><a class="button" href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener">Install SecureIntent <svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow"/></svg></a><a class="text-action" href="solutions.html">Explore solutions <svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow"/></svg></a></div></section>
+  </main>
+
+  <footer class="container"><div class="footer-main"><div class="footer-brand"><a class="brand" href="index.html" aria-label="SecureIntent home"><svg class="brand-mark" viewBox="0 0 250 250" aria-hidden="true"><path d="M50 195 110 75" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round"/><path d="m130 195 30-60" fill="none" stroke="var(--accent)" stroke-width="28" stroke-linecap="round"/><circle cx="190" cy="75" r="14" fill="var(--accent)"/></svg><span>SecureIntent<span class="brand-suffix">.ai</span></span></a><p>Browser-based protection for sensitive information in AI prompts.</p></div><div class="footer-links"><h2>Product</h2><a href="solutions.html">Solutions</a><a href="how-it-works.html">How it works</a><a href="../../architecture.html">Architecture</a><a href="index.html#tiers">Pricing</a></div><div class="footer-links"><h2>Company</h2><a href="../../about.html">About us</a><a href="../../customers.html">Customers</a><a href="business.html">For business</a><a href="mailto:info@secureintent.ai">Contact</a></div><div class="footer-links"><h2>Resources</h2><a href="../../privacy.html">Privacy policy</a><a href="../../tos.html">Terms of service</a><a href="mailto:SOC@secureintent.ai">Security contact</a><a href="../../account.html">Your account</a></div></div><div class="footer-bottom"><span>© 2026 SecureIntent.AI Ltd · Registered in England &amp; Wales · 17237217</span><span>SecureIntent site v1 · Design preview</span></div></footer>
+</body>
+</html>
