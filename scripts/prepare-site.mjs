@@ -7,11 +7,19 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import vm from 'node:vm';
+import { buildMode, publicConfig, serializeConfig, resourcePolicy } from './site-config.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const source = path.join(root, 'designs/secureintent-site-v1');
 const output = path.join(root, 'dist');
-const production = process.argv.includes('--production') || process.env.CONTEXT === 'production';
+const mode = buildMode(process.env, process.argv.slice(2));
+const production = mode === 'production';
+const configScope = {window: {}};
+vm.runInNewContext(await readFile(path.join(source, 'integrations/config.js'), 'utf8'), configScope, {timeout: 1000});
+// Validate before touching dist. Only the seven known public production fields
+// and the explicit public staging allowlist may reach the published artifact.
+const config = publicConfig(configScope.window.SI_CONFIG.production, process.env, mode);
 const prefix = '/designs/secureintent-site-v1';
 const files = new Map();
 const allowed = /\.(html|css|js|svg|png|jpg|jpeg|webp|mp4|woff2|ico|txt)$/;
@@ -25,6 +33,7 @@ async function collect(dir, relative = '') {
   }
 }
 await collect(source);
+files.set('integrations/config.js', Buffer.from(serializeConfig(config)));
 // Regenerate docs so their searchable content and visible HTML cannot drift.
 const renderer = path.join(source, 'docs-ui/render.mjs');
 const docPaths = JSON.parse(execFileSync(process.execPath, [renderer], {encoding:'utf8'}));
@@ -66,7 +75,7 @@ for (const [name, buffer] of files) {
 files.set('404.html', Buffer.from('<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Page not found — SecureIntent</title><link rel="stylesheet" href="/how-it-works.css"><main class="container" style="padding:80px 24px"><h1>Page not found.</h1><p><a href="/">Return to SecureIntent</a> or <a href="/docs.html">browse the documentation</a>.</p></main></html>'));
 const aliases = [...files.keys()].filter(name => name.endsWith('.html') && !name.includes('/') && name !== 'index.html' && name !== '404.html');
 files.set('_redirects', Buffer.from(aliases.map(name => `/${name.slice(0,-5)} /${name} 200`).join('\n') + '\n/index.html / 301\n'));
-const csp = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' " + [...hashes].join(' ') + " https://clerk.secureintent.ai https://cdn.paddle.com https://www.googletagmanager.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data: blob: https://img.clerk.com https://*.paddle.com https://www.google-analytics.com; media-src 'self' blob:; connect-src 'self' https://api.secureintent.ai https://clerk.secureintent.ai https://*.paddle.com https://*.google-analytics.com https://www.googletagmanager.com; frame-src 'self' https://clerk.secureintent.ai https://*.paddle.com https://challenges.cloudflare.com; form-action 'self'";
+const csp = resourcePolicy(config, hashes, production);
 let headers = `/*\n  X-Content-Type-Options: nosniff\n  X-Frame-Options: DENY\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=()\n  Content-Security-Policy: base-uri 'self'; object-src 'none'; frame-ancestors 'none'\n  Content-Security-Policy-Report-Only: ${csp}\n  Cache-Control: public, max-age=0, must-revalidate\n`;
 if (!production) headers += '  X-Robots-Tag: noindex, nofollow\n';
 for (const name of ['account','team','lifetime_promo','uninstall']) headers += `\n/${name}*\n  Cache-Control: no-store\n  X-Robots-Tag: noindex, nofollow\n  Referrer-Policy: no-referrer\n`;
@@ -106,5 +115,5 @@ for (const [name, data] of files) {
   const dest = destination(name); await mkdir(path.dirname(dest), {recursive:true});
   await writeFile(dest, data);
 }
-await writeFile(path.join(output,'.site-manifest.json'), JSON.stringify({mode:production?'production':'preview',files:[...files.keys()]},null,2));
-console.log(`Prepared ${files.size} static files in dist (${production?'production':'preview'}). No deployment performed.`);
+await writeFile(path.join(output,'.site-manifest.json'), JSON.stringify({mode,files:[...files.keys()]},null,2));
+console.log(`Prepared ${files.size} static files in dist (${mode}). No deployment performed.`);

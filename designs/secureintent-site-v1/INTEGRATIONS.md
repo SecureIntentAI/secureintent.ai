@@ -54,24 +54,15 @@ All three external destinations returned HTTP 200 during the live checks.
 production Clerk domain/key, Paddle token/price and API are selected only on
 `secureintent.ai` and `www.secureintent.ai`.
 
-No isolated Clerk test instance, Paddle sandbox configuration or test backend
-was found in the inspected local environment files. `preview` therefore stays
-`null`. Localhost renders an explicit configuration message for protected
-services and never silently falls back to production.
+No connected staging credentials have been installed by this change. Source
+`preview` stays `null`; do not edit it to enable live services on localhost.
+The packaging step now generates public configuration from an explicit allowlist.
+See [STAGING.md](../../../STAGING.md) and the root `.env.example` for setup.
 
-For provider-backed staging, supply public test configuration:
-
-```js
-preview: {
-  apiBase: 'http://localhost:8787',
-  clerkPublishableKey: 'pk_test_REPLACE',
-  clerkScriptUrl: 'https://YOUR-TEST-INSTANCE.clerk.accounts.dev/npm/@clerk/clerk-js@5/dist/clerk.browser.js',
-  jwtTemplate: 'secureintent',
-  paddleToken: 'test_REPLACE',
-  paddleEnv: 'sandbox',
-  priceId: 'pri_REPLACE_WITH_SANDBOX_PRICE',
-},
-```
+Copy `.env.example` to an ignored `.env.staging.local`, supply actual public test
+settings, then run `node --env-file=.env.staging.local scripts/prepare-site.mjs`
+with Node 22 or newer. The Clerk script URL is derived from its development
+publishable key; server secrets are never used by the frontend build.
 
 Keep provider secrets, signing keys, database access and email credentials in
 the backend. Its CORS origins and Clerk authorized parties must include the
@@ -81,17 +72,21 @@ passing. Clerk also restricts production instances on development origins.
 From the worktree root:
 
 ```sh
-node scripts/prepare-site.mjs --production
+node scripts/prepare-site.mjs --visual-preview
 node scripts/preview-site.mjs
 ```
 
-Open **http://127.0.0.1:3002/**. The packaging flag controls SEO/publish metadata,
-not permission to use production services on localhost. The original source
+Open **http://127.0.0.1:3002/**. Build modes now control both public integration
+configuration and SEO metadata. `--production` builds a live-domain artifact
+for validation but does not permit production services on localhost. The original source
 review path remains available when serving the repository on port 3000:
 `/designs/secureintent-site-v1/index.html`.
 
-Without `--production`, local builds default to non-indexable preview output.
-Netlify's `CONTEXT=production` selects production metadata automatically.
+Without explicit settings, local builds default to disconnected, non-indexable
+visual preview output. A staging artifact contains no usable live configuration.
+Netlify production builds require production context on `main`; connected
+staging requires branch-deploy context on exact branch `SecureintnentV2`.
+Unknown/mixed/incomplete settings fail before modifying the publish directory.
 `netlify.toml` publishes only `dist`. Do not publish the repository root:
 the original root HTML remains as the unchanged main reference, while the
 package maps the approved design onto root URLs.
@@ -99,6 +94,8 @@ package maps the approved design onto root URLs.
 ## Verification
 
 ```sh
+node test/staging-config.test.mjs
+node test/staging-build.check.mjs
 node test/release.check.mjs
 
 PW=../Secureintent-Extension/node_modules/@playwright/test \
@@ -143,7 +140,9 @@ The supplied email is not embedded in site code or published configuration.
 
 ## Security boundaries
 
-Production previews fail closed on live provider identifiers. API origin checks,
+Previews fail closed on live provider identifiers. Generated staging configuration
+also restricts the serving origin; requests reject redirects and omit cookies.
+These frontend guards are not a substitute for backend authorization. API origin checks,
 request timeouts, safe text rendering, Paddle-only HTTPS portal URLs, restricted
 auth return parameters and no-script disabled submit buttons protect the new
 frontend paths. Backend authorization remains authoritative.

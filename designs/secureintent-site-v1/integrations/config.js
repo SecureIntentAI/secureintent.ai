@@ -1,7 +1,8 @@
 /* Public browser configuration only. Never put Clerk/Paddle secret keys here.
  * Production values are the existing main-branch integration identifiers.
- * For a preview, configure a separate test Worker, Clerk test instance and
- * Paddle sandbox here. See INTEGRATIONS.md; production is never a local fallback.
+ * Packaging generates preview configuration from the explicit public environment
+ * allowlist in scripts/site-config.mjs. See STAGING.md; keep this source preview
+ * disconnected. Production is never a local fallback.
  */
 window.SI_CONFIG = {
   production: {

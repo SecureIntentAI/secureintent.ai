@@ -71,7 +71,7 @@ async function ctxFor(browser, { teamBody = team(), settingsBody = settings(), v
   await ctx.route('**/integrations/config.js', r => r.fulfill({
     contentType: 'text/javascript', body: 'window.SI_CONFIG = ' + JSON.stringify({preview: {
       apiBase: 'https://api.secureintent.test', jwtTemplate: 'secureintent',
-      clerkPublishableKey: 'pk_test_fixture', clerkScriptUrl: 'https://clerk.secureintent.test/clerk.browser.js',
+      clerkPublishableKey: 'pk_test_fixture', clerkScriptUrl: 'https://fixture.clerk.accounts.dev/clerk.browser.js',
       paddleToken: 'test_fixture', paddleEnv: 'sandbox', priceId: 'pri_fixture',
     }}),
   }));

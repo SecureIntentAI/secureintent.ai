@@ -43,7 +43,7 @@ for(const name of files){
     for(const script of s.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)) {
       if(!/\bsrc=|type="module"|application\/ld/.test(script[1])) new vm.Script(script[2],{filename:name});
     }
-    if(name==='index.html') assert.ok(!/name="robots" content="noindex/.test(s),'production homepage indexable');
+    if(name==='index.html') assert.equal(/name="robots" content="noindex/.test(s),manifest.mode!=='production','robots policy matches build mode');
   } else if(name.endsWith('.css')) {
     for(const match of s.matchAll(/url\(["']?([^\s)'";]+)["']?\)/g)) resolveLocal(match[1],name);
   } else if(!/^\s*(import|export)\b/m.test(s)) new vm.Script(s,{filename:name});
@@ -55,10 +55,23 @@ for(const href of ['/account.html','/account.html?mode=signup','/team.html','htt
 assert.ok(homepage.includes('<strong>$9</strong>'));
 const config=await readFile(path.join(dir,'integrations/config.js'),'utf8');
 const sandbox={window:{}}; vm.runInNewContext(config,sandbox);
-assert.equal(sandbox.window.SI_CONFIG.production.apiBase,'https://api.secureintent.ai');
-assert.equal(sandbox.window.SI_CONFIG.production.jwtTemplate,'secureintent');
+const liveConfig=sandbox.window.SI_CONFIG.production;
 const account=await readFile(path.join(root,'account.html'),'utf8');
-for(const value of ['clerkPublishableKey','paddleToken','priceId']) assert.ok(account.includes(sandbox.window.SI_CONFIG.production[value]),value+' matches main');
+if(manifest.mode==='production') {
+  assert.equal(liveConfig.apiBase,'https://api.secureintent.ai');
+  assert.equal(liveConfig.jwtTemplate,'secureintent');
+  for(const value of ['clerkPublishableKey','paddleToken','priceId']) assert.ok(account.includes(liveConfig[value]),value+' matches main');
+  assert.equal(sandbox.window.SI_CONFIG.preview,null);
+} else {
+  assert.equal(liveConfig,null,'preview artifact has no usable live configuration');
+  assert.ok(!config.includes('pk_live_')&&!config.includes('live_7ce4'),'preview artifact has no live provider identifiers');
+  if(manifest.mode==='visual-preview') assert.equal(sandbox.window.SI_CONFIG.preview,null);
+  else {
+    assert.equal(manifest.mode,'staging');
+    assert.equal(sandbox.window.SI_CONFIG.preview.paddleEnv,'sandbox');
+    assert.ok(sandbox.window.SI_CONFIG.preview.clerkPublishableKey.startsWith('pk_test_'));
+  }
+}
 const headers=await readFile(path.join(dir,'_headers'),'utf8');
 for(const expected of ['X-Content-Type-Options: nosniff','X-Frame-Options: DENY','Cache-Control: no-store',"frame-ancestors 'none'"]) assert.ok(headers.includes(expected));
 console.log(`Release checks passed: ${pages} HTML pages, ${links} local link/asset references, main integration identifiers, public-file whitelist and security headers.`);
