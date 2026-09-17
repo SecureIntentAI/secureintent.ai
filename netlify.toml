@@ -1,0 +1,9 @@
+[build]
+  command = "node scripts/prepare-site.mjs"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[build.processing]
+  skip_processing = true

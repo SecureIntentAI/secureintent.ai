@@ -1,9 +1,9 @@
 # SecureIntent site v1
 
-Connected page-by-page design work on `staging-v2.1`. The original
-`staging-v2` pages remain the source for product content and feature claims.
+Approved design and functional integration on `SecureintnentV2`. Business
+behavior, service identifiers and extension destinations are retained from main.
 
-Final review pages (21 total):
+Final design pages (37 public HTML pages including the documentation routes):
 
 - `index.html` — approved homepage visual direction, copied from
   `soft-homepage-v1` for the connected-site review route.
@@ -23,10 +23,13 @@ Final review pages (21 total):
   embedded in the connected site's shared header and footer. Its source styles
   are scoped in `roadmap.css`.
 - `customers.html` — Chrome Web Store review content.
-- `team.html` — a design preview of the original authenticated team console;
-  no organisation data or API calls are connected in review.
-- `account.html`, `lifetime_promo.html` and `uninstall.html` — local-only
-  review surfaces for the source account, promo and feedback flows.
+- `team.html` — the approved public design with the authenticated console from
+  `main`: overview, people, seat purchases, policy settings and alerts.
+- `account.html` — Clerk authentication/profile, entitlements, Paddle checkout,
+  subscription management and the route into team management.
+- `lifetime_promo.html` — server-verified email codes and lifetime claims.
+- `uninstall.html` — real installation-token feedback with one-tap reasons and
+  optional comments; no fabricated submission without an installation ID.
 - `privacy.html` and `tos.html` — the source legal wording in the shared site
   system.
 - `docs.html` and `docs/` — a searchable documentation hub and five focused
@@ -50,13 +53,19 @@ Documentation remains under Product. The former large CTA is removed.
 Security/support links use accessible dialogs; source demo status figures and
 the placeholder PGP key are not represented as live data or a usable key.
 
-Serve the repository root and visit:
-`http://127.0.0.1:3001/designs/secureintent-site-v1/solutions.html`.
+For the future Netlify root-site package, run `node scripts/prepare-site.mjs
+--production` followed by `node scripts/preview-site.mjs` from the worktree root.
+Open `http://127.0.0.1:3002/`. This is local review, not a deployment.
 
-All review-only forms are intentionally local-only. They do not send, retain,
-authenticate, issue entitlement, or connect to billing/team services.
-`staging-guard.js` is loaded first, keeping preview pages isolated from
-production services.
+Account, team, business enquiry and lifetime promotion now use the service
+contracts from `main`. See [INTEGRATIONS.md](INTEGRATIONS.md) for configuration,
+testing and remaining launch requirements. Business enquiries use the existing
+email-and-tier endpoint; name/company are deliberately not submitted or saved.
+Their new runtime requires explicit test services on non-production hosts.
+The Netlify configuration publishes only generated `dist` with root routes,
+security headers and SEO metadata. It excludes internal docs, tests and legacy
+root HTML. Production has not been deployed. See the integration checklist
+for the remaining real-session, sandbox-payment and production rollout gates.
 
 Solutions refinement (September 2026):
 

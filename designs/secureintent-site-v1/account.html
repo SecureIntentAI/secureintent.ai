@@ -1,12 +1,122 @@
 <!doctype html>
 <html lang="en" data-theme="dark">
 <head>
-  <meta charset="utf-8"><script src="../../staging-guard.js"></script><script>(function(){try{document.documentElement.dataset.theme=localStorage.getItem('si_site_theme')==='light'?'light':'dark';}catch(_){}})();</script>
+  <meta charset="utf-8"><script src="integrations/config.js"></script><script src="integrations/runtime.js"></script><script>(function(){try{document.documentElement.dataset.theme=localStorage.getItem('si_site_theme')==='light'?'light':'dark';}catch(_){}})();</script>
   <meta name="theme-color" content="#050608" id="theme-color"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Account · SecureIntent</title><base href="/designs/secureintent-site-v1/">
-  <link rel="icon" href="../../favicon-32x32.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="how-it-works.css"><link rel="stylesheet" href="site-pages.css"><script src="how-it-works.js?v=20260915-menu-cleanup" defer></script><script src="review-utilities.js" defer></script>
-</head>
+  <link rel="icon" href="../../favicon-32x32.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="how-it-works.css"><link rel="stylesheet" href="site-pages.css"><script src="how-it-works.js?v=20260915-menu-cleanup" defer></script>
+<link rel="stylesheet" href="integrations/account.css"><link rel="stylesheet" href="integrations/app.css"><script src="../../install-links.js" defer></script><script src="integrations/account.js" defer></script><script src="integrations/site.js" defer></script></head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
   <header class="site-header"><div class="container header-inner"><a href="index.html" class="brand"><span aria-hidden="true" class="brand-dot">●</span><span>SecureIntent<span class="brand-suffix">.ai</span></span></a><div class="header-actions"><div class="theme-switch" role="group" aria-label="Colour theme"><button class="theme-option" type="button" data-set-theme="dark" aria-pressed="true">Dark</button><button class="theme-option" type="button" data-set-theme="light" aria-pressed="false">Light</button></div><a class="text-action" href="index.html">Back to site →</a></div></div></header>
-  <main id="main" tabindex="-1"><section class="utility-page"><div class="utility-panel" data-glow data-account><div class="eyebrow">Your SecureIntent account</div><h1>Sign in.</h1><p class="lede">Unlock Pro features and manage your account.</p><form class="utility-form" id="account-form"><label for="account-email">Email address</label><input id="account-email" type="email" autocomplete="email" placeholder="you@company.com" required><button class="button" type="submit">Continue →</button></form><div id="account-preview" class="utility-success"><strong>Account workspace preview</strong><br>Developer, Developer Pro and Business Pro plans; subscription management; included features; and Business Pro team controls live here after authentication.</div><p class="utility-note" id="account-note">Design review only — SecureIntent authentication, billing and team data are intentionally disconnected from this staging preview.</p><div class="utility-links"><a href="business.html">Explore Business Pro</a><a href="team.html">View team console</a></div></div></section></main>
+  <main id="main" tabindex="-1" class="utility-page"><section class="account-app"><div class="app-actions"><a id="nav-team" href="team.html" hidden>Team</a><button class="text-action" id="signout-top" type="button" hidden>Sign out</button></div><div>
+      <div id="loading">Loading…</div>
+
+      <!-- Signed-out -->
+      <div id="auth" class="utility-panel" hidden><div class="eyebrow">Your SecureIntent account</div>
+        <div class="auth-head">
+          <h1 id="auth-title">Sign in</h1>
+          <p id="auth-sub">Unlock Pro features and manage your account.</p>
+        </div>
+        <div id="clerk-auth"></div>
+      </div>
+
+      <!-- Signed-in -->
+      <section id="account" hidden>
+        <!-- Shown when someone lands here from an invitation email. -->
+        <div class="joined" id="joined" hidden>
+          <strong id="joined-title">You're covered by your team's plan</strong>
+          <span id="joined-sub">Install the extension to start being protected.</span>
+          <a
+            class="joined-cta"
+            href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof"
+            target="_blank"
+            rel="noreferrer"
+            >Install SecureIntent</a
+          >
+        </div>
+
+        <div class="plan">
+          <div class="plan-info">
+            <span class="plan-who" id="plan-who">—</span>
+            <span class="plan-label"
+              >Plan · <span class="plan-name" id="plan-name">—</span></span
+            >
+            <span class="plan-sub" id="plan-sub" hidden></span>
+          </div>
+          <div class="plan-actions">
+            <button class="upgrade" id="upgrade" hidden>Upgrade · $8/mo</button>
+            <button class="manage" id="manage" hidden>Manage subscription</button>
+            <span class="lifetime-badge" id="lifetime-badge" hidden>Lifetime Pro</span>
+          </div>
+        </div>
+
+        <!-- Billing couldn't be read, or an action against it failed. A failed
+             fetch tells us nothing about this account, so we say that instead of
+             guessing: showing "Free" to someone who already pays is how people
+             end up buying a second time. -->
+        <div class="overlap overlap--error" id="plan-notice" hidden>
+          <div>
+            <strong id="plan-notice-title">Couldn't load your plan</strong>
+            <p id="plan-notice-body">
+              We couldn't reach the billing service. Your subscription isn't affected — this is only
+              what we can show right now.
+            </p>
+          </div>
+          <button class="overlap-cta" id="plan-retry" type="button">Retry</button>
+        </div>
+
+        <!-- Team: their org when they're in one, otherwise the way into buying seats. -->
+        <!-- Their employer now covers them, but they're still paying for their
+             own plan. Say so where they can act on it. -->
+        <div class="overlap" id="overlap" hidden>
+          <div>
+            <strong id="overlap-title">Your team already covers you</strong>
+            <p id="overlap-body">
+              You're also paying for Developer Pro yourself. Cancel it and you keep it until the
+              period you've paid for ends — your team seat takes over from there.
+            </p>
+          </div>
+          <button class="overlap-cta" id="overlap-cancel" type="button">
+            Cancel my subscription
+          </button>
+        </div>
+
+        <div class="team-card" id="team-card" hidden>
+          <div class="team-info">
+            <span class="team-name" id="team-name">—</span>
+            <span class="team-sub" id="team-sub">—</span>
+          </div>
+          <a class="team-cta" id="team-cta" href="team.html">Manage team</a>
+          <button class="overlap-cta team-retry" id="team-retry" type="button" hidden>Retry</button>
+        </div>
+
+        <details class="features" id="features" open>
+          <summary class="features-head">
+            <span>What's included</span>
+            <svg
+              class="feat-chev"
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M9 6l6 6-6 6"
+                stroke="currentColor"
+                stroke-width="1.9"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </summary>
+          <ul class="feature-list" id="feature-list"></ul>
+        </details>
+
+        <div id="clerk-profile"></div>
+        <p class="sync-note">
+          Signing in here syncs automatically to the SecureIntent browser extension.
+        </p>
+      </section>
+    </div></section></main>
 </body></html>

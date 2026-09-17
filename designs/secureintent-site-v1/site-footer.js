@@ -98,15 +98,15 @@
   },
   "pgp": {
     "title": "SOC PGP Public Key",
-    "content": "<p>The original review page contains a placeholder, not a usable PGP public key. Request a verified key from our Security Operations Center before sending sensitive findings.</p><p><a href=\"mailto:SOC@secureintent.ai\">Contact SOC@secureintent.ai</a></p>"
+    "content": "<p>Request a verified PGP key from our Security Operations Center before sending sensitive findings.</p><p><a href=\"mailto:SOC@secureintent.ai\">Contact SOC@secureintent.ai</a></p>"
   },
   "sectxt": {
     "title": "/.well-known/security.txt",
-    "content": "<p>Security contact information from the source site:</p><pre>Contact: mailto:SOC@secureintent.ai\nEncryption: https://secureintent.ai/#pgp\nPolicy: https://secureintent.ai/#vdp\nPreferred-Languages: en\nExpires: 2027-05-29T00:00:00.000Z\n</pre>"
+    "content": "<p>Security contact information:</p><pre>Contact: mailto:SOC@secureintent.ai\nPolicy: https://secureintent.ai/#footer-vdp\nPreferred-Languages: en\nExpires: 2027-05-29T00:00:00.000Z\n</pre>"
   },
   "status": {
     "title": "System Status",
-    "content": "<p>This design preview does not query live service status. The figures on the original review page are demonstration data, not a current uptime report.</p><p>For current service information, <a href=\"mailto:info@secureintent.ai\">contact info@secureintent.ai</a>.</p>"
+    "content": "<p>For service availability or an incident affecting your account, contact our support team.</p><p>For current service information, <a href=\"mailto:info@secureintent.ai\">contact info@secureintent.ai</a>.</p>"
   },
   "billing": {
     "title": "Billing & License Support",

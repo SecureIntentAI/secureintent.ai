@@ -12,6 +12,8 @@
  *
  * PW points at any checkout that has Playwright installed (the extension repo
  * next door does). Screenshots land in OUT, which defaults to a temp dir.
+ * To run the same checks against V2, set:
+ * BASE=http://127.0.0.1:3000/designs/secureintent-site-v1
  */
 // A path in PW is resolved against the shell's directory, not this file's.
 const { chromium } = require(
@@ -64,13 +66,23 @@ const metrics = {
 
 async function ctxFor(browser, { teamBody = team(), settingsBody = settings(), viewport = { width: 1280, height: 900 } } = {}) {
   const ctx = await browser.newContext({ viewport, deviceScaleFactor: 2 });
+  // V2 loads service configuration before its SDKs. Keep the test backend on a
+  // reserved .test hostname; every endpoint is fulfilled below.
+  await ctx.route('**/integrations/config.js', r => r.fulfill({
+    contentType: 'text/javascript', body: 'window.SI_CONFIG = ' + JSON.stringify({preview: {
+      apiBase: 'https://api.secureintent.test', jwtTemplate: 'secureintent',
+      clerkPublishableKey: 'pk_test_fixture', clerkScriptUrl: 'https://clerk.secureintent.test/clerk.browser.js',
+      paddleToken: 'test_fixture', paddleEnv: 'sandbox', priceId: 'pri_fixture',
+    }}),
+  }));
+  for (const u of ['**/fonts.googleapis.com/**', '**/fonts.gstatic.com/**', '**/cdnjs.cloudflare.com/**']) await ctx.route(u, r => r.fulfill({body:''}));
   for (const u of ["**/clerk.browser.js", "**/paddle.js"]) await ctx.route(u, (r) => r.fulfill({ body: "", contentType: "text/javascript" }));
   await ctx.route("**/v1/team/settings*", (r) => r.fulfill({ json: settingsBody }));
   await ctx.route("**/v1/team/metrics*", (r) => r.fulfill({ json: metrics }));
   await ctx.route("**/v1/team*", (r) => r.fulfill({ json: teamBody }));
   await ctx.addInitScript(() => {
     window.Clerk = {
-      user: { primaryEmailAddress: { emailAddress: "ada@acme.io" } },
+      user: { id: "user_fixture", primaryEmailAddress: { emailAddress: "ada@acme.io" } },
       session: { getToken: async () => "tok" },
       load: async () => {}, addListener: () => {}, signOut: () => {}, mountSignIn: () => {}, mountSignUp: () => {},
     };
@@ -88,6 +100,7 @@ const state = () => ({
   alertsDot: document.getElementById("nav-alerts-dot").hidden ? null : document.getElementById("nav-alerts-dot").className,
   policyDotColor: getComputedStyle(document.getElementById("nav-policy-dot")).backgroundColor,
   alertsDotColor: getComputedStyle(document.getElementById("nav-alerts-dot")).backgroundColor,
+  dangerColor: getComputedStyle(document.getElementById("team-err")).color,
   locked: [...document.querySelectorAll(".navitem")].filter((n) => n.getAttribute("aria-disabled") === "true").map((n) => n.dataset.view),
   topbarHidden: document.getElementById("topbar").hidden,
   overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -192,7 +205,7 @@ const state = () => ({
     await p.goto(BASE + "/team.html");
     await p.waitForTimeout(900);
     const s = await p.evaluate(state);
-    check("a failing webhook shows red from Overview", s.alertsDot === "sdot sdot--bad" && s.alertsDotColor === "rgb(255, 107, 107)", s);
+    check("a failing webhook shows the theme's danger color from Overview", s.alertsDot === "sdot sdot--bad" && s.alertsDotColor === s.dangerColor, s);
     await p.click(".navitem[data-view=alerts]"); await p.waitForTimeout(200);
     await p.screenshot({ path: OUT + "c-alerts-bad.png" });
     await ctx.close();

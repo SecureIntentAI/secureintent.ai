@@ -2,7 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <script src="../../staging-guard.js"></script>
+  <script src="integrations/config.js"></script><script src="integrations/runtime.js"></script>
   <script>
     // Apply the saved choice before paint. Original brand colours are the default.
     (function () {
@@ -235,7 +235,7 @@
     }
     @media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } *,*::before,*::after { transition:none!important; animation:none!important; } }
   </style>
-</head>
+<script src="integrations/site.js" defer></script><script src="integrations/business.js" defer></script></head>
 <body>
   <svg class="svg-library" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
     <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6"/></symbol>
@@ -267,7 +267,7 @@
           <button class="theme-option" type="button" data-set-theme="light" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-sun"/></svg> Light</button>
         </div>
         <button class="theme-toggle-mobile" type="button" id="theme-toggle" aria-label="Switch to light mode"><svg class="icon" aria-hidden="true"><use href="#i-sun"/></svg></button>
-        <a href="../../account.html" class="sign-in">Sign in</a>
+        <a href="account.html" class="sign-in">Sign in</a>
         <a class="button" href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener">Install SecureIntent <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
         <button class="menu-toggle" id="menu-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-nav"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>
       </div>
@@ -350,8 +350,8 @@
       <div class="section-intro"><div class="eyebrow">Plans</div><h2 id="pricing-title">Protection that fits the way you work.</h2><p>Start with the extension, then add workflow tools and team controls when you need them.</p></div>
       <div class="pricing">
         <article class="plan"><div class="plan-label">For individual use</div><h3>Free</h3><p class="plan-description">Core detection and a clear decision before a risky paste.</p><div class="price"><strong>$0</strong><span>/ forever</span></div><p class="price-note">Browser extension included</p><ul><li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> On-device credential detection</li><li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Pattern and entropy checks</li><li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Review before you paste</li><li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> 10 anonymisations per month</li></ul><a class="button secondary" href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener">Install SecureIntent <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></article>
-        <article class="plan featured"><div class="plan-label">For frequent AI use</div><h3>Developer Pro</h3><p class="plan-description">Anonymisation and workflow tools for developers who use AI every day.</p><div class="price"><strong>$8</strong><span>/ month</span></div><p class="price-note">Everything in Free, plus workflow tools</p><ul><li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Unlimited dehydrate &amp; rehydrate</li><li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Ghost Log Sanitiser</li><li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Cloud Console Session Lock</li><li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Direct product feedback channel</li></ul><a class="button" href="../../account.html?mode=signup">Choose Developer Pro <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></article>
-        <article class="plan"><div class="plan-label">For teams</div><h3>Business Pro</h3><p class="plan-description">Shared controls and detection policies for teams using AI at work.</p><div class="price"><strong>$12</strong><span>/ seat / month</span></div><p class="price-note">3 seats minimum · Includes Developer Pro</p><ul><li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Shared team policies</li><li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Custom detection patterns</li><li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Security-team alerts</li><li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Seat and team management</li></ul><a class="button secondary" href="#enquiry">Talk to our team <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></article>
+        <article class="plan featured"><div class="plan-label">For frequent AI use</div><h3>Developer Pro</h3><p class="plan-description">Anonymisation and workflow tools for developers who use AI every day.</p><div class="price"><strong>$8</strong><span>/ month</span></div><p class="price-note">Everything in Free, plus workflow tools</p><ul><li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Unlimited dehydrate &amp; rehydrate</li><li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Ghost Log Sanitiser</li><li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Cloud Console Session Lock</li><li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Direct product feedback channel</li></ul><a class="button" href="account.html?mode=signup">Choose Developer Pro <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></article>
+        <article class="plan"><div class="plan-label">For teams</div><h3>Business Pro</h3><p class="plan-description">Shared controls and detection policies for teams using AI at work.</p><div class="price"><strong>$9</strong><span>/ seat / month</span></div><p class="price-note">3 seats minimum · Includes Developer Pro</p><ul><li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Shared team policies</li><li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Custom detection patterns</li><li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Security-team alerts</li><li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Seat and team management</li></ul><a class="button secondary" href="team.html">Buy seats <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></article>
       </div>
       <p class="pricing-note">Need a larger rollout or a team evaluation? <a href="#enquiry">Talk to us.</a></p>
     </section>
@@ -360,11 +360,11 @@
       <div class="contact">
         <div class="contact-copy"><div class="eyebrow">For teams</div><h2 id="contact-title">Set a safer default<br>for your team.</h2><p>Tell us how your team uses browser-based AI. We’ll help you assess the right plan, controls, and rollout path.</p><a href="business.html" class="text-link">See business capabilities <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
         <form class="contact-form" id="contact-form" novalidate>
-          <div class="field-row"><div><label for="contact-name">Full name</label><input id="contact-name" name="name" autocomplete="name" placeholder="Alex Morgan" required aria-describedby="form-error"></div><div><label for="contact-company">Company</label><input id="contact-company" name="company" autocomplete="organization" placeholder="Company name"></div></div>
+          <div class="field-row"><div><label for="contact-name">Full name</label><input id="contact-name" name="name" autocomplete="name" placeholder="Alex Morgan" aria-describedby="form-error"></div><div><label for="contact-company">Company</label><input id="contact-company" name="company" autocomplete="organization" placeholder="Company name"></div></div>
           <label for="contact-email">Work email</label><input id="contact-email" name="email" type="email" autocomplete="email" placeholder="name@company.com" required aria-describedby="form-error">
           <p class="form-error" id="form-error" role="alert" hidden></p>
-          <button class="button" type="submit">Request a team conversation <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button>
-          <p class="form-note">Design preview: this form does not submit or store details.</p><p class="form-status" id="form-status" role="status" aria-live="polite"></p>
+          <button class="button" type="submit" disabled>Request a team conversation <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+          <p class="form-note">Only your email address and interest in Business Pro are submitted.</p><p class="form-status" id="form-status" role="status" aria-live="polite"></p>
         </form>
       </div>
     </section>
@@ -373,9 +373,9 @@
   <footer class="container">
     <div class="footer-main">
       <div class="footer-brand"><a class="brand" href="#" aria-label="SecureIntent home"><svg class="brand-mark" viewBox="0 0 250 250" aria-hidden="true"><path d="M50 195 110 75" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round"/><path d="m130 195 30-60" fill="none" stroke="var(--brand-detail)" stroke-width="28" stroke-linecap="round"/><circle cx="190" cy="75" r="14" fill="var(--brand-detail)"/></svg><span>SecureIntent<span class="brand-suffix">.ai</span></span></a><p>Browser-based protection for sensitive information in AI prompts.</p></div>
-      <div class="footer-links"><h2>Product</h2><a href="solutions.html">Solutions</a><a href="how-it-works.html">How it works</a><a href="../../architecture.html">Architecture</a><a href="#tiers">Pricing</a><a href="../../roadmap.html">Roadmap</a></div>
-      <div class="footer-links"><h2>Company</h2><a href="../../about.html">About us</a><a href="../../customers.html">Customers</a><a href="business.html">For business</a><a href="mailto:info@secureintent.ai">Contact</a></div>
-      <div class="footer-links"><h2>Resources</h2><a href="../../privacy.html">Privacy policy</a><a href="../../tos.html">Terms of service</a><a href="mailto:SOC@secureintent.ai">Security contact</a><a href="../../account.html">Your account</a></div>
+      <div class="footer-links"><h2>Product</h2><a href="solutions.html">Solutions</a><a href="how-it-works.html">How it works</a><a href="architecture.html">Architecture</a><a href="#tiers">Pricing</a><a href="roadmap.html">Roadmap</a></div>
+      <div class="footer-links"><h2>Company</h2><a href="about.html">About us</a><a href="customers.html">Customers</a><a href="business.html">For business</a><a href="mailto:info@secureintent.ai">Contact</a></div>
+      <div class="footer-links"><h2>Resources</h2><a href="privacy.html">Privacy policy</a><a href="tos.html">Terms of service</a><a href="mailto:SOC@secureintent.ai">Security contact</a><a href="account.html">Your account</a></div>
     </div>
     <div class="footer-bottom"><span>© 2026 SecureIntent.AI Ltd · Registered in England &amp; Wales · 17237217</span><div class="review-links"><span>SecureIntent site v1 · Final design review</span></div></div>
   </footer>
@@ -456,22 +456,6 @@
         if (event.target === dialog && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) dialog.close();
       });
 
-      const form = document.getElementById('contact-form');
-      const formError = document.getElementById('form-error');
-      const formStatus = document.getElementById('form-status');
-      form.addEventListener('submit', event => {
-        event.preventDefault(); formStatus.textContent = '';
-        let firstInvalid;
-        form.querySelectorAll('input').forEach(input => {
-          const valid = input.checkValidity() && (!input.required || input.value.trim().length > 0);
-          input.setAttribute('aria-invalid', String(!valid));
-          if (!valid && !firstInvalid) firstInvalid = input;
-        });
-        formError.hidden = !firstInvalid;
-        if (firstInvalid) { formError.textContent = 'Please add your name and a valid email address.'; firstInvalid.focus(); return; }
-        formStatus.textContent = 'Your details look good. This is a design preview, so nothing has been sent or stored.';
-      });
-      form.addEventListener('input', event => { event.target.removeAttribute('aria-invalid'); formStatus.textContent = ''; });
     })();
   </script>
 </body>

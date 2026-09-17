@@ -200,7 +200,7 @@ export const docs = [
       {
         id: "next-step",
         title: "Ready for the extension?",
-        body: `<p>The <a href="/designs/secureintent-site-v1/docs/start/">local getting-started page</a> explains the browser setup flow. Installation and account services are intentionally disconnected in this design preview.</p>`,
+        body: `<p>The <a href="/designs/secureintent-site-v1/docs/start/">getting-started page</a> explains the browser setup flow. Install the extension from the official browser store and use <a href="/designs/secureintent-site-v1/account.html">your account</a> to manage your plan.</p>`,
       },
     ],
   },
@@ -230,7 +230,7 @@ export const docs = [
       {
         id: "safe-testing",
         title: "Test with fictitious values",
-        body: `<p>Use the fixed examples in the <a href="/designs/secureintent-site-v1/docs/demo.html#playground">local product demo</a> when reviewing this website. Do not use active credentials, customer records, or private documents to test a design preview.</p>`,
+        body: `<p>Use the fixed examples in the <a href="/designs/secureintent-site-v1/docs/demo.html#playground">local product demo</a> to explore the product workflow. Do not use active credentials, customer records, or private documents in the website demonstration.</p>`,
       },
     ],
   },
@@ -318,8 +318,8 @@ export const docs = [
       },
       {
         id: "this-website",
-        title: "How this local preview works",
-        body: `<p>This website uses self-hosted fonts, local assets, and the locally copied product video. The interactive demo only transforms fixed sample strings. It never reads your clipboard or sends a detection request.</p><p>The theme preference is stored in your browser. Docs feedback is session-only. Copy buttons write only the visible example or page content to your clipboard when you request it.</p>${callout("No production services are connected", "Sign-in, installation, support, and plan selection stay within this local preview. Form actions do not create an account, send a message, or initiate a payment.")}`,
+        title: "How this website works",
+        body: `<p>This website uses fonts and assets to display the product documentation. The interactive demo only transforms fixed sample strings. It never reads your clipboard or sends a detection request.</p><p>The theme preference is stored in your browser. Docs feedback is session-only. Copy buttons write only the visible example or page content to your clipboard when you request it.</p><p>Account and billing pages connect to Clerk, Paddle and the SecureIntent API. Business enquiries submit your email and plan interest. Read the <a href="/designs/secureintent-site-v1/privacy.html">privacy policy</a> for details.</p>`,
       },
       {
         id: "review-the-source",
@@ -340,7 +340,7 @@ export const docs = [
       {
         id: "separate-products",
         title: "Separate surfaces, separate guarantees",
-        body: `<p>SecureIntent includes a browser extension and a desktop application. Their architectures and operating environments differ. Review the specific release you intend to use, not just the marketing description or a demonstration.</p><p>The extension source is publicly available under the Secureintent-Admin organization. The desktop workspace contains a Rust detection core and a Tauri application. Repository links are intentionally not connected in this local website preview.</p>`,
+        body: `<p>SecureIntent includes a browser extension and a desktop application. Their architectures and operating environments differ. Review the specific release you intend to use, not just the marketing description or a demonstration.</p><p>The extension source is publicly available under the Secureintent-Admin organization. The desktop workspace contains a Rust detection core and a Tauri application. <a href="https://github.com/Secureintent-Admin/Secureintent-Extension" target="_blank" rel="noopener noreferrer">Review the extension source on GitHub</a>.</p>`,
       },
       {
         id: "review-checklist",
@@ -350,7 +350,7 @@ export const docs = [
       {
         id: "website-scope",
         title: "What this website shows",
-        body: `<p>The demo is an interface illustration with predetermined sample values. It is not a bundled security engine. Documentation in this preview describes the product workflow and clearly marks unconnected or in-progress features.</p>`,
+        body: `<p>The demo is an interface illustration with predetermined sample values. It is not a bundled security engine. Documentation describes the product workflow and marks features still in development.</p>`,
       },
     ],
   },
@@ -366,7 +366,7 @@ export const docs = [
       {
         id: "desktop-browser",
         title: "Desktop browser extension",
-        body: `<p>The public starting point is the SecureIntent Chrome extension. Before installation, check the supported browser version, publisher, and requested permissions on the extension listing.</p><p>This local preview provides an <a href="/designs/secureintent-site-v1/docs/start/">installation walkthrough</a> but does not open a store listing or install software.</p>`,
+        body: `<p>The public starting point is the SecureIntent Chrome extension. Before installation, check the supported browser version, publisher, and requested permissions on the extension listing.</p><p>This website provides an <a href="/designs/secureintent-site-v1/docs/start/">installation walkthrough</a> with a link to the official browser store. You approve installation in your browser.</p>`,
       },
       {
         id: "phones-and-tablets",
@@ -411,12 +411,12 @@ export const docs = [
       {
         id: "preview-actions",
         title: "Sign-in or installation does not complete",
-        body: `<p>That is intentional in this redesign. Production services are disconnected, and all navigation stays local. The preview does not create accounts, install an extension, process payments, or send support requests.</p>`,
+        body: `<p>Open <a href="/designs/secureintent-site-v1/account.html">your account</a> to sign in. If the service fails to load, refresh and check whether your browser blocks the sign-in or payment provider. For help, email <a href="mailto:info@secureintent.ai">info@secureintent.ai</a>.</p>`,
       },
       {
         id: "get-help",
         title: "Prepare a useful support report",
-        body: `<p>Include the product version, browser or OS version, destination editor, expected behavior, and a fictitious reproduction. Do not include credentials, customer data, or unredacted screenshots.</p><p>The <a href="/designs/secureintent-site-v1/docs/contact/">local support preview</a> demonstrates the support-request interface without sending a message.</p>`,
+        body: `<p>Include the product version, browser or OS version, destination editor, expected behavior, and a fictitious reproduction. Do not include credentials, customer data, or unredacted screenshots.</p><p>The <a href="/designs/secureintent-site-v1/docs/contact/">support page</a> demonstrates the support-request interface without sending a message.</p>`,
       },
     ],
   },
@@ -430,17 +430,17 @@ export const docs = [
       {
         id: "plan-overview",
         title: "Plan overview",
-        body: `<div class="doc-table-wrap"><table><thead><tr><th>Plan</th><th>Displayed price</th><th>Starting point</th></tr></thead><tbody><tr><td>Free</td><td>$0</td><td>Get familiar with detection and 10 anonymizations per month.</td></tr><tr><td>Developer Pro</td><td>$8 / month</td><td>Expanded individual workflow, including restore.</td></tr><tr><td>Business Pro</td><td>$9 / seat / month</td><td>Team plan, with a three-seat minimum.</td></tr></tbody></table></div><p>These prices mirror the source website checked for this redesign. This preview does not provide checkout, and prices must be verified before launch. <a href="/designs/secureintent-site-v1/index.html#tiers">Compare the plans on the website.</a></p>`,
+        body: `<div class="doc-table-wrap"><table><thead><tr><th>Plan</th><th>Displayed price</th><th>Starting point</th></tr></thead><tbody><tr><td>Free</td><td>$0</td><td>Get familiar with detection and 10 anonymizations per month.</td></tr><tr><td>Developer Pro</td><td>$8 / month</td><td>Expanded individual workflow, including restore.</td></tr><tr><td>Business Pro</td><td>$9 / seat / month</td><td>Team plan, with a three-seat minimum.</td></tr></tbody></table></div><p>Developer Pro is $8 per month. Business Pro is $9 per seat per month, with a three-seat minimum. <a href="/designs/secureintent-site-v1/index.html#tiers">Compare the plans on the website.</a></p>`,
       },
       {
         id: "team-availability",
         title: "Team feature availability",
-        body: `<p>Team policy controls and alerts are marked as rolling out. A plan listing is not a guarantee that an in-progress capability is available in your installation.</p>`,
+        body: `<p>Business Pro includes team policies and security alerts. Team administrators manage seats, invitations, rules and alert settings in the team console.</p>`,
       },
       {
         id: "local-preview",
-        title: "Plan selection in this preview",
-        body: `<p>Selecting a plan opens a local account or team-contact design. No subscription is created and no payment information is collected.</p>`,
+        title: "Choose your plan",
+        body: `<p><a href="/designs/secureintent-site-v1/account.html?mode=signup">Create an account</a> for Developer Pro, or <a href="/designs/secureintent-site-v1/team.html">buy Business Pro seats</a>. Payment details are collected by Paddle checkout.</p>`,
       },
     ],
   },
@@ -466,7 +466,7 @@ export const docs = [
       {
         id: "no-promised-dates",
         title: "No unverified release promises",
-        body: `<p>This preview does not assign dates to unreleased work or claim support for unconfirmed platforms. Availability should be updated with the actual release before the site is published.</p>`,
+        body: `<p>Unreleased work has no guaranteed release date. Check the product roadmap for current availability.</p>`,
       },
     ],
   },
