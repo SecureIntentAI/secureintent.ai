@@ -1,0 +1,177 @@
+/* The original staging-v2 architecture styles, scoped to this section.
+   Font Awesome 6.5.1 and Fira Code are the same assets used by the source page. */
+.extension-architecture {
+  position: relative;
+  isolation: isolate;
+  color: #fff;
+  font-family: Inter, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+  color-scheme: dark;
+}
+.extension-architecture *,
+.extension-architecture *::before,
+.extension-architecture *::after {
+  box-sizing: border-box;
+  border-width: 0;
+  border-style: solid;
+  border-color: #e5e7eb;
+}
+.extension-architecture h2,
+.extension-architecture h3,
+.extension-architecture p {
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  letter-spacing: normal;
+  text-wrap: wrap;
+}
+.extension-architecture-background {
+  position: absolute;
+  inset: 0;
+  clip-path: inset(0);
+  pointer-events: none;
+}
+.extension-architecture-ambient {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #050505;
+}
+.extension-architecture-navy,
+.extension-architecture-cyan {
+  position: absolute;
+  border-radius: 50%;
+  mix-blend-mode: screen;
+}
+.extension-architecture-navy {
+  top: -10%;
+  left: -10%;
+  width: 500px;
+  height: 500px;
+  background: #052656;
+  filter: blur(150px);
+  opacity: .4;
+  animation: architecture-breathe 10s ease-in-out infinite alternate;
+}
+.extension-architecture-cyan {
+  bottom: -10%;
+  right: -10%;
+  width: 600px;
+  height: 600px;
+  background: #72ffff;
+  filter: blur(180px);
+  opacity: .1;
+  animation: architecture-breathe 12s ease-in-out 2s infinite alternate;
+}
+.extension-architecture-grid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px);
+  background-size: 30px 30px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
+}
+@keyframes architecture-breathe {
+  0%, 100% { transform: scale(1); opacity: .4; }
+  50% { transform: scale(1.1); opacity: .6; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .extension-architecture-navy,
+  .extension-architecture-cyan { animation: none; }
+}
+
+/* Only the source utilities actually used by the browser-flow section. */
+.extension-architecture .border-glow { border: 1px solid rgba(114, 255, 255, 0.3); box-shadow: rgba(114, 255, 255, 0.05) 0px 0px 20px inset; }
+.extension-architecture .absolute { position: absolute; }
+.extension-architecture .relative { position: relative; }
+.extension-architecture .inset-0 { inset: 0px; }
+.extension-architecture .inset-x-0 { left: 0px; right: 0px; }
+.extension-architecture .-top-4 { top: -1rem; }
+.extension-architecture .z-10 { z-index: 10; }
+.extension-architecture .mx-auto { margin-left: auto; margin-right: auto; }
+.extension-architecture .mb-10 { margin-bottom: 2.5rem; }
+.extension-architecture .mb-2 { margin-bottom: 0.5rem; }
+.extension-architecture .mb-4 { margin-bottom: 1rem; }
+.extension-architecture .mb-6 { margin-bottom: 1.5rem; }
+.extension-architecture .block { display: block; }
+.extension-architecture .inline-block { display: inline-block; }
+.extension-architecture .flex { display: flex; }
+.extension-architecture .inline-flex { display: inline-flex; }
+.extension-architecture .hidden { display: none; }
+.extension-architecture .h-16 { height: 4rem; }
+.extension-architecture .h-20 { height: 5rem; }
+.extension-architecture .w-16 { width: 4rem; }
+.extension-architecture .w-20 { width: 5rem; }
+.extension-architecture .w-full { width: 100%; }
+.extension-architecture .max-w-7xl { max-width: 80rem; }
+.extension-architecture .max-w-full { max-width: 100%; }
+.extension-architecture .flex-1 { flex: 1 1 0%; }
+.extension-architecture .flex-col { flex-direction: column; }
+.extension-architecture .flex-wrap { flex-wrap: wrap; }
+.extension-architecture .items-center { align-items: center; }
+.extension-architecture .justify-center { justify-content: center; }
+.extension-architecture .justify-between { justify-content: space-between; }
+.extension-architecture .gap-8 { gap: 2rem; }
+.extension-architecture .gap-x-3 { column-gap: 0.75rem; }
+.extension-architecture .gap-y-2 { row-gap: 0.5rem; }
+.extension-architecture .overflow-hidden { overflow: hidden; }
+.extension-architecture .whitespace-nowrap { white-space: nowrap; }
+.extension-architecture .rounded { border-radius: 0.25rem; }
+.extension-architecture .rounded-2xl { border-radius: 1rem; }
+.extension-architecture .rounded-xl { border-radius: 0.75rem; }
+.extension-architecture .border { border-width: 1px; }
+.extension-architecture .border-t { border-top-width: 1px; }
+.extension-architecture .border-brand-cyan { --tw-border-opacity: 1; border-color: rgb(114 255 255 / var(--tw-border-opacity, 1)); }
+.extension-architecture .border-brand-cyan\/20 { border-color: rgba(114, 255, 255, 0.2); }
+.extension-architecture .border-brand-cyan\/40 { border-color: rgba(114, 255, 255, 0.4); }
+.extension-architecture .border-white\/20 { border-color: rgba(255, 255, 255, 0.2); }
+.extension-architecture .border-white\/5 { border-color: rgba(255, 255, 255, 0.05); }
+.extension-architecture .bg-\[\#111\] { --tw-bg-opacity: 1; background-color: rgb(17 17 17 / var(--tw-bg-opacity, 1)); }
+.extension-architecture .bg-brand-card { --tw-bg-opacity: 1; background-color: rgb(12 14 18 / var(--tw-bg-opacity, 1)); }
+.extension-architecture .bg-brand-cyan { --tw-bg-opacity: 1; background-color: rgb(114 255 255 / var(--tw-bg-opacity, 1)); }
+.extension-architecture .bg-brand-cyan\/5 { background-color: rgba(114, 255, 255, 0.05); }
+.extension-architecture .bg-brand-navy { --tw-bg-opacity: 1; background-color: rgb(5 38 86 / var(--tw-bg-opacity, 1)); }
+.extension-architecture .bg-\[radial-gradient\(\#72FFFF_1px\,transparent_1px\)\] { background-image: radial-gradient(rgb(114, 255, 255) 1px, transparent 1px); }
+.extension-architecture .p-8 { padding: 2rem; }
+.extension-architecture .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+.extension-architecture .px-4 { padding-left: 1rem; padding-right: 1rem; }
+.extension-architecture .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+.extension-architecture .py-0\.5 { padding-top: 0.125rem; padding-bottom: 0.125rem; }
+.extension-architecture .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+.extension-architecture .py-2\.5 { padding-top: 0.625rem; padding-bottom: 0.625rem; }
+.extension-architecture .py-20 { padding-top: 5rem; padding-bottom: 5rem; }
+.extension-architecture .pb-2 { padding-bottom: 0.5rem; }
+.extension-architecture .pt-10 { padding-top: 2.5rem; }
+.extension-architecture .text-center { text-align: center; }
+.extension-architecture .font-sans { font-family: Inter, sans-serif; }
+.extension-architecture .font-mono { font-family: "Fira Code", monospace; }
+.extension-architecture .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+.extension-architecture .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+.extension-architecture .text-\[10px\] { font-size: 10px; }
+.extension-architecture .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.extension-architecture .text-xs { font-size: 0.75rem; line-height: 1rem; }
+.extension-architecture .font-bold { font-weight: 700; }
+.extension-architecture .uppercase { text-transform: uppercase; }
+.extension-architecture .leading-relaxed { line-height: 1.625; }
+.extension-architecture .tracking-widest { letter-spacing: 0.1em; }
+.extension-architecture .text-black { --tw-text-opacity: 1; color: rgb(0 0 0 / var(--tw-text-opacity, 1)); }
+.extension-architecture .text-brand-cyan { --tw-text-opacity: 1; color: rgb(114 255 255 / var(--tw-text-opacity, 1)); }
+.extension-architecture .text-brand-cyan\/40 { color: rgba(114, 255, 255, 0.4); }
+.extension-architecture .text-gray-300 { --tw-text-opacity: 1; color: rgb(209 213 219 / var(--tw-text-opacity, 1)); }
+.extension-architecture .text-gray-400 { --tw-text-opacity: 1; color: rgb(156 163 175 / var(--tw-text-opacity, 1)); }
+.extension-architecture .text-white { --tw-text-opacity: 1; color: rgb(255 255 255 / var(--tw-text-opacity, 1)); }
+.extension-architecture .opacity-10 { opacity: 0.1; }
+.extension-architecture .opacity-50 { opacity: 0.5; }
+.extension-architecture .shadow-lg { --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); --tw-shadow-colored: 0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color); box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow); }
+.extension-architecture .shadow-neon { --tw-shadow: 0 0 15px rgba(114, 255, 255, 0.3); --tw-shadow-colored: 0 0 15px var(--tw-shadow-color); box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow); }
+.extension-architecture .\[background-size\:20px_20px\] { background-size: 20px 20px; }
+@media (min-width: 640px) { .extension-architecture .sm\:rounded-full { border-radius: 9999px; } }
+@media (min-width: 640px) { .extension-architecture .sm\:px-6 { padding-left: 1.5rem; padding-right: 1.5rem; } }
+@media (min-width: 640px) { .extension-architecture .sm\:text-sm { font-size: 0.875rem; line-height: 1.25rem; } }
+@media (min-width: 768px) { .extension-architecture .md\:block { display: block; } }
+@media (min-width: 768px) { .extension-architecture .md\:hidden { display: none; } }
+@media (min-width: 768px) { .extension-architecture .md\:flex-row { flex-direction: row; } }
+@media (min-width: 768px) { .extension-architecture .md\:p-12 { padding: 3rem; } }
+@media (min-width: 768px) { .extension-architecture .md\:text-3xl { font-size: 1.875rem; line-height: 2.25rem; } }
+@media (min-width: 768px) { .extension-architecture .md\:text-base { font-size: 1rem; line-height: 1.5rem; } }

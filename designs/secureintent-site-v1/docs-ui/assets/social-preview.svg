@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs><pattern id="dots" width="16" height="16" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="1" fill="#294d40"/></pattern><radialGradient id="fade"><stop offset="0" stop-color="white"/><stop offset="1" stop-color="black"/></radialGradient><mask id="mask"><ellipse cx="950" cy="350" rx="350" ry="360" fill="url(#fade)"/></mask></defs>
+  <rect width="1200" height="630" fill="#090d10"/>
+  <rect x="700" width="500" height="630" fill="url(#dots)" mask="url(#mask)"/>
+  <path d="M60 88 74 58m5 30 7-15" fill="none" stroke="#b7f5e5" stroke-width="5" stroke-linecap="round"/><circle cx="93" cy="57" r="3" fill="#72ffff"/>
+  <text x="113" y="82" fill="#f1f4f5" font-size="28" font-weight="600" font-family="Arial,sans-serif" letter-spacing="-1">SecureIntent.</text>
+  <text x="61" y="232" fill="#f1f4f5" font-size="70" font-family="Arial,sans-serif" letter-spacing="-3">Your best ideas.</text>
+  <text x="61" y="314" fill="#f1f4f5" font-size="70" font-family="Arial,sans-serif" letter-spacing="-3">Your secrets,</text>
+  <text x="61" y="396" fill="#b7f5e5" font-size="70" font-family="Arial,sans-serif" letter-spacing="-3">protected.</text>
+  <text x="64" y="459" fill="#a3aeb5" font-size="21" font-family="Arial,sans-serif">A safer way to work with AI. All on your device.</text>
+  <rect x="64" y="502" width="233" height="46" rx="5" fill="#b7f5e5"/><text x="86" y="531" fill="#10231e" font-size="16" font-family="Arial,sans-serif">Add to Chrome — it’s free</text>
+  <g transform="translate(940 310)"><circle r="190" fill="none" stroke="#283e35"/><circle r="143" fill="none" stroke="#334e40" stroke-dasharray="3 7"/><circle r="94" fill="none" stroke="#355044"/><rect x="-57" y="-57" width="114" height="114" rx="23" fill="#15271f" stroke="#719983"/><path d="m-31 28 24-49m8 49 12-24" fill="none" stroke="#f1f4f5" stroke-width="8" stroke-linecap="round"/><path d="m1 28 12-24" fill="none" stroke="#72ffff" stroke-width="8" stroke-linecap="round"/><circle cx="27" cy="-22" r="4.5" fill="#72ffff"/></g>
+  <text x="855" y="566" fill="#92aca0" font-size="15" font-family="Arial,sans-serif">secureintent.ai</text>
+</svg>

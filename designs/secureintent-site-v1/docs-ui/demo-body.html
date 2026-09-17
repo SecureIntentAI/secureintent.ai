@@ -1,0 +1,217 @@
+    <svg
+      class="svg-library"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <defs>
+        <symbol id="i-arrow" viewBox="0 0 24 24">
+          <path d="M5 12h14m-6-6 6 6-6 6" />
+        </symbol>
+        <symbol id="i-up-right" viewBox="0 0 24 24">
+          <path d="M6 18 18 6M6 6h12v12" />
+        </symbol>
+        <symbol id="i-play" viewBox="0 0 24 24">
+          <path d="m9 5 11 7-11 7V5Z" fill="currentColor" stroke="none" />
+        </symbol>
+        <symbol id="i-close" viewBox="0 0 24 24">
+          <path d="m6 6 12 12M6 18 18 6" />
+        </symbol>
+        <symbol id="i-check" viewBox="0 0 24 24">
+          <path d="m5 12 4 4L19 6" />
+        </symbol>
+        <symbol id="i-shield" viewBox="0 0 24 24">
+          <path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z" />
+          <path d="m8 11 3 3 5-5" />
+        </symbol>
+        <symbol id="i-lock" viewBox="0 0 24 24">
+          <rect x="5" y="10" width="14" height="11" rx="2" />
+          <path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2" />
+        </symbol>
+        <symbol id="i-code" viewBox="0 0 24 24">
+          <path d="m8 6-6 6 6 6m8-12 6 6-6 6m-3-15-2 18" />
+        </symbol>
+        <symbol id="i-chrome" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" />
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 8h8.2M8.5 14 4.4 7.3m9.5 8.2-4.1 7" />
+        </symbol>
+        <symbol id="i-github" viewBox="0 0 24 24">
+          <path
+            d="M9 19c-4.3 1.3-4.3-2.2-6-2.7M15 22v-3.3a2.9 2.9 0 0 0-.8-2.2c2.7-.3 5.6-1.3 5.6-6A4.7 4.7 0 0 0 18.5 7a4.3 4.3 0 0 0-.1-3.5s-1-.3-3.6 1.3a12.3 12.3 0 0 0-6.6 0C5.6 3.2 4.6 3.5 4.6 3.5A4.3 4.3 0 0 0 4.5 7a4.7 4.7 0 0 0-1.3 3.5c0 4.7 2.9 5.7 5.6 6a2.9 2.9 0 0 0-.8 2.2V22"
+          />
+        </symbol>
+        <symbol id="i-reset" viewBox="0 0 24 24">
+          <path d="M3 10a9 9 0 1 1 2.7 8.4M3 4v6h6" />
+        </symbol>
+        <symbol id="i-copy" viewBox="0 0 24 24">
+          <rect x="8" y="8" width="12" height="12" rx="2" />
+          <path d="M16 8V4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h4" />
+        </symbol>
+        <symbol id="i-menu" viewBox="0 0 24 24">
+          <path d="M4 8h16M4 16h16" />
+        </symbol>
+        <symbol id="i-plus" viewBox="0 0 24 24">
+          <path d="M12 5v14M5 12h14" />
+        </symbol>
+        <symbol id="i-alert" viewBox="0 0 24 24">
+          <path d="m12 3 10 18H2L12 3Zm0 6v5m0 3v.1" />
+        </symbol>
+        <symbol id="i-terminal" viewBox="0 0 24 24">
+          <rect x="2" y="4" width="20" height="16" rx="3" />
+          <path d="m6 9 3 3-3 3m6 0h5" />
+        </symbol>
+        <symbol id="i-monitor" viewBox="0 0 24 24">
+          <rect x="2" y="3" width="20" height="14" rx="2" />
+          <path d="M12 17v4m-5 0h10" />
+        </symbol>
+        <symbol id="i-chevron" viewBox="0 0 24 24">
+          <path d="m9 5 7 7-7 7" />
+        </symbol>
+      </defs>
+    </svg>
+
+        <div class="playground-wrap container" id="playground">
+          <div class="demo-caption">
+            <span
+              ><span class="status-dot"></span>Your next paste, protected.</span
+            ><button
+              class="demo-jump"
+              data-try-demo
+              aria-label="Try the interactive product example"
+            >
+              Try an example<svg class="icon"><use href="#i-arrow" /></svg>
+            </button>
+          </div>
+          <div class="playground" data-state="detected">
+            <div class="playground-toolbar">
+              <div class="window-dots" aria-hidden="true">
+                <i></i><i></i><i></i>
+              </div>
+              <span class="toolbar-title">Your next AI conversation</span
+              ><span class="demo-label">INTERACTIVE EXAMPLE</span
+              ><button
+                class="icon-button reset-demo"
+                aria-label="Reset product example"
+                title="Reset example"
+              >
+                <svg class="icon"><use href="#i-reset" /></svg>
+              </button>
+            </div>
+            <div class="playground-body">
+              <div class="prompt-pane">
+                <div class="prompt-heading">
+                  <span class="mono-label">01 / YOUR PROMPT</span
+                  ><svg class="icon"><use href="#i-terminal" /></svg>
+                </div>
+                <div
+                  class="example-tabs"
+                  role="tablist"
+                  aria-label="Choose a sample secret"
+                >
+                  <button
+                    role="tab"
+                    id="tab-api"
+                    aria-selected="true"
+                    aria-controls="prompt-panel"
+                    data-example="api"
+                  >
+                    API key</button
+                  ><button
+                    role="tab"
+                    id="tab-token"
+                    aria-selected="false"
+                    aria-controls="prompt-panel"
+                    data-example="token"
+                    tabindex="-1"
+                  >
+                    Access token</button
+                  ><button
+                    role="tab"
+                    id="tab-card"
+                    aria-selected="false"
+                    aria-controls="prompt-panel"
+                    data-example="card"
+                    tabindex="-1"
+                  >
+                    Card number
+                  </button>
+                </div>
+                <!-- Preserve meaningful whitespace in this static code example. -->
+                <!-- prettier-ignore -->
+                <div class="code-editor" id="prompt-panel" role="tabpanel" aria-labelledby="tab-api" tabindex="0"><div class="code-line"><span class="line-number" aria-hidden="true">1</span><code>Help me debug this payment request.</code></div><div class="code-line"><span class="line-number" aria-hidden="true">2</span><code> </code></div><div class="code-line"><span class="line-number" aria-hidden="true">3</span><code><span class="code-purple">const</span> stripe = <span class="code-purple">new</span> Stripe(</code></div><div class="code-line"><span class="line-number" aria-hidden="true">4</span><code>  <mark class="secret-value">"sk_test_DEMO_NOT_A_REAL_KEY"</mark></code></div><div class="code-line"><span class="line-number" aria-hidden="true">5</span><code>);</code></div><div class="code-line"><span class="line-number" aria-hidden="true">6</span><code> </code></div><div class="code-line"><span class="line-number" aria-hidden="true">7</span><code><span class="code-purple">await</span> stripe.customers.list();</code></div></div>
+                <div class="prompt-foot">
+                  <svg class="icon"><use href="#i-lock" /></svg
+                  ><span>Sample data. Nothing is sent.</span
+                  ><span class="prompt-foot-state"
+                    >Waiting to paste<span class="small-cursor"></span
+                  ></span>
+                </div>
+              </div>
+              <div class="guard-pane">
+                <div class="guard-brand">
+                  <img
+                    src="/designs/secureintent-site-v1/docs-ui/assets/secureintent-mark.svg"
+                    width="26"
+                    height="26"
+                    alt=""
+                  /><span>SecureIntent</span
+                  ><span class="local-chip"
+                    ><span class="status-dot"></span>On-device</span
+                  >
+                </div>
+                <div
+                  class="guard-content"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
+                  <div class="verdict-icon">
+                    <svg class="icon"><use href="#i-shield" /></svg>
+                  </div>
+                  <span class="mono-label guard-eyebrow"
+                    >CAUGHT BEFORE THE PASTE</span
+                  >
+                  <h2 class="guard-title">A secret. Not a setback.</h2>
+                  <p class="guard-description">
+                    There’s an API key in your prompt.<br />Let’s keep it
+                    between you and your device.
+                  </p>
+                  <div class="detected-item">
+                    <svg class="icon"><use href="#i-lock" /></svg
+                    ><span class="detected-name">Stripe API key</span
+                    ><span class="detected-line">Line 4</span>
+                  </div>
+                </div>
+                <button class="button button-mint protect-button">
+                  Anonymize &amp; continue<svg class="icon">
+                    <use href="#i-arrow" />
+                  </svg>
+                </button>
+                <p class="guard-note">The context stays. The secret doesn’t.</p>
+              </div>
+            </div>
+            <div
+              class="demo-progress"
+              role="group"
+              aria-label="Protection steps"
+            >
+              <span class="complete"><i>01</i>Write your prompt</span
+              ><span class="progress-line"></span
+              ><span class="active"><i>02</i>Catch the secret</span
+              ><span class="progress-line"></span
+              ><span class="protect-step"><i>03</i>Paste with confidence</span>
+            </div>
+          </div>
+          <div class="hero-proof">
+            <a href="/designs/secureintent-site-v1/about.html#community"
+              ><span class="stars" role="img" aria-label="5 stars">★★★★★</span
+              ><span><strong>4.9</strong> on the Chrome Web Store</span
+              ><svg class="icon"><use href="#i-up-right" /></svg></a
+            ><span class="hero-proof-divider"></span
+            ><a href="/designs/secureintent-site-v1/docs/security/open-source/"
+              ><svg class="icon"><use href="#i-github" /></svg>Source you can
+              inspect<svg class="icon"><use href="#i-up-right" /></svg
+            ></a>
+          </div>
+        </div>
+
+<section class="docs-example-video"><h2>SecureIntent, in action.</h2><video controls playsinline preload="none" poster="/designs/secureintent-site-v1/docs-ui/assets/demo-poster.jpg" aria-label="SecureIntent product demonstration"><source src="/designs/secureintent-site-v1/docs-ui/assets/demo.mp4" type="video/mp4"></video><p>The original SecureIntent product demo · 41 seconds</p></section>

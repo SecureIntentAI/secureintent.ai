@@ -1,0 +1,152 @@
+/* Source: staging-v2/about.html. Source utilities are scoped to the About
+   content, leaving the shared navigation and footer unchanged. */
+.about-reference {
+  position: relative;
+  isolation: isolate;
+  clip-path: inset(0);
+  padding: 72px 24px 96px;
+  color: #fff;
+  background: #050505;
+  font: 400 16px/1.5 Inter, sans-serif;
+  color-scheme: dark;
+}
+.about-reference *, .about-reference *::before, .about-reference *::after {
+  box-sizing: border-box;
+  border-width: 0;
+  border-style: solid;
+  border-color: #e5e7eb;
+}
+.about-reference :where(h1,h2,h3,p) {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  text-wrap: initial;
+}
+.about-reference [id] { scroll-margin-top: 110px; }
+.about-content { position: relative; }
+.about-background {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: #050505;
+}
+.about-glow { position: absolute; border-radius: 50%; mix-blend-mode: screen; }
+.about-glow-navy {
+  top: -10%; left: -10%; width: 500px; height: 500px;
+  background: #052656; filter: blur(150px); opacity: .4;
+}
+.about-glow-cyan {
+  bottom: -10%; right: -10%; width: 600px; height: 600px;
+  background: #72ffff; filter: blur(180px); opacity: .1;
+}
+.about-dots {
+  position: absolute; inset: 0;
+  background-image: radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px);
+  background-size: 30px 30px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%,black 40%,transparent 100%);
+}
+@media (max-width: 760px) {
+  .about-reference { padding-top: 84px; }
+}
+.about-reference .si-card { background: linear-gradient(rgb(18, 21, 27) 0%, rgb(12, 14, 18) 55%); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 0.75rem; transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s; }
+.about-reference .si-card:hover { border-color: rgba(114, 255, 255, 0.28); transform: translateY(-2px); }
+.about-reference .mx-auto { margin-left: auto; margin-right: auto; }
+.about-reference .mb-0\.5 { margin-bottom: 0.125rem; }
+.about-reference .mb-14 { margin-bottom: 3.5rem; }
+.about-reference .mb-2 { margin-bottom: 0.5rem; }
+.about-reference .mb-3 { margin-bottom: 0.75rem; }
+.about-reference .mb-4 { margin-bottom: 1rem; }
+.about-reference .mb-5 { margin-bottom: 1.25rem; }
+.about-reference .mb-6 { margin-bottom: 1.5rem; }
+.about-reference .mt-16 { margin-top: 4rem; }
+.about-reference .flex { display: flex; }
+.about-reference .inline-flex { display: inline-flex; }
+.about-reference .grid { display: grid; }
+.about-reference .h-14 { height: 3.5rem; }
+.about-reference .h-20 { height: 5rem; }
+.about-reference .w-14 { width: 3.5rem; }
+.about-reference .w-20 { width: 5rem; }
+.about-reference .max-w-3xl { max-width: 48rem; }
+.about-reference .max-w-5xl { max-width: 64rem; }
+.about-reference .flex-shrink-0 { flex-shrink: 0; }
+.about-reference .flex-col { flex-direction: column; }
+.about-reference .items-start { align-items: flex-start; }
+.about-reference .items-center { align-items: center; }
+.about-reference .justify-center { justify-content: center; }
+.about-reference .gap-2 { gap: 0.5rem; }
+.about-reference .gap-5 { gap: 1.25rem; }
+.about-reference .gap-6 { gap: 1.5rem; }
+.about-reference .rounded-2xl { border-radius: 1rem; }
+.about-reference .rounded-full { border-radius: 9999px; }
+.about-reference .border { border-width: 1px; }
+.about-reference .border-brand-cyan\/30 { border-color: rgba(114, 255, 255, 0.3); }
+.about-reference .border-white\/10 { border-color: rgba(255, 255, 255, 0.1); }
+.about-reference .bg-\[\#111\] { --tw-bg-opacity: 1; background-color: rgb(17 17 17 / var(--tw-bg-opacity, 1)); }
+.about-reference .bg-brand-navy\/30 { background-color: rgba(5, 38, 86, 0.3); }
+.about-reference .bg-brand-navy\/50 { background-color: rgba(5, 38, 86, 0.5); }
+.about-reference .p-6 { padding: 1.5rem; }
+.about-reference .p-8 { padding: 2rem; }
+.about-reference .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+.about-reference .py-1\.5 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
+.about-reference .text-center { text-align: center; }
+.about-reference .font-mono { font-family: "Fira Code", monospace; }
+.about-reference .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+.about-reference .text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
+.about-reference .text-\[11px\] { font-size: 11px; }
+.about-reference .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.about-reference .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.about-reference .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.about-reference .text-xs { font-size: 0.75rem; line-height: 1rem; }
+.about-reference .font-bold { font-weight: 700; }
+.about-reference .uppercase { text-transform: uppercase; }
+.about-reference .leading-relaxed { line-height: 1.625; }
+.about-reference .leading-tight { line-height: 1.25; }
+.about-reference .tracking-wider { letter-spacing: 0.05em; }
+.about-reference .tracking-widest { letter-spacing: 0.1em; }
+.about-reference .text-brand-cyan { --tw-text-opacity: 1; color: rgb(114 255 255 / var(--tw-text-opacity, 1)); }
+.about-reference .text-gray-300 { --tw-text-opacity: 1; color: rgb(209 213 219 / var(--tw-text-opacity, 1)); }
+.about-reference .text-gray-400 { --tw-text-opacity: 1; color: rgb(156 163 175 / var(--tw-text-opacity, 1)); }
+.about-reference .text-gray-500 { --tw-text-opacity: 1; color: rgb(107 114 128 / var(--tw-text-opacity, 1)); }
+.about-reference .text-white { --tw-text-opacity: 1; color: rgb(255 255 255 / var(--tw-text-opacity, 1)); }
+.about-reference .transition-colors { transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, -webkit-text-decoration-color; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+.about-reference .hover\:border-brand-cyan\/30:hover { border-color: rgba(114, 255, 255, 0.3); }
+@media (min-width: 768px) { .about-reference .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0px, 1fr)); } }
+@media (min-width: 768px) { .about-reference .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0px, 1fr)); } }
+@media (min-width: 768px) { .about-reference .md\:flex-row { flex-direction: row; } }
+@media (min-width: 768px) { .about-reference .md\:text-5xl { font-size: 3rem; line-height: 1; } }
+@media (min-width: 768px) { .about-reference .md\:text-base { font-size: 1rem; line-height: 1.5rem; } }
+
+/* Let long names wrap without overflowing narrow viewports. */
+.about-reference [data-person-card] > div:last-child { min-width: 0; overflow-wrap: break-word; }
+@media (min-width: 768px) and (max-width: 1023px) {
+  .about-reference .md\:grid-cols-3 { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 359px) {
+  .about-reference .grid > [data-person-card] { flex-direction: column; }
+}
+
+/* Preserve the card design while honouring the connected site's light theme. */
+:root[data-theme="light"] .about-reference { color: var(--ink); background: var(--paper); color-scheme: light; }
+:root[data-theme="light"] .about-reference .about-background { background: var(--paper); }
+:root[data-theme="light"] .about-reference .about-dots { background-image: radial-gradient(rgba(23,51,70,.06) 1px,transparent 1px); }
+:root[data-theme="light"] .about-reference .about-glow-navy { opacity: .08; }
+:root[data-theme="light"] .about-reference .about-glow-cyan { opacity: .06; }
+:root[data-theme="light"] .about-reference [data-person-card] { background: var(--paper); border-color: var(--field-border); }
+:root[data-theme="light"] .about-reference .si-card { background: var(--featured-surface,linear-gradient(#f2f8fa,#fff)); }
+:root[data-theme="light"] .about-reference .text-white { color: var(--ink); }
+:root[data-theme="light"] .about-reference .text-gray-300,
+:root[data-theme="light"] .about-reference .text-gray-400 { color: var(--body); }
+:root[data-theme="light"] .about-reference .text-gray-500 { color: var(--muted); }
+:root[data-theme="light"] .about-reference .text-brand-cyan { color: var(--accent); }
+:root[data-theme="light"] .about-reference [class*="bg-brand-navy/"] { background: color-mix(in srgb,var(--accent) 7%,var(--paper)); }
+:root[data-theme="light"] .about-reference [class*="border-brand-cyan/"] { border-color: color-mix(in srgb,var(--accent) 30%,transparent); }
+:root[data-theme="light"] .about-reference [data-person-card]:hover { border-color: var(--accent); }
+@media (prefers-reduced-motion: reduce) {
+  .about-reference *, .about-reference *::before, .about-reference *::after { transition: none !important; }
+  .about-reference .si-card:hover { transform: none; }
+}

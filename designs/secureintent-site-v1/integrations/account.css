@@ -1,0 +1,485 @@
+/* Functional controls retained from main (3612483), scoped to the V2 app. */
+
+      .account-app * {
+        box-sizing: border-box;
+      }
+      .account-app .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 22px 28px;
+      }
+      .account-app .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: #fff;
+        text-decoration: none;
+      }
+      .account-app .brand svg {
+        display: block;
+      }
+      .account-app .brand-word {
+        font-family: var(--sans);
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .account-app .brand .accent {
+        color: var(--cyan);
+      }
+      /* Shared header nav — keep this identical to team.html. */
+      .account-app .topnav {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .account-app .navlink {
+        padding: 8px 13px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        font: 600 12.5px/1 var(--sans);
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .account-app .navlink:hover {
+        border-color: rgba(114, 255, 255, 0.4);
+        color: var(--cyan);
+      }
+      .account-app .navlink--signout {
+        color: var(--danger);
+        border-color: rgba(255, 107, 107, 0.25);
+        background: rgba(255, 107, 107, 0.08);
+      }
+      .account-app .navlink--signout:hover {
+        color: var(--danger);
+        border-color: rgba(255, 107, 107, 0.5);
+      }
+      .account-app .backlink:hover {
+        color: var(--cyan);
+      }
+
+      /* Main is a centering stage. Short content (sign-in) centers on both axes;
+         tall content (account/profile) sits toward the top. */
+      .account-app main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 16px 20px 64px;
+      }
+      .account-app #loading {
+        margin: auto 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      /* Sign-in — vertically centered card */
+      .account-app #auth {
+        margin: auto 0;
+        width: 100%;
+        max-width: 420px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 18px;
+      }
+      .account-app .auth-head {
+        text-align: center;
+      }
+      .account-app .auth-head h1 {
+        margin: 0 0 6px;
+        font-size: 22px;
+        font-weight: 650;
+      }
+      .account-app .auth-head p {
+        margin: 0;
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      /* Account — top aligned, constrained width */
+      .account-app #account {
+        width: 100%;
+        max-width: 940px;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 20px;
+        margin-top: 8px;
+      }
+      /* Small screens: brand + three nav controls overflow a 390px phone. Wrap
+         the row and tighten the chrome instead of letting the page scroll
+         sideways. Keep this identical in the sibling page. */
+      @media (max-width: 460px) {
+        .account-app .topbar {
+          flex-wrap: wrap;
+          gap: 10px;
+          padding: 16px 16px;
+        }
+        .account-app .topnav {
+          width: 100%;
+          justify-content: flex-start;
+          gap: 6px;
+        }
+        .account-app .navlink {
+          padding: 7px 10px;
+          font-size: 12px;
+        }
+        .account-app .brand-word {
+          font-size: 18px;
+        }
+      }
+
+      .account-app .plan {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        padding: 18px 20px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+      }
+      .account-app .plan-info {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+      }
+      .account-app .plan-who {
+        font-size: 15px;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .account-app .plan-label {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .account-app .plan-name {
+        font-family: var(--mono);
+        font-weight: 600;
+        color: var(--muted);
+      }
+      .account-app .plan-name.pro {
+        color: var(--cyan);
+      }
+      .account-app .plan-sub {
+        font-size: 12px;
+        color: var(--faint);
+        font-family: var(--mono);
+      }
+      .account-app button.manage {
+        padding: 9px 15px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--cyan);
+        background: transparent;
+        border: 1px solid rgba(114, 255, 255, 0.35);
+        border-radius: 9px;
+        cursor: pointer;
+        transition: background 150ms ease;
+      }
+      .account-app button.manage:hover:not(:disabled) {
+        background: rgba(114, 255, 255, 0.08);
+      }
+      .account-app button.manage:disabled {
+        opacity: 0.55;
+        cursor: default;
+      }
+      .account-app .plan-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .account-app .lifetime-badge {
+        padding: 8px 14px;
+        font-family: var(--mono);
+        font-size: 12.5px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: var(--navy);
+        background: var(--cyan);
+        border-radius: 999px;
+      }
+      .account-app .joined {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 13px 16px;
+        margin-bottom: 14px;
+        border: 1px solid rgba(114, 255, 255, 0.3);
+        border-radius: 14px;
+        background: rgba(114, 255, 255, 0.06);
+        font-size: 13.5px;
+      }
+      .account-app .joined strong { font-weight: 600; }
+      .account-app .joined span { color: var(--muted); }
+      .account-app .joined-cta {
+        margin-left: auto;
+        padding: 8px 14px;
+        border-radius: 10px;
+        background: linear-gradient(180deg, #9bffff, var(--cyan));
+        color: var(--navy);
+        font-weight: 700;
+        font-size: 12.5px;
+        text-decoration: none;
+      }
+      .account-app .overlap {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        padding: 14px 17px;
+        margin-top: 14px;
+        border: 1px solid rgba(251, 191, 36, 0.32);
+        border-radius: 16px;
+        background: rgba(251, 191, 36, 0.06);
+      }
+      .account-app .overlap strong { font-size: 14px; font-weight: 600; }
+      .account-app .overlap p { margin: 4px 0 0; color: var(--muted); font-size: 12.5px; max-width: 60ch; }
+      .account-app .overlap-cta {
+        margin-left: auto;
+        padding: 9px 15px;
+        border-radius: 11px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text);
+        font: 600 12.5px/1 var(--sans);
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .account-app .overlap-cta:hover:not(:disabled) { border-color: rgba(114, 255, 255, 0.45); color: var(--cyan); }
+      .account-app .overlap-cta:disabled { opacity: 0.5; cursor: default; }
+      /* Same box, said in red: something failed rather than something to decide. */
+      .account-app .overlap--error {
+        border-color: rgba(255, 107, 107, 0.32);
+        background: rgba(255, 107, 107, 0.06);
+      }
+
+      .account-app .team-card {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        padding: 15px 17px;
+        margin-top: 14px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--panel);
+      }
+      .account-app .team-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+      .account-app .team-name { font-weight: 600; font-size: 14.5px; }
+      .account-app .team-sub { color: var(--muted); font-size: 12.5px; }
+      .account-app .team-cta {
+        margin-left: auto;
+        padding: 9px 15px;
+        border-radius: 11px;
+        border: 1px solid rgba(114, 255, 255, 0.35);
+        color: var(--cyan);
+        font-weight: 600;
+        font-size: 12.5px;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      .account-app .team-cta:hover { background: rgba(114, 255, 255, 0.08); }
+      .account-app .team-cta.hide { display: none; }
+      /* Stands in for the CTA when the team couldn't be read. */
+      .account-app .team-retry { margin-left: auto; }
+
+      .account-app button.upgrade {
+        padding: 10px 18px;
+        font-family: var(--mono);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--navy);
+        background: var(--cyan);
+        border: none;
+        border-radius: 9px;
+        cursor: pointer;
+        transition: filter 150ms ease;
+      }
+      .account-app button.upgrade:hover {
+        filter: brightness(1.08);
+      }
+      .account-app button.signout {
+        padding: 9px 15px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--danger);
+        background: rgba(255, 107, 107, 0.08);
+        border: 1px solid rgba(255, 107, 107, 0.25);
+        border-radius: 9px;
+        cursor: pointer;
+        transition: background 150ms ease;
+      }
+      .account-app button.signout:hover {
+        background: rgba(255, 107, 107, 0.14);
+      }
+      /* Feature matrix — mirrors the extension popup's "Your plan" checklist. */
+      .account-app .features {
+        padding: 0;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+      }
+      /* Symmetric padding on the summary itself so the collapsed bar is
+         vertically centered (card padding would otherwise be lopsided). */
+      .account-app .features-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 15px 20px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+        cursor: pointer;
+        list-style: none;
+        user-select: none;
+      }
+      .account-app .features-head::-webkit-details-marker {
+        display: none;
+      }
+      .account-app .feat-chev {
+        flex: 0 0 auto;
+        color: var(--faint);
+        transition: transform 200ms ease;
+      }
+      .account-app .features[open] .feat-chev {
+        transform: rotate(90deg);
+      }
+      .account-app .feature-list {
+        list-style: none;
+        margin: 0;
+        padding: 0 20px 8px;
+      }
+      .account-app .feat {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+      }
+      .account-app .feat:first-child {
+        border-top: none;
+      }
+      .account-app .feat-ic {
+        flex: 0 0 auto;
+        display: grid;
+        place-items: center;
+        color: var(--faint);
+      }
+      .account-app .feat-label {
+        font-size: 14px;
+        color: var(--text);
+      }
+      .account-app .feat-help {
+        position: relative;
+        display: inline-grid;
+        place-items: center;
+        padding: 0;
+        border: none;
+        background: none;
+        color: var(--faint);
+        cursor: help;
+        transition: color 150ms ease;
+      }
+      .account-app .feat-help:hover,
+      .account-app .feat-help:focus-visible {
+        color: var(--cyan);
+        outline: none;
+      }
+      .account-app .feat-tip {
+        position: absolute;
+        bottom: calc(100% + 7px);
+        left: 50%;
+        transform: translateX(-50%) translateY(3px);
+        z-index: 60;
+        width: max-content;
+        max-width: 240px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        background: #10151f;
+        border: 1px solid var(--border);
+        box-shadow: 0 8px 22px -8px rgba(0, 0, 0, 0.8);
+        font-family: var(--sans);
+        font-size: 12px;
+        font-weight: 400;
+        line-height: 1.4;
+        color: var(--text);
+        text-align: left;
+        white-space: normal;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition:
+          opacity 110ms ease,
+          transform 110ms ease;
+      }
+      .account-app .feat-tip::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 5px solid transparent;
+        border-top-color: #10151f;
+      }
+      .account-app .feat-help:hover .feat-tip,
+      .account-app .feat-help:focus-visible .feat-tip {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(-50%) translateY(0);
+      }
+      .account-app .feat-state {
+        margin-left: auto;
+        font-family: var(--mono);
+        font-size: 12.5px;
+        font-variant-numeric: tabular-nums;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .account-app .feat--active .feat-ic,
+      .account-app .feat--usage .feat-ic {
+        color: var(--cyan);
+      }
+      .account-app .feat--active .feat-state {
+        color: var(--cyan);
+      }
+      .account-app .feat--locked .feat-label {
+        color: var(--muted);
+      }
+      .account-app .feat--locked .feat-state {
+        color: var(--cyan);
+      }
+
+      /* Clerk mount points — center their internal cards */
+      .account-app #clerk-auth,
+      .account-app #clerk-profile {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+      }
+      .account-app .sync-note {
+        margin: 4px 0 0;
+        padding: 12px 14px;
+        font-size: 12.5px;
+        line-height: 1.5;
+        color: var(--muted);
+        background: rgba(114, 255, 255, 0.05);
+        border: 1px solid rgba(114, 255, 255, 0.16);
+        border-radius: 10px;
+        text-align: center;
+      }
+      .account-app [hidden] {
+        display: none !important;
+      }

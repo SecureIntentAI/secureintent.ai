@@ -1,0 +1,523 @@
+/* Functional controls retained from main (3612483), scoped to the V2 app. */
+
+      .team-app * { box-sizing: border-box; }
+      /* A class with `display` beats the UA rule for [hidden], which silently
+         un-hides anything we style as flex. Make the attribute win. */
+      .team-app [hidden] { display: none !important; }
+      .team-app a { color: var(--cyan); }
+      /* Shared header — keep this identical to account.html. */
+      .team-app .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 22px 28px;
+      }
+      .team-app .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: #fff;
+        text-decoration: none;
+      }
+      .team-app .brand-word {
+        font-family: var(--sans);
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .team-app .brand-word .accent { color: var(--cyan); }
+      .team-app .topnav {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .team-app .navlink {
+        padding: 8px 13px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        font: 600 12.5px/1 var(--sans);
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .team-app .navlink:hover {
+        border-color: rgba(114, 255, 255, 0.4);
+        color: var(--cyan);
+      }
+      .team-app .navlink--signout {
+        color: var(--danger);
+        border-color: rgba(255, 107, 107, 0.25);
+        background: rgba(255, 107, 107, 0.08);
+      }
+      .team-app .navlink--signout:hover {
+        color: var(--danger);
+        border-color: rgba(255, 107, 107, 0.5);
+      }
+      /* Small screens: brand + three nav controls overflow a 390px phone. Wrap
+         the row and tighten the chrome instead of letting the page scroll
+         sideways. Keep this identical in the sibling page. */
+      @media (max-width: 460px) {
+        .team-app .topbar {
+          flex-wrap: wrap;
+          gap: 10px;
+          padding: 16px 16px;
+        }
+        .team-app .topnav {
+          width: 100%;
+          justify-content: flex-start;
+          gap: 6px;
+        }
+        .team-app .navlink {
+          padding: 7px 10px;
+          font-size: 12px;
+        }
+        .team-app .brand-word {
+          font-size: 18px;
+        }
+      }
+
+      .team-app .wrap { max-width: 1080px; margin: 0 auto; padding: 26px 22px 60px; }
+      .team-app h1 { font-family: var(--mono); font-size: 21px; margin: 0 0 4px; letter-spacing: -0.02em; }
+      .team-app .sub { color: var(--muted); font-size: 13.5px; margin: 0 0 22px; }
+
+      /* ---- Console shell -------------------------------------------------
+         The console is four jobs, not one page: read the numbers, manage
+         people, write the policy, route the alerts. A sidebar makes each one
+         somewhere you can be, instead of a stop on a two-metre scroll — and
+         each nav item carries the state of the thing behind it, so the seat
+         count and a webhook that has started failing are visible from
+         wherever you happen to be standing. */
+      .team-app .shell { display: grid; grid-template-columns: 240px minmax(0, 1fr); align-items: start; }
+      .team-app .side {
+        position: sticky;
+        top: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        height: 100vh;
+        padding: 22px 14px;
+        border-right: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.015);
+      }
+      .team-app .side .brand { padding: 0 8px; }
+      .team-app .side .nav { display: flex; flex-direction: column; gap: 2px; }
+      .team-app .navitem {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 9px 11px;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        background: none;
+        color: var(--muted);
+        font: 600 13px/1 var(--sans);
+        text-align: left;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .team-app .navitem:hover:not([aria-disabled="true"]) { color: var(--text); background: rgba(255, 255, 255, 0.04); }
+      .team-app .navitem[aria-current="page"] {
+        color: var(--text);
+        background: rgba(114, 255, 255, 0.08);
+        border-color: rgba(114, 255, 255, 0.26);
+      }
+      .team-app .navitem[aria-current="page"] svg { color: var(--cyan); }
+      .team-app .navitem[aria-disabled="true"] { opacity: 0.42; cursor: not-allowed; }
+      .team-app .navitem svg { flex: none; color: var(--faint); }
+      .team-app .navitem .label { flex: 1; }
+      /* The live state each item carries: a seat count, or a dot for the
+         health of the thing behind it. Both are set from real data or hidden
+         — never a placeholder. */
+      .team-app .navitem .badge { font: 600 11px/1 var(--mono); color: var(--faint); }
+      .team-app .navitem[aria-current="page"] .badge { color: var(--muted); }
+      .team-app .navitem .sdot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
+      .team-app .navitem .sdot[hidden] { display: none; }
+      /* Scoped to .navitem to match the specificity of the rule above — as
+         bare classes these lost to it and every dot stayed grey. */
+      .team-app .navitem .sdot--ok { background: var(--ok); }
+      .team-app .navitem .sdot--bad { background: var(--danger); }
+      .team-app .navitem .sdot--dirty { background: #fbbf24; }
+      .team-app .side .foot { margin-top: auto; display: flex; flex-direction: column; gap: 10px; padding: 0 4px; }
+      .team-app .side .who { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+      .team-app .side .who strong { display: block; color: var(--text); font-size: 13.5px; }
+      .team-app .side .links { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+      .team-app .side .links .navlink { text-align: center; }
+      .team-app .side .links .navlink--signout { grid-column: 1 / -1; }
+      .team-app .side .links .navlink { padding: 6px 10px; font-size: 12px; }
+
+      .team-app .content { min-width: 0; padding: 0 30px 70px; max-width: 1060px; }
+      /* One header per view: what this page is, one line on what it does, and
+         the controls that belong to it. */
+      .team-app .viewhead {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
+        padding: 28px 0 16px;
+        margin-bottom: 22px;
+        border-bottom: 1px solid var(--border);
+      }
+      .team-app .viewhead h1 { font-size: 19px; margin: 0 0 6px; }
+      .team-app .viewhead .sub { margin: 0; max-width: 70ch; }
+      .team-app .view[hidden] { display: none; }
+      .team-app .view > .viewhead + section.block { margin-top: 0; }
+
+      @media (max-width: 880px) {
+        .team-app .shell { grid-template-columns: minmax(0, 1fr); }
+        .team-app .side {
+          position: static;
+          height: auto;
+          gap: 14px;
+          padding: 16px 16px 0;
+          border-right: 0;
+          border-bottom: 1px solid var(--border);
+        }
+        /* A row of tabs that scrolls sideways beats a hamburger here: four
+           destinations, and their badges are worth seeing at a glance. */
+        .team-app .side .nav {
+          flex-direction: row;
+          gap: 6px;
+          overflow-x: auto;
+          padding-bottom: 14px;
+          scrollbar-width: none;
+        }
+        .team-app .side .nav::-webkit-scrollbar { display: none; }
+        .team-app .navitem { width: auto; flex: none; white-space: nowrap; }
+        /* Brand, then who you are, then where you can go — the sidebar's
+           own order, stacked. The footer's margin-top:auto would otherwise
+           strand it at the bottom of a column with no spare height. */
+        .team-app .side .brand { order: 0; }
+        .team-app .side .foot { order: 1; margin-top: 0; gap: 8px; padding: 0; }
+        .team-app .side .nav { order: 2; }
+        .team-app .side .links { display: flex; flex-wrap: wrap; }
+        .team-app .side .links .navlink--signout { grid-column: auto; }
+        .team-app .content { padding: 0 16px 60px; }
+        .team-app .viewhead { padding-top: 20px; }
+      }
+      /* On a phone the four tabs only fit without their icons — and four
+         destinations in view beat three and a half plus a scroll. */
+      @media (max-width: 470px) {
+        .team-app .navitem { padding: 9px 10px; gap: 7px; }
+        .team-app .navitem svg { display: none; }
+      }
+
+      .team-app .btn {
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        border-radius: 10px;
+        padding: 8px 13px;
+        font: 600 12.5px/1 var(--sans);
+        cursor: pointer;
+      }
+      .team-app .btn:hover { border-color: rgba(114, 255, 255, 0.4); color: var(--cyan); }
+      .team-app .btn.primary {
+        background: linear-gradient(180deg, #9bffff, var(--cyan));
+        color: var(--navy);
+        border: 0;
+      }
+      /* The install link is a button to the eye; the anchor colour rule above
+         would otherwise repaint the primary one cyan-on-cyan. */
+      .team-app a.btn { display: inline-block; text-decoration: none; }
+      .team-app .btn.danger {
+        color: var(--danger);
+        border-color: rgba(255, 107, 107, 0.35);
+        background: rgba(255, 107, 107, 0.08);
+      }
+      .team-app .btn.danger:hover { color: var(--danger); border-color: rgba(255, 107, 107, 0.6); }
+      .team-app .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+      /* Labels that only a screen reader needs — the placeholder carries the
+         same words for everyone else, and a placeholder is not a label. */
+      .team-app .vh {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        clip-path: inset(50%);
+        white-space: nowrap;
+        border: 0;
+      }
+      .team-app input, .team-app select {
+        background: var(--panel2);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 10px;
+        padding: 9px 11px;
+        font: 400 13px/1.2 var(--sans);
+      }
+      .team-app input:focus-visible, .team-app select:focus-visible, .team-app .btn:focus-visible {
+        outline: 2px solid rgba(114, 255, 255, 0.55);
+        outline-offset: 2px;
+      }
+      /* The generic input padding above turns a checkbox into a fat grey square,
+         so policy toggles get their own switch. Must stay after that rule. */
+      .team-app input[type="checkbox"] {
+        appearance: none;
+        -webkit-appearance: none;
+        flex: none;
+        position: relative;
+        width: 38px;
+        height: 22px;
+        margin: 2px 0 0;
+        padding: 0;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.07);
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s;
+      }
+      .team-app input[type="checkbox"]::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--faint);
+        transition: transform 0.15s, background 0.15s;
+      }
+      .team-app input[type="checkbox"]:checked {
+        background: rgba(114, 255, 255, 0.22);
+        border-color: rgba(114, 255, 255, 0.5);
+      }
+      .team-app input[type="checkbox"]:checked::after {
+        transform: translateX(16px);
+        background: var(--cyan);
+      }
+      .team-app input:disabled, .team-app select:disabled { opacity: 0.45; cursor: not-allowed; }
+
+      .team-app .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+      .team-app .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 15px 17px;
+      }
+      .team-app .card .k { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+      .team-app .card .v { font-size: 25px; font-weight: 700; margin-top: 6px; letter-spacing: -0.02em; }
+      .team-app .card .v small { font-size: 13px; color: var(--muted); font-weight: 500; }
+
+      .team-app section.block { margin-top: 22px; }
+      .team-app .block h2 {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--muted);
+        margin: 0 0 11px;
+      }
+      .team-app .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 16px 18px;
+      }
+      .team-app .row { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+      .team-app .row .lbl { width: 150px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .team-app .row .track { flex: 1; height: 8px; background: rgba(255, 255, 255, 0.06); border-radius: 6px; overflow: hidden; }
+      .team-app .row .fill { height: 100%; background: var(--cyan); border-radius: 6px; }
+      .team-app .row .n { width: 52px; text-align: right; font-size: 12.5px; color: var(--muted); }
+      .team-app .chart { display: flex; align-items: flex-end; gap: 4px; height: 110px; }
+      .team-app .chart .bar { flex: 1; min-width: 4px; background: linear-gradient(180deg, var(--cyan), rgba(114,255,255,.2)); border-radius: 3px 3px 0 0; min-height: 2px; }
+      /* Which day each end of the chart is. Without them the bars are a shape
+         with no scale, and the hover title is no use on a phone. */
+      .team-app .axis {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 9px;
+        font: 500 11px/1 var(--mono);
+        color: var(--faint);
+      }
+
+      .team-app table { width: 100%; border-collapse: collapse; }
+      .team-app th, .team-app td { text-align: left; padding: 10px 8px; font-size: 13px; border-bottom: 1px solid var(--border); }
+      .team-app th { color: var(--faint); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+      .team-app tr:last-child td { border-bottom: 0; }
+      .team-app .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; border: 1px solid var(--border); color: var(--muted); }
+      .team-app .tag.admin { color: var(--cyan); border-color: rgba(114, 255, 255, 0.35); }
+      .team-app .tag.pending { color: #fbbf24; border-color: rgba(251, 191, 36, 0.35); }
+      .team-app .empty { color: var(--faint); font-size: 13px; padding: 10px 0; }
+      .team-app .note { color: var(--faint); font-size: 12px; line-height: 1.55; margin-top: 12px; }
+      .team-app .err { color: var(--danger); font-size: 13px; }
+      .team-app code { font-family: var(--mono); font-size: 12px; color: var(--cyan); word-break: break-all; }
+
+      /* Section header that carries controls (range picker, export). */
+      .team-app .blockhead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin: 0 0 11px;
+      }
+      .team-app .blockhead h2 { margin: 0; }
+      .team-app .headctl { display: flex; align-items: center; gap: 8px; }
+      .team-app .headctl select { padding: 6px 9px; font-size: 12.5px; }
+      .team-app .ctl-lbl {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--faint);
+      }
+
+      /* Settings forms: label + control rows, action bars, inline status. */
+      .team-app .field { display: flex; align-items: center; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+      .team-app .flbl { width: 150px; font-size: 13px; color: var(--muted); }
+      .team-app .field input, .team-app .field select { flex: 1; min-width: 240px; }
+      .team-app .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+      /* Policy runs past a screenful, and every edit on it is pending until
+         this is pressed. It follows the page rather than waiting at the end. */
+      .team-app .actions--sticky {
+        position: sticky;
+        bottom: 0;
+        margin: 14px -18px -16px;
+        padding: 13px 18px;
+        border-top: 1px solid var(--border);
+        border-radius: 0 0 14px 14px;
+        background: rgba(10, 14, 26, 0.94);
+        backdrop-filter: blur(6px);
+      }
+      .team-app .status { font-size: 12.5px; color: var(--muted); }
+      .team-app .status.ok { color: var(--ok); }
+      .team-app .status.err { color: var(--danger); }
+      .team-app .opt { display: flex; align-items: flex-start; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--border); }
+      .team-app .opt:last-of-type { border-bottom: 0; }
+      .team-app .opt strong { font-size: 13.5px; }
+      .team-app .opt p { margin: 5px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.6; max-width: 72ch; }
+      .team-app .opt label { cursor: pointer; }
+      /* The one control on this page that can make the extension catch LESS.
+         Boxed, tinted, and it turns red once it is armed — nobody should flip
+         this while skimming the pattern list it sits under. */
+      .team-app .opt.opt--danger {
+        margin-top: 15px;
+        padding: 13px 15px;
+        border: 1px solid rgba(255, 107, 107, 0.3);
+        border-radius: 12px;
+        background: rgba(255, 107, 107, 0.05);
+      }
+      .team-app .opt.opt--danger.armed {
+        border-color: rgba(255, 107, 107, 0.65);
+        background: rgba(255, 107, 107, 0.11);
+      }
+      .team-app .opt.opt--danger.armed strong { color: var(--danger); }
+      .team-app #pol-replace:checked {
+        background: rgba(255, 107, 107, 0.25);
+        border-color: rgba(255, 107, 107, 0.55);
+      }
+      .team-app #pol-replace:checked::after { background: var(--danger); }
+      .team-app .opt--danger .warn {
+        margin-top: 10px;
+        padding: 8px 11px;
+        border-left: 2px solid var(--danger);
+        border-radius: 0 8px 8px 0;
+        background: rgba(255, 107, 107, 0.09);
+        color: var(--text);
+        font-size: 12.5px;
+        line-height: 1.55;
+        max-width: 72ch;
+      }
+
+      /* "Are my alerts actually arriving?" Delivery is fire-and-forget, so a
+         webhook that has started refusing everything looks exactly like a quiet
+         week unless this line says otherwise. */
+      .team-app .health {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin: 12px 0 2px;
+        padding: 11px 13px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.03);
+      }
+      .team-app .health .dot {
+        flex: none;
+        width: 8px;
+        height: 8px;
+        margin-top: 5px;
+        border-radius: 50%;
+        background: var(--faint);
+      }
+      .team-app .health .line { font-size: 13px; line-height: 1.5; }
+      .team-app .health .sub { margin: 5px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.55; max-width: 72ch; }
+      /* The exact timestamp is in the title; hint that there is one to hover. */
+      .team-app .health .ago { border-bottom: 1px dotted var(--faint); cursor: help; }
+      .team-app .health--ok .dot { background: var(--ok); }
+      .team-app .health--bad { border-color: rgba(255, 107, 107, 0.35); background: rgba(255, 107, 107, 0.06); }
+      .team-app .health--bad .dot { background: var(--danger); }
+      .team-app .health--bad .line { color: var(--danger); }
+      .team-app .subsec { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+      .team-app .subsec h3 { font-size: 13.5px; margin: 0 0 5px; }
+      .team-app .subsec > p { margin: 0 0 12px; color: var(--muted); font-size: 12.5px; line-height: 1.6; max-width: 72ch; }
+      .team-app .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+      .team-app .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 7px 5px 11px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.03);
+        font: 500 12.5px/1 var(--mono);
+      }
+      .team-app .chip button {
+        border: 0;
+        background: none;
+        color: var(--faint);
+        font-size: 15px;
+        line-height: 1;
+        padding: 0 3px;
+        cursor: pointer;
+      }
+      .team-app .chip button:hover { color: var(--danger); }
+      /* A field that grows to fill a 1000px panel reads as a mistake — cap
+         each one near the length of what actually goes in it. */
+      .team-app #pat-label { min-width: 170px; max-width: 280px; }
+      .team-app #pat-regex { flex: 2; min-width: 240px; max-width: 440px; font-family: var(--mono); }
+      .team-app #site-input { max-width: 420px; }
+      .team-app #invite-email { max-width: 380px; }
+      .team-app #alert-webhook { max-width: 460px; }
+      .team-app #alert-min { max-width: 460px; }
+      .team-app #pat-type { flex: none; }
+      .team-app .hide { display: none !important; }
+      .team-app .invite { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+      .team-app .invite input { flex: 1; min-width: 220px; }
+      .team-app .invite input[type="number"] { flex: none; width: 96px; min-width: 0; }
+      .team-app .err:empty { display: none; }
+      .team-app #pending {
+        display: block;
+        padding: 15px 18px;
+        margin-bottom: 18px;
+        border: 1px solid rgba(251, 191, 36, 0.35);
+        border-radius: 14px;
+        background: rgba(251, 191, 36, 0.06);
+      }
+      .team-app #pending p { margin: 5px 0 0; color: var(--muted); font-size: 13px; max-width: 62ch; }
+      /* An abandoned checkout leaves the team created but unpaid, and this panel
+         is all the buyer can see — so the way to pay has to live inside it. */
+      .team-app #pending .buyform {
+        margin-top: 14px;
+        padding-top: 13px;
+        border-top: 1px solid rgba(251, 191, 36, 0.25);
+      }
+      .team-app #pending .invite { margin-bottom: 0; }
+      /* Two steps before anything irreversible: the second button names the
+         person and says what removal costs them. */
+      .team-app .confirm { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+      .team-app .confirm .q { font-size: 12.5px; color: var(--muted); }
+      .team-app #seats-edit { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+      .team-app #seats-edit input { width: 96px; }
+      .team-app #member-actions { margin-top: 20px; }
+      .team-app #member-actions h3 { font-size: 13.5px; margin: 0 0 8px; }
+      .team-app #member-actions .panel p { color: var(--muted); font-size: 12.5px; line-height: 1.6; margin: 0 0 10px; }
+      .team-app #member-actions .panel p:last-child { margin-bottom: 0; }
+      .team-app #gate { max-width: 460px; margin: 60px auto; text-align: center; }

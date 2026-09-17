@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <script src="integrations/config.js"></script><script src="integrations/runtime.js"></script>
+  <script>
+    (function () {
+      try { document.documentElement.dataset.theme = localStorage.getItem('si_site_theme') === 'light' ? 'light' : 'dark'; }
+      catch (_) { document.documentElement.dataset.theme = 'dark'; }
+    })();
+  </script>
+  <meta name="theme-color" content="#050608" id="theme-color">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>SecureIntent · Solutions</title>
+  <meta name="description" content="SecureIntent protects credentials and sensitive data before they reach browser-based AI tools, terminals, desktop apps, and agents.">
+  <base href="/designs/secureintent-site-v1/">
+  <link rel="icon" href="../../favicon-32x32.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="../../install-links.js" defer></script>
+  <script src="candidate-nav.js?v=20260915-menu-cleanup" defer></script>
+  <style>
+    :root {
+      --ink:#f3f6fa; --body:#bdc9d6; --muted:#a3b2c3; --accent:#72ffff; --paper:#050608; --mist:#0c0e12; --navy:#052656;
+      --header:#050608d9; --button:#72ffff; --button-text:#052656; --button-hover:#a6ffff; --field:#0f1217; --field-border:#344353; --placeholder:#8e9eb0;
+      --surface:#0d171d; --surface-light:#15303a; --status:#9cdbc3; --error:#ffa5a5; --selection:#124d57; --light-pool:#178c9730; --deep-pool:#05265678;
+      --reflection:#85f9ff65; --reflection-soft:#3db4d82b; --surface-haze:#1a5b651a; --control:#a1d7e510; --control-hover:#a1d7e51d;
+      --card:linear-gradient(155deg,#18313b50,#101b2236 55%,#0c0e1200); --featured:radial-gradient(ellipse at 35% 0%,#287b823b,transparent 72%),linear-gradient(160deg,#10232cd9,#0a141a85);
+      color-scheme:dark;
+    }
+    :root[data-theme="light"] {
+      --ink:#173346; --body:#3f5969; --muted:#5a7381; --accent:#197d86; --paper:#fff; --mist:#f2f8fa; --navy:#193c50;
+      --header:#ffffffd9; --button:#193c50; --button-text:#fff; --button-hover:#285269; --field:#fff; --field-border:#d9e5e9; --placeholder:#738892;
+      --surface:#f6fbfc; --surface-light:#e9f4f6; --status:#2b725f; --error:#9b3939; --selection:#d5eeee; --light-pool:#56cdd338; --deep-pool:#8bb9df32;
+      --reflection:#fff; --reflection-soft:#5cbfcf65; --surface-haze:#7abfcd18; --control:#e9f2f5; --control-hover:#dcebef;
+      --card:linear-gradient(150deg,#f0f7f9c9,#f5f9fa77 55%,#ffffff00); --featured:radial-gradient(ellipse at 35% 0%,#a9e5e94d,transparent 72%),linear-gradient(160deg,#eaf5f8,#f5fafb);
+      color-scheme:light;
+    }
+    *,*::before,*::after { box-sizing:border-box; }
+    html { scroll-behavior:smooth; scroll-padding-top:104px; }
+    body { margin:0; background:var(--paper); color:var(--ink); font-family:Inter,system-ui,sans-serif; font-weight:400; -webkit-font-smoothing:antialiased; }
+    main { overflow:clip; }
+    a { color:inherit; text-decoration:none; }
+    button,input { font:inherit; }
+    button,a,input { -webkit-tap-highlight-color:transparent; }
+    button { cursor:pointer; }
+    :focus-visible { outline:3px solid var(--accent); outline-offset:5px; }
+    ::selection { background:var(--selection); color:var(--ink); }
+    [hidden] { display:none!important; }
+    h1,h2,h3,p { margin:0; }
+    h1,h2,h3 { font-weight:600; text-wrap:balance; }
+    h1 { font-size:clamp(42px,5.1vw,68px); line-height:1.06; letter-spacing:-.058em; }
+    h2 { font-size:clamp(30px,3.4vw,46px); line-height:1.15; letter-spacing:-.045em; }
+    h3 { font-size:18px; line-height:1.35; letter-spacing:-.024em; }
+    p { color:var(--body); font-size:15px; line-height:1.72; }
+    svg { display:block; }
+    .icon { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+    .icon-sm { width:16px; height:16px; }
+    .svg-library { position:absolute; width:0; height:0; overflow:hidden; }
+    .container { width:min(1160px,calc(100% - 64px)); margin-inline:auto; }
+    .skip { position:fixed; top:-70px; left:18px; z-index:100; padding:12px 16px; background:var(--button); color:var(--button-text); border-radius:10px; }
+    .skip:focus { top:12px; }
+    .site-header { position:sticky; top:0; z-index:30; background:var(--header); backdrop-filter:blur(18px); }
+    .header-inner { min-height:88px; display:flex; align-items:center; gap:30px; }
+    .brand { display:inline-flex; align-items:center; gap:10px; font-size:21px; font-weight:600; letter-spacing:-.045em; white-space:nowrap; }
+    .brand-mark { width:32px; height:32px; }
+    .brand-suffix,.accent { color:var(--accent); }
+    .desktop-nav { display:flex; gap:20px; margin-left:auto; align-items:center; }
+    .desktop-nav a { padding-block:16px; color:var(--body); font-size:13px; }
+    .desktop-nav a:hover,.desktop-nav a[aria-current="page"],.footer-links a:hover { color:var(--accent); }
+    .header-actions { display:flex; align-items:center; gap:18px; }
+    .sign-in { font-size:13px; color:var(--body); }
+    .sign-in:hover { color:var(--ink); }
+    .button { min-height:48px; padding:13px 21px; border:0; border-radius:11px; display:inline-flex; align-items:center; justify-content:center; gap:10px; background:var(--button); color:var(--button-text); font-size:14px; font-weight:600; transition:background 160ms,transform 160ms,box-shadow 160ms; }
+    .button:hover { background:var(--button-hover); transform:translateY(-1px); box-shadow:0 8px 21px #0d718426; }
+    .button.secondary { background:var(--control); color:var(--ink); }
+    .button.secondary:hover { background:var(--control-hover); box-shadow:none; }
+    .button.quiet { min-height:auto; padding:8px 4px; background:transparent; color:var(--body); }
+    .button.quiet:hover { background:transparent; color:var(--ink); box-shadow:none; transform:none; }
+    .header-actions .button { min-height:42px; padding:10px 17px; font-size:13px; }
+    .theme-switch { display:flex; gap:2px; padding:4px; border-radius:11px; background:var(--control); }
+    .theme-option { min-height:34px; padding:7px 9px; border:0; border-radius:7px; display:flex; align-items:center; gap:6px; background:transparent; color:var(--muted); font-size:11px; white-space:nowrap; }
+    .theme-option[aria-pressed="true"] { background:var(--field); color:var(--accent); box-shadow:0 1px 4px #0001; }
+    .theme-option:hover { color:var(--ink); }
+    .theme-toggle-mobile,.menu-toggle { display:none; width:44px; height:44px; border:0; border-radius:12px; align-items:center; justify-content:center; background:var(--control); color:var(--ink); }
+    .theme-toggle-mobile { color:var(--accent); }
+    .mobile-nav { padding:0 24px 20px; }
+    .mobile-nav a { display:block; padding:13px 8px; font-size:14px; }
+    .mobile-nav .button { display:flex; margin-top:8px; }
+
+    .hero { position:relative; isolation:isolate; padding:76px 0 52px; }
+    .hero-grid { display:grid; grid-template-columns:minmax(0,.94fr) minmax(0,1.06fr); gap:78px; align-items:center; min-height:455px; }
+    .ambient-water { position:absolute; z-index:-1; pointer-events:none; inset:-180px -210px -160px 31%; background:radial-gradient(ellipse at 64% 50%,var(--light-pool),transparent 61%),radial-gradient(ellipse at 79% 23%,var(--deep-pool),transparent 64%); mask-image:linear-gradient(to bottom,transparent,#000 18%,#000 81%,transparent); }
+    .ambient-water::before,.ambient-water::after { content:''; position:absolute; pointer-events:none; border-radius:50%; }
+    .ambient-water::before { inset:6% -8% 8% 22%; background:radial-gradient(ellipse at 50% 50%,transparent 37%,var(--reflection-soft) 48%,var(--reflection) 53%,transparent 65%); filter:blur(24px); transform:rotate(-28deg) scaleY(.72); opacity:.54; animation:light-settle 4s ease-out both; }
+    .ambient-water::after { inset:30% 0 -1% 0; background:radial-gradient(ellipse at 50% 50%,transparent 34%,var(--reflection-soft) 49%,transparent 65%); filter:blur(28px); transform:rotate(18deg) scaleY(.62); opacity:.6; }
+    @keyframes light-settle { from { opacity:.25; transform:translateY(18px) rotate(-24deg) scaleY(.76); } to { opacity:.54; transform:translateY(0) rotate(-28deg) scaleY(.72); } }
+    .eyebrow { display:flex; align-items:center; gap:8px; margin-bottom:21px; color:var(--accent); font-size:11px; font-weight:600; letter-spacing:.075em; text-transform:uppercase; }
+    .hero-copy > p { max-width:492px; margin-top:25px; font-size:17px; }
+    .hero-actions { display:flex; gap:16px; flex-wrap:wrap; align-items:center; margin-top:31px; }
+    .hero-note { display:flex; flex-wrap:wrap; gap:21px; margin-top:20px; color:var(--muted); font-size:12px; }
+    .hero-note span { display:flex; align-items:center; gap:7px; }
+    .hero-note .icon { color:var(--accent); }
+    .product-window { position:relative; padding:19px 0; }
+    .product-window::after { content:''; position:absolute; z-index:-1; left:7%; right:7%; bottom:-20px; height:90px; border-radius:50%; background:radial-gradient(ellipse,var(--reflection-soft),transparent 70%); filter:blur(23px); }
+    .window { overflow:hidden; border-radius:18px; background:var(--surface); box-shadow:0 28px 65px -22px #000b,0 4px 24px #021a2429; }
+    .window-head { min-height:43px; display:flex; align-items:center; gap:6px; padding:0 17px; color:var(--muted); font-size:10px; }
+    .dot { width:6px; height:6px; border-radius:50%; background:color-mix(in srgb,var(--muted) 50%,transparent); }
+    .window-title { display:flex; align-items:center; gap:6px; margin-left:auto; }
+    .prompt-screen { min-height:278px; padding:25px; display:grid; align-content:center; gap:13px; background:linear-gradient(135deg,#0d1519,#0a1218 70%); }
+    :root[data-theme="light"] .prompt-screen { background:linear-gradient(135deg,#e8f3f5,#f7fbfc 70%); }
+    .prompt-label { color:var(--muted); font-size:11px; }
+    .code-line { display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:9px; background:#071116; color:#d7f3f5; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11px; overflow:hidden; white-space:nowrap; }
+    :root[data-theme="light"] .code-line { background:#e2edf0; color:#274a58; }
+    .code-line .key { color:var(--accent); }
+    .alert-panel { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:4px; padding:13px; border-radius:12px; background:color-mix(in srgb,var(--navy) 55%,transparent); }
+    .alert-copy { display:flex; align-items:flex-start; gap:9px; }
+    .alert-copy .icon { margin-top:1px; color:var(--accent); }
+    .alert-copy strong { display:block; font-size:12px; }
+    .alert-copy span { display:block; margin-top:3px; color:var(--body); font-size:10px; }
+    .mini-button { flex-shrink:0; padding:8px 10px; border:0; border-radius:8px; background:var(--button); color:var(--button-text); font-size:10px; font-weight:600; }
+    .window-caption { display:flex; justify-content:space-between; gap:12px; padding-top:16px; color:var(--muted); font-size:11px; }
+    .window-caption span { display:flex; gap:6px; align-items:center; }
+    .window-caption .icon { color:var(--accent); }
+
+    .section { padding-block:88px; }
+    .section-heading { max-width:620px; margin:0 auto 48px; text-align:center; }
+    .section-heading p { margin-top:16px; }
+    .section-heading .eyebrow { justify-content:center; margin-bottom:15px; }
+    .product-intro { display:grid; grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr); gap:62px; align-items:start; margin-bottom:48px; }
+    .section-copy > p { margin-top:20px; max-width:400px; }
+    .availability { display:inline-flex; align-items:center; gap:7px; color:var(--status); font-size:11px; font-weight:600; }
+    .availability::before { content:''; width:7px; height:7px; border-radius:50%; background:currentColor; box-shadow:0 0 0 5px color-mix(in srgb,currentColor 10%,transparent); }
+    .product-description { padding:4px 0 0; }
+    .product-description p { font-size:16px; max-width:610px; }
+    .capabilities { display:grid; grid-template-columns:repeat(4,1fr); gap:22px 26px; }
+    .capability { min-height:155px; padding:8px 4px; }
+    .capability-icon { width:39px; height:39px; display:flex; align-items:center; justify-content:center; margin-bottom:17px; border-radius:50%; background:radial-gradient(circle,var(--control),transparent 76%); color:var(--accent); }
+    .capability h3 { margin-bottom:8px; font-size:16px; }
+    .capability p { font-size:13px; line-height:1.67; }
+    .team-surface { position:relative; isolation:isolate; display:grid; grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr); gap:60px; padding:54px 0; margin-top:58px; background:radial-gradient(ellipse closest-side at 18% 48%,var(--surface-haze),transparent); }
+    .team-surface::before { content:''; position:absolute; z-index:-1; pointer-events:none; left:-10%; top:-20%; bottom:-20%; width:60%; background:radial-gradient(ellipse closest-side at 35% 50%,var(--light-pool),transparent); opacity:.7; }
+    .team-surface h2 { max-width:390px; }
+    .team-surface .section-copy p { margin-bottom:21px; }
+    .team-list { display:grid; grid-template-columns:1fr 1fr; gap:26px 34px; list-style:none; padding:4px 0 0; margin:0; }
+    .team-list li { display:flex; gap:10px; }
+    .team-list .icon { color:var(--accent); margin-top:3px; width:16px; height:16px; }
+    .team-list strong { display:block; font-size:14px; }
+    .team-list span { display:block; margin-top:5px; color:var(--body); font-size:13px; line-height:1.62; }
+    .desktop-section { position:relative; isolation:isolate; padding:90px 0; }
+    .desktop-section::before { content:''; position:absolute; z-index:-1; pointer-events:none; inset:0 35% 0 -15%; background:radial-gradient(ellipse closest-side at 30% 52%,var(--deep-pool),transparent); opacity:.45; }
+    .desktop-grid { display:grid; grid-template-columns:minmax(0,.86fr) minmax(0,1.14fr); gap:76px; align-items:start; }
+    .roadmap-note { display:inline-flex; align-items:center; gap:7px; color:#d8b26a; font-size:11px; font-weight:600; }
+    .roadmap-note::before { content:''; width:7px; height:7px; border-radius:50%; background:currentColor; box-shadow:0 0 0 5px color-mix(in srgb,currentColor 10%,transparent); }
+    .desktop-copy > p { margin-top:20px; }
+    .desktop-copy .button { margin-top:26px; }
+    .desktop-features { display:grid; grid-template-columns:1fr 1fr; gap:26px 38px; padding-top:4px; }
+    .desktop-feature { display:flex; gap:11px; }
+    .desktop-feature .icon { width:18px; height:18px; color:var(--accent); margin-top:3px; }
+    .desktop-feature h3 { font-size:15px; margin-bottom:5px; }
+    .desktop-feature p { font-size:13px; line-height:1.65; }
+    .agent-note { display:flex; gap:16px; margin-top:52px; padding:28px 0; background:radial-gradient(ellipse closest-side at 40% 50%,var(--surface-haze),transparent); }
+    .agent-note > .icon { width:28px; height:28px; color:var(--accent); margin-top:3px; }
+    .agent-note h3 { margin-bottom:8px; }
+    .agent-note p { max-width:900px; font-size:14px; }
+    .agent-note .availability { margin-top:13px; color:var(--accent); }
+
+    .contact-wrap { position:relative; isolation:isolate; padding:82px 0 70px; }
+    .contact-wrap::before { content:''; position:absolute; z-index:-1; pointer-events:none; inset:-80px -15% -40px 35%; background:radial-gradient(ellipse closest-side at 65% 50%,var(--light-pool),transparent),radial-gradient(ellipse closest-side at 42% 50%,var(--deep-pool),transparent); opacity:.66; }
+    .contact { display:grid; grid-template-columns:.88fr 1.12fr; gap:82px; align-items:start; }
+    .contact-copy > p { margin-top:20px; max-width:380px; }
+    .contact-copy .text-link { margin-top:18px; }
+    .text-link { display:inline-flex; align-items:center; gap:8px; color:var(--accent); font-size:13px; font-weight:600; padding-block:10px; }
+    .text-link:hover { text-decoration:underline; text-underline-offset:4px; }
+    .field-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    label { display:block; margin-bottom:8px; color:var(--body); font-size:12px; }
+    input { width:100%; min-height:47px; display:block; margin-bottom:18px; padding:12px 14px; border:1px solid var(--field-border); border-radius:9px; background:var(--field); color:var(--ink); font-size:14px; }
+    input::placeholder { color:var(--placeholder); }
+    input[aria-invalid="true"] { border-color:var(--error); }
+    .contact-form .button { width:100%; margin-top:3px; }
+    .form-note,.form-status,.form-error { margin-top:13px; font-size:11px; line-height:1.6; }
+    .form-note { color:var(--muted); }
+    .form-error { margin:0 0 11px; color:var(--error); font-size:12px; }
+    .form-status { color:var(--status); }
+    footer { padding-top:70px; }
+    .footer-main { display:grid; grid-template-columns:1.8fr 1fr 1fr 1fr; gap:40px; padding-bottom:44px; }
+    .footer-brand p { max-width:245px; margin-top:17px; font-size:13px; }
+    .footer-links h2 { margin:4px 0 18px; font-size:12px; font-weight:600; letter-spacing:0; }
+    .footer-links a { display:block; margin-top:13px; color:var(--body); font-size:12px; }
+    .footer-bottom { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:20px; padding:22px 0; color:var(--muted); font-size:11px; }
+    .review-links { display:flex; flex-wrap:wrap; gap:18px; }
+    .review-links a { color:var(--accent); text-decoration:underline; text-underline-offset:3px; }
+
+    @media (min-width:981px) and (max-width:1199px) { .header-inner { gap:20px; } .desktop-nav { gap:17px; } .header-actions { gap:14px; } .desktop-nav a { font-size:12px; } .brand { font-size:19px; } .hero-grid { gap:45px; } .capabilities { gap:20px; } .contact { gap:50px; } }
+    @media (max-width:1180px) { .desktop-nav,.sign-in { display:none; } .header-actions { margin-left:auto; } .menu-toggle { display:flex; } }
+    @media (max-width:980px) { .hero-grid { gap:42px; } .hero h1 { font-size:48px; } .product-intro,.team-surface,.desktop-grid,.contact { gap:42px; } .capabilities { grid-template-columns:repeat(2,1fr); gap:28px; } .team-list,.desktop-features { gap:24px; } .field-row { grid-template-columns:1fr; gap:0; } }
+    @media (max-width:720px) {
+      .container { width:calc(100% - 40px); }
+      .header-inner { min-height:76px; gap:12px; } .brand { font-size:19px; } .brand-mark { width:28px; height:28px; } .header-actions > .button { display:none; } .header-actions { gap:8px; }
+      .theme-switch { display:none; } .theme-toggle-mobile { display:flex; }
+      .hero { padding:40px 0 45px; } .hero-grid { grid-template-columns:1fr; gap:31px; min-height:auto; } h1 { font-size:clamp(40px,10.5vw,54px); } .hero-copy > p { margin-top:20px; font-size:16px; } .hero-actions { margin-top:25px; gap:18px; } .hero-actions .button.quiet { padding-left:0; } .hero-note { gap:18px; }
+      .ambient-water { inset:23% -110px -95px -80px; } .ambient-water::before { filter:blur(18px); opacity:.45; } .ambient-water::after { filter:blur(20px); }
+      .prompt-screen { min-height:246px; padding:20px; } .alert-panel { align-items:flex-start; flex-direction:column; } .window-caption { flex-wrap:wrap; }
+      .section { padding-block:58px; } .section-heading { margin-bottom:37px; text-align:left; } .section-heading .eyebrow { justify-content:start; } .product-intro,.team-surface,.desktop-grid,.contact { grid-template-columns:1fr; gap:29px; } .product-intro { margin-bottom:34px; }
+      .capabilities { grid-template-columns:1fr; gap:25px; } .capability { display:grid; grid-template-columns:42px 1fr; column-gap:16px; min-height:0; padding:0; } .capability-icon { grid-row:1 / 3; width:42px; height:42px; margin:0; } .capability h3 { margin:2px 0 8px; } .capability p { grid-column:2; }
+      .team-surface { margin-top:40px; padding:38px 0; } .team-list,.desktop-features { grid-template-columns:1fr; gap:22px; } .desktop-section { padding:58px 0; } .desktop-section::before { inset:0 -30% 0 -30%; } .agent-note { margin-top:36px; padding:23px 0; }
+      .contact-wrap { padding:59px 0 44px; } .contact-wrap::before { inset:-50px -70px -10px -70px; } .contact h2 { font-size:34px; }
+      footer { padding-top:50px; } .footer-main { grid-template-columns:repeat(3,1fr); gap:28px 20px; } .footer-brand { grid-column:1 / -1; } .footer-brand p { max-width:100%; } .footer-bottom { align-items:start; gap:14px; padding-block:20px; } .review-links { gap:14px; }
+    }
+    @media (max-width:379px) { .hero-actions { gap:10px; } .hero-actions .button { padding-inline:14px; font-size:13px; } .footer-main { grid-template-columns:1fr 1fr; } }
+    @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } *,*::before,*::after { animation:none!important; transition:none!important; } }
+  </style>
+  <link rel="stylesheet" href="solutions.css">
+  <script src="solutions.js" defer></script>
+<script src="integrations/site.js" defer></script><script src="integrations/business.js" defer></script></head>
+<body>
+  <svg class="svg-library" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6l-8-3Z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9m-3 3 2 2m-5 1 2 2"/></symbol>
+    <symbol id="i-paste" viewBox="0 0 24 24"><path d="M8 4h8v4H8z"/><path d="M7 6H5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2"/><path d="m9 15 2 2 4-4"/></symbol>
+    <symbol id="i-mask" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/><path d="M7 4v4m5 2v4m5 2v4"/></symbol>
+    <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3s6 7 6 12a6 6 0 0 1-12 0c0-5 6-12 6-12Z"/><path d="M9.5 16.5c.5 1 1.3 1.5 2.5 1.5"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5M9 13h6m-6 4h4"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="m13 2-9 12h7l-1 8 10-13h-7z"/></symbol>
+    <symbol id="i-device" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="13" rx="2"/><path d="M2 20h20m-13-4-1 4m7-4 1 4"/></symbol>
+    <symbol id="i-terminal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3m5 0h5"/></symbol>
+    <symbol id="i-token" viewBox="0 0 24 24"><path d="M12 3 4.5 7.5v9L12 21l7.5-4.5v-9z"/><path d="m8.5 10 3.5 2 3.5-2m-3.5 2v4"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 7 4 12l5 5"/><path d="M5 12h9a6 6 0 0 1 6 6"/></symbol>
+    <symbol id="i-clipboard" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="16" rx="2"/><path d="M9 5V3h6v2m-6 5h6m-6 4h6"/></symbol>
+    <symbol id="i-brain" viewBox="0 0 24 24"><path d="M9 4a3 3 0 0 0-5 2 3 3 0 0 0-1 5 3 3 0 0 0 2 5 3 3 0 0 0 5 1m0-13a3 3 0 0 1 5 2 3 3 0 0 1 1 5 3 3 0 0 1-2 5 3 3 0 0 1-5 1m3-12v16"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.3 14a8.5 8.5 0 0 1-10.3-10.3A8.5 8.5 0 1 0 20.3 14Z"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></symbol>
+  </svg>
+  <a href="#main" class="skip">Skip to content</a>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand" aria-label="SecureIntent home">
+        <svg class="brand-mark" viewBox="0 0 250 250" aria-hidden="true"><path d="M50 195 110 75" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round"/><path d="m130 195 30-60" fill="none" stroke="var(--accent)" stroke-width="28" stroke-linecap="round"/><circle cx="190" cy="75" r="14" fill="var(--accent)"/></svg>
+        <span>SecureIntent<span class="brand-suffix">.ai</span></span>
+      </a>
+      <nav class="desktop-nav" aria-label="Main navigation"><a href="solutions.html" aria-current="page">Solutions</a><a href="how-it-works.html">How it works</a><a href="architecture.html">Architecture</a><a href="business.html">Business</a><a href="roadmap.html">Roadmap</a><a href="about.html">About</a></nav>
+      <div class="header-actions">
+        <div class="theme-switch" role="group" aria-label="Colour theme">
+          <button class="theme-option" type="button" data-set-theme="dark" aria-pressed="true"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-moon"/></svg> Dark</button>
+          <button class="theme-option" type="button" data-set-theme="light" aria-pressed="false"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-sun"/></svg> Light</button>
+        </div>
+        <button class="theme-toggle-mobile" type="button" id="theme-toggle" aria-label="Switch to light mode"><svg class="icon" aria-hidden="true"><use href="#i-sun"/></svg></button>
+        <a href="account.html" class="sign-in">Sign in</a>
+        <a class="button" href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener">Install SecureIntent <svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+        <button class="menu-toggle" id="menu-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-nav"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>
+      </div>
+    </div>
+    <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation" hidden><a href="index.html">Home</a><a href="solutions.html" aria-current="page">Solutions</a><a href="how-it-works.html">How it works</a><a href="architecture.html">Architecture</a><a href="business.html">Business</a><a href="roadmap.html">Roadmap</a><a href="about.html">About</a><a href="customers.html">Customers</a><a href="account.html">Sign in</a><a class="button" href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener">Install SecureIntent</a></nav>
+  </header>
+
+  <main id="main" tabindex="-1">
+    <section class="hero container" aria-labelledby="hero-title">
+      <div class="ambient-water" aria-hidden="true"></div>
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <div class="eyebrow"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-shield"/></svg> Solutions · Protect every prompt.</div>
+          <h1 id="hero-title">Protection that keeps up with <span class="accent">how you use AI.</span></h1>
+          <p>Keep credentials out of AI prompts. Start free in the browser, with protection for the way you work and controls for your team.</p>
+          <div class="hero-actions">
+            <a class="button" href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener">Install free <svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+            <a class="button quiet" href="#enquiry">Talk to us about teams <svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+          </div>
+          <div class="hero-note"><span><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"/></svg> Browser extension available now</span><span>Desktop application in beta</span></div>
+        </div>
+        <figure class="product-window" aria-labelledby="window-caption">
+          <div class="window">
+            <div class="window-head"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="window-title"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-shield"/></svg> Paste protection</span></div>
+            <div class="prompt-screen">
+              <p class="prompt-label">Your prompt · before sending</p>
+              <p class="prompt-context">Help me debug this connection error.</p>
+              <div class="code-line"><span class="key">AWS_SECRET_ACCESS_KEY</span><span>=</span><span>••••••••••••••••</span></div>
+              <div class="alert-panel"><div class="alert-copy"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-shield"/></svg><div><strong>Credential detected before paste</strong><span>Review the value before it reaches the model.</span></div></div><a class="mini-button" href="#protection-flow">See how it works <span aria-hidden="true">↗</span></a></div>
+            </div>
+          </div>
+          <figcaption class="window-caption" id="window-caption"><span><svg class="icon icon-sm" aria-hidden="true"><use href="#i-device"/></svg> Detection runs on-device.</span><span>Built for the browser workflow.</span></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <nav class="solution-jump container" aria-label="Explore solutions">
+      <span>Explore solutions</span><a href="#browser">Browser <svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow"/></svg></a><a href="#teams">Teams <svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow"/></svg></a><a href="#desktop">Desktop <svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow"/></svg></a><a href="#agents">Agents <svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+    </nav>
+
+    <section class="flow-section container" id="protection-flow" aria-labelledby="flow-title">
+      <div class="flow-heading"><div><div class="eyebrow">Protection at the point of paste</div><h2 id="flow-title">Your context stays useful.<br><span class="accent">Your credentials stay protected.</span></h2></div><p>SecureIntent checks on your device, flags sensitive values, and lets you review before you continue.</p></div>
+      <figure class="solution-map" aria-labelledby="flow-title" aria-describedby="flow-caption">
+        <div class="map-topline"><span><svg class="icon icon-sm" aria-hidden="true"><use href="#i-shield"/></svg> Browser protection</span><span class="flow-instruction">Select a step to explore</span><span class="availability">Available now</span></div>
+        <div class="flow-controls" role="group" aria-label="Explore the protection workflow">
+          <button class="flow-step" type="button" data-step="paste" aria-pressed="false" aria-controls="flow-detail"><span>01</span><strong>Paste your prompt</strong><small>Start where you work</small></button>
+          <span class="flow-arrow" aria-hidden="true"><svg class="icon"><use href="#i-arrow"/></svg></span>
+          <button class="flow-step review-step" type="button" data-step="review" aria-pressed="true" aria-controls="flow-detail"><span>02</span><strong>Review with SecureIntent</strong><small>Credential detected</small></button>
+          <span class="flow-arrow" aria-hidden="true"><svg class="icon"><use href="#i-arrow"/></svg></span>
+          <button class="flow-step" type="button" data-step="continue" aria-pressed="false" aria-controls="flow-detail"><span>03</span><strong>Continue to AI</strong><small>Prompt stays useful</small></button>
+        </div>
+        <div class="flow-stage" data-active="review" aria-live="polite" aria-atomic="true">
+          <section class="stage-item stage-source" data-stage="paste"><div class="stage-heading"><span class="stage-number">01</span><span><strong>Your prompt</strong><small>Before sending</small></span><svg class="icon" aria-hidden="true"><use href="#i-paste"/></svg></div><div class="stage-window"><span>Help me debug this connection…</span><code>AWS_SECRET_ACCESS_KEY = <mark>••••••••••••</mark></code></div></section>
+          <span class="stage-arrow" aria-hidden="true"><svg class="icon"><use href="#i-arrow"/></svg></span>
+          <section class="stage-item stage-gateway stage-active" data-stage="review"><div class="stage-heading"><span class="stage-number">02</span><span><strong>SecureIntent</strong><small>On-device protection</small></span><svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg></div><div class="stage-window detection-window"><span class="detection-title"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-key"/></svg> Credential detected <em>Flagged</em></span><span class="anonymise-control"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-mask"/></svg> Anonymise and Paste</span><small><svg class="icon icon-sm" aria-hidden="true"><use href="#i-device"/></svg> Evaluated on your device</small></div></section>
+          <span class="stage-arrow" aria-hidden="true"><svg class="icon"><use href="#i-arrow"/></svg></span>
+          <section class="stage-item stage-destination" data-stage="continue"><div class="stage-heading"><span class="stage-number">03</span><span><strong>Your AI workspace</strong><small>After anonymising</small></span><svg class="icon" aria-hidden="true"><use href="#i-brain"/></svg></div><div class="stage-window"><span>Help me debug this connection…</span><code>AWS_SECRET_ACCESS_KEY = <em>[API_KEY_1]</em></code><small class="safe-status"><svg class="icon icon-sm" aria-hidden="true"><use href="#i-check"/></svg> Credential replaced</small></div></section>
+        </div>
+        <div class="flow-detail" id="flow-detail"><span class="detail-index">02</span><p><strong>Review what matters.</strong> SecureIntent flags the credential before it reaches your AI tool. Choose to anonymise it, then continue with the context you need.</p></div>
+        <a class="policy-layer" href="#teams"><span class="policy-layer-title"><span class="policy-icon"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg></span><span><strong>Team policy layer</strong><small>Protection that scales with your organisation</small></span></span><span class="policy-items"><span>Shared policies</span><span>Custom detection rules</span><span>Security alerts</span></span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+        <figcaption id="flow-caption">Illustrative workflow. It shows a credential detected before an AI prompt is sent.</figcaption>
+      </figure>
+    </section>
+
+    <section class="section container" id="browser" aria-labelledby="extension-title">
+      <div class="product-intro">
+        <div class="section-copy"><div class="eyebrow">01 / Browser Extension</div><h2 id="extension-title">Protect every prompt.</h2><p>Protection where your AI work begins.</p><span class="availability">Available now</span></div>
+        <div class="product-description"><p>Detect credentials, API keys, tokens, JWTs and sensitive data when you paste. Review what needs attention, replace sensitive values, and get back to work.</p><a class="text-link" href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof" target="_blank" rel="noopener">Get the free extension <svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+      </div>
+      <div class="capability-groups" aria-label="Browser extension capabilities">
+        <section class="capability-group"><div class="capability-group-heading"><span>01</span><div><h3>Identify risk</h3><p>Know when sensitive information is about to leave your workflow.</p></div></div><div class="capability-row"><article class="capability"><div class="capability-icon"><svg class="icon" aria-hidden="true"><use href="#i-key"/></svg></div><h4>Local detection</h4><p>RegEx and entropy scoring catch API keys, tokens, JWTs, credentials and PII on device.</p></article><article class="capability"><div class="capability-icon"><svg class="icon" aria-hidden="true"><use href="#i-paste"/></svg></div><h4>Intercept before paste</h4><p>Sensitive content is caught before it reaches ChatGPT, Claude, Copilot and other tools.</p></article><article class="capability"><div class="capability-icon"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg></div><h4>Session Lock</h4><p>Protects cloud-console and sensitive sessions from accidental exposure.</p></article></div></section>
+        <section class="capability-group"><div class="capability-group-heading"><span>02</span><div><h3>Protect the context</h3><p>Keep the useful context while replacing the sensitive parts.</p></div></div><div class="capability-row"><article class="capability"><div class="capability-icon"><svg class="icon" aria-hidden="true"><use href="#i-mask"/></svg></div><h4>Anonymise and Paste</h4><p>Swap sensitive values for safe placeholders in one click and keep moving.</p></article><article class="capability"><div class="capability-icon"><svg class="icon" aria-hidden="true"><use href="#i-drop"/></svg></div><h4>Dehydrate and Rehydrate</h4><p>Salts and anonymises tokens on the way out, then restores them locally when the model replies.</p></article><article class="capability"><div class="capability-icon"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg></div><h4>Ghost Log Sanitiser</h4><p>Strips credentials out of logs and stack traces before you share them for debugging.</p></article></div></section>
+        <section class="capability-group"><div class="capability-group-heading"><span>03</span><div><h3>Keep your flow</h3><p>Stay in control without losing momentum or visibility.</p></div></div><div class="capability-row"><article class="capability"><div class="capability-icon"><svg class="icon" aria-hidden="true"><use href="#i-bolt"/></svg></div><h4>Built for flow</h4><p>Runs silently in the background and does not arbitrarily block your prompt.</p></article><article class="capability"><div class="capability-icon"><svg class="icon" aria-hidden="true"><use href="#i-device"/></svg></div><h4>On-device evaluation</h4><p>Detection happens on your device, where you can decide what is safe to send.</p></article></div></section>
+      </div>
+      <div class="team-surface" id="teams" aria-labelledby="teams-title">
+        <div class="section-copy"><div class="eyebrow">02 / For teams</div><h2 id="teams-title">One policy.<br>Consistent protection.</h2><p>Give your team shared detection rules, central administration and visibility into AI use.</p><a class="text-link" href="#enquiry">Talk to us about teams <svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+        <ul class="team-list">
+          <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><div><strong>Team Policy Sync</strong><span>Push organisational detection rules to everyone, so protection stays consistent across the team.</span></div></li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><div><strong>Security-Team Alerts</strong><span>Zero-retention webhook notifications for critical incidents, without exposing prompt content.</span></div></li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><div><strong>Custom Tokens</strong><span>Add detection patterns for your organisation’s own credentials.</span></div></li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><div><strong>Shadow AI Discovery</strong><span>See which AI tools are in use across the team, so you understand risk without reading prompts.</span></div></li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><div><strong>Team console</strong><span>Manage seats, roster, policy and alerts from one admin view.</span></div></li>
+          <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><div><strong>Customer Advisory Board</strong><span>Direct access to the founders and the roadmap for the features you need.</span></div></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="desktop-section container" id="desktop" aria-labelledby="desktop-title">
+      <div class="desktop-grid">
+        <div class="desktop-copy"><div class="eyebrow">03 / Developer Desktop Application</div><h2 id="desktop-title">Beyond the browser.<br>Into your workflow.</h2><p>Bring credential protection to terminals, IDEs, desktop AI apps and your system clipboard.</p><span class="roadmap-note">Desktop beta</span><a class="button secondary" href="#enquiry">Join the Desktop beta <svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+        <div class="desktop-features" aria-label="Desktop application capabilities">
+          <article class="desktop-feature"><svg class="icon" aria-hidden="true"><use href="#i-clipboard"/></svg><div><h3>System-wide clipboard protection</h3><p>Redacts credentials on copy across every app, including terminals, IDEs and desktop AI tools.</p></div></article>
+          <article class="desktop-feature"><svg class="icon" aria-hidden="true"><use href="#i-terminal"/></svg><div><h3>Terminal-aware</h3><p>Understands terminal copy-on-select so command-line credentials are handled correctly.</p></div></article>
+          <article class="desktop-feature"><svg class="icon" aria-hidden="true"><use href="#i-token"/></svg><div><h3>JWT detect and decode</h3><p>Spots and decodes tokens so you can see what is sensitive at a glance.</p></div></article>
+          <article class="desktop-feature"><svg class="icon" aria-hidden="true"><use href="#i-undo"/></svg><div><h3>Undo and restore</h3><p>Every redaction is recoverable, so protection never costs you work.</p></div></article>
+          <article class="desktop-feature"><svg class="icon" aria-hidden="true"><use href="#i-device"/></svg><div><h3>OS-level gating</h3><p>Sanitises PII, IP and credentials before they leave the machine, regardless of the target app.</p></div></article>
+          <article class="desktop-feature"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg><div><h3>Redaction log</h3><p>A local record of what was protected, so you and your team can review activity.</p></div></article>
+        </div>
+      </div>
+      <div class="agent-note" id="agents"><svg class="icon" aria-hidden="true"><use href="#i-brain"/></svg><div><div class="eyebrow">04 / Agent workflows</div><h3>MCP and agent security</h3><p>Extend protection to the tools your agents connect to. In development: MCP connection discovery, approved-server identification and policy controls for access to files, databases and internal services.</p><span class="availability">In development</span></div></div>
+    </section>
+
+    <section class="contact-wrap container" id="enquiry" aria-labelledby="contact-title">
+      <div class="contact">
+        <div class="contact-copy"><div class="eyebrow">Talk to us</div><h2 id="contact-title">Bring the right protection to your team.</h2><p>Tell us about your team and we will be in touch.</p><a class="text-link" href="business.html">See business capabilities <svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow"/></svg></a></div>
+        <form class="contact-form" id="contact-form" novalidate>
+          <div class="field-row"><div><label for="contact-name">Full name</label><input id="contact-name" name="name" autocomplete="name" placeholder="Alex Morgan" aria-describedby="form-error"></div><div><label for="contact-company">Company</label><input id="contact-company" name="company" autocomplete="organization" placeholder="Company name"></div></div>
+          <label for="contact-email">Work email</label><input id="contact-email" name="email" type="email" autocomplete="email" placeholder="name@company.com" required aria-describedby="form-error">
+          <p class="form-error" id="form-error" role="alert" hidden></p>
+          <button class="button" type="submit" disabled>Request a team conversation <svg class="icon icon-sm" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+          <p class="form-note">Only your email address and interest in Business Pro are submitted.</p><p class="form-status" id="form-status" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="container">
+    <div class="footer-main">
+      <div class="footer-brand"><a class="brand" href="index.html" aria-label="SecureIntent home"><svg class="brand-mark" viewBox="0 0 250 250" aria-hidden="true"><path d="M50 195 110 75" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round"/><path d="m130 195 30-60" fill="none" stroke="var(--accent)" stroke-width="28" stroke-linecap="round"/><circle cx="190" cy="75" r="14" fill="var(--accent)"/></svg><span>SecureIntent<span class="brand-suffix">.ai</span></span></a><p>Browser-based protection for sensitive information in AI prompts.</p></div>
+      <div class="footer-links"><h2>Product</h2><a href="solutions.html">Solutions</a><a href="how-it-works.html">How it works</a><a href="architecture.html">Architecture</a><a href="index.html#tiers">Pricing</a><a href="roadmap.html">Roadmap</a></div>
+      <div class="footer-links"><h2>Company</h2><a href="about.html">About us</a><a href="customers.html">Customers</a><a href="business.html">For business</a><a href="mailto:info@secureintent.ai">Contact</a></div>
+      <div class="footer-links"><h2>Resources</h2><a href="privacy.html">Privacy policy</a><a href="tos.html">Terms of service</a><a href="mailto:SOC@secureintent.ai">Security contact</a><a href="account.html">Your account</a></div>
+    </div>
+    <div class="footer-bottom"><span>© 2026 SecureIntent.AI Ltd · Registered in England &amp; Wales · 17237217</span><div class="review-links"><span>SecureIntent site v1 · Final design review</span></div></div>
+  </footer>
+
+  <script>
+    (function () {
+      'use strict';
+      const themeToggle = document.getElementById('theme-toggle');
+      const applyTheme = (theme, remember) => {
+        const nextTheme = theme === 'light' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = nextTheme;
+        document.querySelectorAll('[data-set-theme]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.setTheme === nextTheme)));
+        themeToggle.setAttribute('aria-label', nextTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+        themeToggle.querySelector('use').setAttribute('href', nextTheme === 'dark' ? '#i-sun' : '#i-moon');
+        document.getElementById('theme-color').content = nextTheme === 'dark' ? '#050608' : '#ffffff';
+        if (remember) { try { localStorage.setItem('si_site_theme', nextTheme); } catch (_) {} }
+      };
+      applyTheme(document.documentElement.dataset.theme, false);
+      document.querySelectorAll('[data-set-theme]').forEach(button => button.addEventListener('click', () => applyTheme(button.dataset.setTheme, true)));
+      themeToggle.addEventListener('click', () => applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark', true));
+      window.addEventListener('storage', event => { if (event.key === 'si_site_theme' || event.key === null) applyTheme(event.newValue, false); });
+
+      const menu = document.getElementById('mobile-nav');
+      const menuToggle = document.getElementById('menu-toggle');
+      const setMenu = open => {
+        menu.hidden = !open;
+        menuToggle.setAttribute('aria-expanded', String(open));
+        menuToggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+        menuToggle.querySelector('use').setAttribute('href', open ? '#i-close' : '#i-menu');
+      };
+      menuToggle.addEventListener('click', () => setMenu(menu.hidden));
+      menu.querySelectorAll('a').forEach(link => link.addEventListener('click', () => setMenu(false)));
+      document.addEventListener('click', event => { if (!event.target.closest('.site-header')) setMenu(false); });
+      document.addEventListener('keydown', event => { if (event.key === 'Escape' && !menu.hidden) { setMenu(false); menuToggle.focus(); } });
+      matchMedia('(min-width: 1181px)').addEventListener('change', event => { if (event.matches) setMenu(false); });
+
+    })();
+  </script>
+</body>
+</html>

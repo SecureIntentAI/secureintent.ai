@@ -1,0 +1,85 @@
+/* Redesign privacy layout with the original local-processing diagram. */
+.architecture-privacy {
+  --privacy-background: #161819;
+  --privacy-text: #f5f6f6;
+  --privacy-muted: #a4a9ab;
+  --privacy-border: #303537;
+  --privacy-accent: #a9ecda;
+  padding-block: 80px;
+  background: var(--privacy-background);
+}
+[data-theme="light"] .architecture-privacy {
+  --privacy-background: #f8f9fa;
+  --privacy-text: #181d20;
+  --privacy-muted: #596367;
+  --privacy-border: #dce2e3;
+  --privacy-accent: #13775f;
+}
+.architecture-privacy-heading { display: grid; grid-template-columns: 1.1fr 1fr; align-items: end; gap: 56px; margin-bottom: 44px; }
+.architecture-privacy .architecture-privacy-eyebrow { font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--privacy-muted); margin-bottom: 18px; }
+.architecture-privacy h2 { color: var(--privacy-text); font-size: clamp(32px, 3.2vw, 46px); letter-spacing: -.045em; line-height: 1.15; }
+.architecture-privacy h2 span { color: var(--privacy-muted); }
+.architecture-privacy-heading > p { max-width: 370px; justify-self: end; font-size: 14px; line-height: 1.8; color: var(--privacy-muted); }
+.architecture-privacy-heading > p strong { display: block; color: var(--privacy-text); font-weight: 500; margin-bottom: 5px; }
+.architecture-privacy-layout { display: grid; grid-template-columns: 1.1fr 1fr; gap: 56px; align-items: center; }
+.architecture-local-diagram {
+  margin: 0;
+  padding: 20px;
+  border: 1px solid #31504c;
+  border-radius: 10px;
+  background: radial-gradient(ellipse at 50% 55%, #123c3738, transparent 70%), radial-gradient(#72ffff14 1px, transparent 1px), #0c1417;
+  background-size: auto, 20px 20px, auto;
+  color: #f3f6fa;
+  color-scheme: dark;
+  box-shadow: 0 10px 35px -25px #0008;
+}
+.architecture-device-label { display: flex; justify-content: space-between; color: #93a8ac; font-family: "Fira Code", monospace; font-size: 9px; letter-spacing: .06em; text-transform: uppercase; }
+.architecture-device-label > span { display: flex; align-items: center; gap: 6px; }
+.architecture-device-label > span:last-child { color: #a9ecda; }
+.architecture-device-label .icon { width: 13px; height: 13px; }
+.architecture-flow-label { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; width: fit-content; max-width: 100%; margin: 28px auto 0; padding: 8px 12px; border: 1px solid #72ffff33; border-radius: 20px; background: #72ffff08; color: #72ffff; font: 10px/1.5 "Fira Code", monospace; }
+.architecture-flow-label > span { white-space: nowrap; }
+.architecture-flow-label > span[aria-hidden] { opacity: .5; }
+.architecture-local-steps { list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 46px 0 26px; padding: 0; }
+.architecture-local-steps li { position: relative; text-align: center; }
+.architecture-local-steps li + li::before { content: "›"; position: absolute; left: -13px; top: 19px; font-size: 26px; color: #72ffff88; }
+.architecture-step-icon { display: flex; align-items: center; justify-content: center; width: 54px; height: 54px; margin: 0 auto 18px; background: #111; border: 1px solid #ffffff33; border-radius: 10px; color: #d1d5db; font-size: 22px; }
+.architecture-memory-step .architecture-step-icon { color: #72ffff; background: #052656; border-color: #72ffff; box-shadow: 0 0 15px #72ffff40; }
+.architecture-local-steps li:last-child .architecture-step-icon { color: #72ffff; box-shadow: 0 0 15px #72ffff25; }
+.architecture-memory-label { position: absolute; top: -17px; left: 50%; transform: translateX(-50%); white-space: nowrap; padding: 3px 5px; border-radius: 3px; background: #72ffff; color: #000; font: 600 8px/1.4 "Fira Code", monospace; letter-spacing: .04em; text-transform: uppercase; box-shadow: 0 0 12px #72ffff40; }
+.architecture-local-steps h3 { margin: 0 0 8px; color: #fff; font: 600 11px/1.6 "Fira Code", monospace; letter-spacing: 0; }
+.architecture-local-steps p { color: #a4afb7; font-size: 11px; line-height: 1.65; }
+.architecture-local-diagram figcaption { padding-top: 18px; border-top: 1px solid #ffffff0d; color: #a5b9b4; text-align: center; font: 9px/1.7 "Fira Code", monospace; }
+.architecture-local-diagram figcaption > span { display: inline-block; width: 4px; height: 4px; margin-right: 5px; border-radius: 50%; background: #a9ecda; vertical-align: middle; }
+.architecture-privacy-points article { display: flex; gap: 18px; padding-block: 22px; border-bottom: 1px solid var(--privacy-border); }
+.architecture-privacy-points article:first-child { padding-top: 0; }
+.architecture-privacy-points article:last-child { border-bottom: 0; padding-bottom: 0; }
+.architecture-privacy-number { color: var(--privacy-accent); font: 10px/1.8 "Fira Code", monospace; padding-top: 3px; }
+.architecture-privacy-points h3 { color: var(--privacy-text); font-size: 18px; font-weight: 500; letter-spacing: -.03em; line-height: 1.4; margin-bottom: 8px; }
+.architecture-privacy-points p { font-size: 14px; line-height: 1.8; color: var(--privacy-muted); }
+.architecture-source-link { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; margin-top: 10px; color: var(--privacy-accent); font-size: 13px; }
+.architecture-source-link .icon { width: 14px; height: 14px; transform: rotate(-45deg); }
+.architecture-source-link:hover { text-decoration: underline; text-underline-offset: 4px; }
+@media (max-width: 1100px) {
+  .architecture-privacy-heading, .architecture-privacy-layout { gap: 32px; }
+  .architecture-local-steps { grid-template-columns: 1fr; gap: 34px; margin-top: 32px; }
+  .architecture-local-steps li { display: grid; grid-template-columns: 54px minmax(0, 1fr); column-gap: 18px; text-align: left; }
+  .architecture-step-icon { grid-row: 1 / 3; margin: 0; }
+  .architecture-local-steps li + li::before { content: "↓"; left: 22px; top: -28px; font-size: 16px; }
+  .architecture-memory-label { left: 27px; top: -11px; font-size: 7px; }
+  .architecture-local-steps h3 { margin-bottom: 4px; }
+}
+@media (max-width: 800px) {
+  .architecture-privacy { padding-block: 54px; }
+  .architecture-privacy-heading, .architecture-privacy-layout { grid-template-columns: 1fr; gap: 28px; }
+  .architecture-privacy-heading > p { justify-self: start; max-width: 560px; }
+  .architecture-privacy-heading { margin-bottom: 32px; }
+  .architecture-local-steps { gap: 40px; }
+  .architecture-local-steps h3 { font-size: 12px; }
+  .architecture-local-steps p { font-size: 12px; }
+}
+@media (max-width: 380px) {
+  .architecture-local-diagram { padding: 16px; }
+  .architecture-flow-label { gap: 6px; font-size: 9px; padding-inline: 8px; }
+  .architecture-local-steps li { column-gap: 12px; }
+}
