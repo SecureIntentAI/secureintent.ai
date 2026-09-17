@@ -168,8 +168,7 @@ an explicitly approved test account and scope.
 
 The frontend production release uses the existing live public configuration.
 The separate backend staging environment is maintained outside this repository
-in `/home/shiiit/OSS/JOB/secureintent-backend-v2` on branch
-`staging/secureintent-v2`.
+on branch `staging/secureintent-v2`.
 
 The staging Worker is intentionally disabled until isolated provider settings
 are configured. It must not receive production secret values. See the workspace
@@ -205,6 +204,5 @@ cleanup.
 
 - [Frontend staging guide](STAGING.md)
 - [Approved design notes](designs/secureintent-site-v1/README.md)
-- Workspace deployment handoff: `/home/shiiit/OSS/JOB/DEPLOYMENT-HANDOFF-V2.md`
-- Backend staging guide: `/home/shiiit/OSS/JOB/secureintent-backend-v2/STAGING.md`
-
+- Workspace deployment handoff: maintained in the shared deployment record.
+- Backend staging guide: maintained in the separate backend repository.

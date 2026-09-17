@@ -53,9 +53,11 @@ Documentation remains under Product. The former large CTA is removed.
 Security/support links use accessible dialogs; source demo status figures and
 the placeholder PGP key are not represented as live data or a usable key.
 
-For the future Netlify root-site package, run `node scripts/prepare-site.mjs
---production` followed by `node scripts/preview-site.mjs` from the worktree root.
-Open `http://127.0.0.1:3002/`. This is local review, not a deployment.
+For a local review of the Netlify root-site package, run
+`node scripts/prepare-site.mjs --production` followed by
+`node scripts/preview-site.mjs` from the worktree root. Open
+`http://127.0.0.1:3002/`. This is local review only; the live site is deployed
+from the repository's `main` branch.
 
 Account, team, business enquiry and lifetime promotion now use the service
 contracts from `main`. See [INTEGRATIONS.md](INTEGRATIONS.md) for configuration,
@@ -64,8 +66,9 @@ email-and-tier endpoint; name/company are deliberately not submitted or saved.
 Their new runtime requires explicit test services on non-production hosts.
 The Netlify configuration publishes only generated `dist` with root routes,
 security headers and SEO metadata. It excludes internal docs, tests and legacy
-root HTML. Production has not been deployed. See the integration checklist
-for the remaining real-session, sandbox-payment and production rollout gates.
+root HTML. Production is deployed from `main`; see the repository root
+`README.md` for the current release record and the integration checklist for
+environment-specific staging requirements.
 
 Solutions refinement (September 2026):
 
