@@ -6,16 +6,16 @@
     
     <!-- SEO & Metadata -->
     <title>Privacy Policy | SecureIntent.ai</title>
-    <meta name="description" content="SecureIntent Privacy Policy and Data Governance Framework. Absolute zero retention, local clipboard evaluation.">
+    <meta name="description" content="How SecureIntent handles local DLP data and Business Shadow AI security metadata.">
     <!-- Social preview. Every page here paints itself in JavaScript, and a link
          scraper does not run it — without these it reads whatever markup happens
          to come first, which is how a live offer once previewed as closed. -->
-    <meta name="description" content="What SecureIntent captures and what it never does. Your pasted text never leaves your device — only anonymised detection metadata is sent." />
+    <meta name="description" content="What SecureIntent captures and what it never does. Raw pasted text and secret values never leave your device." />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="SecureIntent.ai" />
     <meta property="og:url" content="https://secureintent.ai/privacy" />
     <meta property="og:title" content="Privacy Policy | SecureIntent.ai" />
-    <meta property="og:description" content="What SecureIntent captures and what it never does. Your pasted text never leaves your device — only anonymised detection metadata is sent." />
+    <meta property="og:description" content="What SecureIntent captures and what it never does. Raw pasted text and secret values never leave your device." />
     <meta property="og:image" content="https://secureintent.ai/og-image.png" />
     <meta property="og:image:secure_url" content="https://secureintent.ai/og-image.png" />
     <meta property="og:image:type" content="image/png" />
@@ -27,7 +27,7 @@
     <meta name="twitter:image" content="https://secureintent.ai/og-image.png" />
     <meta name="twitter:url" content="https://secureintent.ai/privacy" />
     <meta name="twitter:title" content="Privacy Policy | SecureIntent.ai" />
-    <meta name="twitter:description" content="What SecureIntent captures and what it never does. Your pasted text never leaves your device — only anonymised detection metadata is sent." />
+    <meta name="twitter:description" content="What SecureIntent captures and what it never does. Raw pasted text and secret values never leave your device." />
 
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     
@@ -106,7 +106,7 @@
     <main class="relative z-10 max-w-4xl mx-auto px-6 py-16">
         <div class="mb-12">
             <h1 class="text-4xl md:text-5xl font-bold text-white tracking-tight">Privacy Policy</h1>
-            <p class="text-brand-cyan font-mono text-sm mt-3">Effective Date: June 8, 2026</p>
+            <p class="text-brand-cyan font-mono text-sm mt-3">Effective Date: September 24, 2026</p>
             <p class="text-gray-500 text-xs font-mono mt-1">SECUREINTENT.AI LTD &bull; Company No. 17237217</p>
         </div>
 
@@ -119,35 +119,41 @@
             <!-- Section 1 -->
             <section class="border-t border-white/5 pt-8">
                 <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-3">
-                    <span class="text-brand-cyan font-mono text-sm">01.</span> Our "Zero-Retention" Commitment
+                    <span class="text-brand-cyan font-mono text-sm">01.</span> Local Inspection and Raw-Content Protection
                 </h2>
                 <p class="text-gray-300 text-sm md:text-base leading-relaxed">
-                    SecureIntent is built on a foundational principle of privacy by design. Our cybersecurity solutions are architected to be completely zero-retention. We do not require account creation, and our extension evaluates data locally or via secure Edge processing (entirely in volatile RAM). Once a security evaluation is complete, all raw payload data and clipboard contents are immediately and permanently destroyed.
+                    SecureIntent evaluates pasted text and potential secret values on your device. The extension does not transmit or retain raw pasted text, clipboard contents, detected secret values, complete URLs, URL paths, or query strings. A paste is inspected locally to provide the warning or redaction feature.
+                </p>
+                <p class="text-gray-300 text-sm md:text-base leading-relaxed mt-4">
+                    Account and Business features use a signed session to authenticate the user and, where applicable, their organisation. SecureIntent uses this only to provide the requested account, entitlement, policy, and security-reporting features.
                 </p>
             </section>
 
             <!-- Section 2 -->
             <section class="border-t border-white/5 pt-8">
                 <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-3">
-                    <span class="text-brand-cyan font-mono text-sm">02.</span> What We Capture: Metadata Only
+                    <span class="text-brand-cyan font-mono text-sm">02.</span> Business Shadow AI Security Metadata
                 </h2>
                 <p class="text-gray-300 text-sm md:text-base leading-relaxed mb-4">
-                    To ensure our security heuristics remain highly accurate, we capture a strictly limited set of anonymized telemetry:
+                    Shadow AI is available only to a signed-in Business organisation user after they accept the current Terms and Privacy Policy. It helps that organisation understand and manage its use of recognised AI services. Shadow AI sends only the following limited security metadata:
                 </p>
                 <ul class="space-y-3 pl-4 border-l-2 border-brand-cyan/30 text-sm text-gray-400 font-mono">
                     <li class="flex items-start gap-2">
                         <span class="text-brand-cyan">&rsaquo;</span>
-                        <span>Only metadata is captured in order to tune and enhance the product.</span>
+                        <span>The recognised AI-service hostname and service identifier, and an event timestamp. It does not send a full URL, URL path, query string, page content, or prompt.</span>
                     </li>
                     <li class="flex items-start gap-2">
                         <span class="text-brand-cyan">&rsaquo;</span>
-                        <span>This metadata is limited to non-identifying telemetry, such as high-level risk scores, event timestamps, and redacted structural signatures (e.g., identifying the format of a leaked key without logging the key itself).</span>
+                        <span>Paste byte size; a detection category and reason; the warning outcome; and a finding count. It does not send pasted text, clipboard content, or a secret value.</span>
                     </li>
                     <li class="flex items-start gap-2">
                         <span class="text-brand-cyan">&rsaquo;</span>
-                        <span>Because our systems discard raw input immediately, this metadata cannot be reverse-engineered to identify you, your machine, or the specific contents of your clipboard.</span>
+                        <span>The authenticated Business organisation and user context needed to place the event in that organisation's DLP reporting. Events are ignored for incognito pages, are bounded in the local queue, and are discarded on sign-out, consent removal, or organisation change.</span>
                     </li>
                 </ul>
+                <p class="text-gray-300 text-sm md:text-base leading-relaxed mt-5">
+                    SecureIntent uses this metadata only to provide, secure, and improve the DLP and Business Shadow AI features. It is not sold, used for advertising, or used to build a cross-site behavioural profile.
+                </p>
             </section>
 
             <!-- Section 3 -->
@@ -161,11 +167,11 @@
                 <div class="grid md:grid-cols-2 gap-4 mt-6">
                     <div class="bg-[#111] p-5 rounded-lg border border-white/5">
                         <h4 class="text-white font-bold text-sm mb-2"><i class="fa-solid fa-ban text-red-400 mr-2"></i> No Data Monetization</h4>
-                        <p class="text-gray-400 text-xs leading-relaxed">Your data is not sold, rented, or traded under any circumstances.</p>
+                        <p class="text-gray-400 text-xs leading-relaxed">We do not sell, rent, trade, or use extension data for advertising.</p>
                     </div>
                     <div class="bg-[#111] p-5 rounded-lg border border-white/5">
                         <h4 class="text-white font-bold text-sm mb-2"><i class="fa-solid fa-user-shield text-brand-cyan mr-2"></i> No Third-Party Access</h4>
-                        <p class="text-gray-400 text-xs leading-relaxed">Your data is not accessed by third parties. We do not integrate third-party advertising trackers, marketing SDKs, or external profiling tools into our extension or data pipeline.</p>
+                        <p class="text-gray-400 text-xs leading-relaxed">We do not share extension data with advertisers, data brokers, or marketing SDKs. Essential service providers process data only to operate SecureIntent.</p>
                     </div>
                 </div>
             </section>
@@ -199,7 +205,7 @@
                     We operate in full compliance with the UK General Data Protection Regulation (UK GDPR) and the Data Protection Act 2018.
                 </p>
                 <p class="text-gray-300 text-sm md:text-base leading-relaxed">
-                    You have standard rights to request access, rectification, or erasure of personal data. However, because our architecture is strictly zero-retention and our metadata is fully anonymized, we do not possess the technical ability to retrieve, view, or delete past telemetry data tied to any specific individual—we simply do not hold it.
+                    You may request access, correction, or erasure of personal data related to your account or Business organisation by contacting Privacy &amp; Data Governance below. We may need to verify your identity and organisation authority before acting on a request. Removing consent, signing out, or leaving a Business organisation causes the extension to discard queued Shadow AI metadata on the device.
                 </p>
             </section>
 
@@ -242,7 +248,7 @@
 
     <!-- Simple Footer -->
     <footer class="relative z-10 border-t border-white/5 bg-[#050505] py-12 text-center text-xs text-gray-600 font-mono">
-        <p>&copy; 2026 SecureIntent.ai. Zero retention guaranteed.</p>
+                    <p>&copy; 2026 SecureIntent.ai. Raw pasted text and secret values are never uploaded by SecureIntent.</p>
     </footer>
 
     <!-- WhatsApp Business floating support button -->
