@@ -37,6 +37,8 @@ for(const name of files){
   assert.ok(!/\bsk_(live|test)_[A-Za-z0-9]{16,}|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----/.test(s),'no secret keys: '+name);
   if(name.endsWith('.html')) {
     pages++;
+    assert.ok(!/<base\b/i.test(s),'published pages do not redirect inline SVG fragments: '+name);
+    assert.ok(!/<use\b[^>]*href="\/(?:[^"#]+)?#i-/i.test(s),'icons stay as same-document fragments: '+name);
     const base=s.match(/<base[^>]+href="([^"]+)"/)?.[1];
     const baseURL=base?new URL(base,'https://secureintent.ai/'+name).href:undefined;
     for(const match of s.matchAll(/\b(?:href|src|poster)="([^"]+)"/g)) resolveLocal(match[1],name,baseURL);
@@ -73,5 +75,5 @@ if(manifest.mode==='production') {
   }
 }
 const headers=await readFile(path.join(dir,'_headers'),'utf8');
-for(const expected of ['X-Content-Type-Options: nosniff','X-Frame-Options: DENY','Cache-Control: no-store',"frame-ancestors 'none'"]) assert.ok(headers.includes(expected));
+for(const expected of ['X-Content-Type-Options: nosniff','X-Frame-Options: DENY','Cache-Control: no-store',"frame-ancestors 'none'",'upgrade-insecure-requests','block-all-mixed-content']) assert.ok(headers.includes(expected));
 console.log(`Release checks passed: ${pages} HTML pages, ${links} local link/asset references, main integration identifiers, public-file whitelist and security headers.`);

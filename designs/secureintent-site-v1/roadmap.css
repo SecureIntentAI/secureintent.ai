@@ -104,6 +104,30 @@
 .roadmap-reference .text-green-500 { --tw-text-opacity: 1; color: rgb(34 197 94 / var(--tw-text-opacity, 1)); }
 .roadmap-reference .text-white { --tw-text-opacity: 1; color: rgb(255 255 255 / var(--tw-text-opacity, 1)); }
 .roadmap-reference .shadow-\[0_0_15px_rgba\(114\,255\,255\,0\.3\)\] { --tw-shadow: 0 0 15px rgba(114,255,255,0.3); --tw-shadow-colored: 0 0 15px var(--tw-shadow-color); box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow); }
+
+/* The timeline arrived with fixed dark Tailwind utilities. Map those utilities
+   to the shared light palette so the page follows the global theme control. */
+:root[data-theme="light"] .roadmap-reference {
+  background: var(--paper);
+  color: var(--ink);
+  color-scheme: light;
+}
+:root[data-theme="light"] .roadmap-reference .roadmap-intro {
+  background: radial-gradient(ellipse at 0 0, var(--deep-pool), transparent 65%);
+}
+:root[data-theme="light"] .roadmap-reference .bg-\[\#050505\] { background-color: var(--paper); }
+:root[data-theme="light"] .roadmap-reference .bg-\[\#111\] { background-color: var(--surface); }
+:root[data-theme="light"] .roadmap-reference .text-white { color: var(--ink); }
+:root[data-theme="light"] .roadmap-reference .text-gray-300 { color: var(--body); }
+:root[data-theme="light"] .roadmap-reference .text-gray-400 { color: var(--muted); }
+:root[data-theme="light"] .roadmap-reference .text-brand-cyan { color: var(--accent); }
+:root[data-theme="light"] .roadmap-reference .border-white\/5,
+:root[data-theme="light"] .roadmap-reference .border-white\/10,
+:root[data-theme="light"] .roadmap-reference .border-gray-600 { border-color: var(--field-border); }
+:root[data-theme="light"] .roadmap-reference .border-brand-cyan,
+:root[data-theme="light"] .roadmap-reference .border-brand-cyan\/30 { border-color: var(--accent); }
+:root[data-theme="light"] .roadmap-reference .bg-brand-cyan\/20,
+:root[data-theme="light"] .roadmap-reference .bg-brand-navy\/30 { background-color: color-mix(in srgb,var(--accent) 10%,var(--paper)); }
 @media (min-width: 768px) { .roadmap-reference .md\:ml-12 { margin-left: 3rem; } }
 @media (min-width: 768px) { .roadmap-reference .md\:text-base { font-size: 1rem; line-height: 1.5rem; } }
 

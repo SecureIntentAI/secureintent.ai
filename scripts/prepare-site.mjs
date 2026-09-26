@@ -51,8 +51,10 @@ for (const [name, buffer] of files) {
     text = text.replace(/<script\b[^>]*src=["'][^"']*staging-guard\.js["'][^>]*><\/script>/g, '');
     text = text.replace(/<meta\b[^>]*name=["']robots["'][^>]*>/gi, '');
     const own = '/' + name;
-    // A document-level <base> would otherwise send hash links to the homepage.
-    text = text.replace(/href="#([^"]*)"/g, `href="${own}#$1"`);
+    // Published routes and assets are normalized below, so the design-only
+    // base URL is unnecessary. Keeping it would make fragment-only SVG <use>
+    // references resolve as external HTML documents, leaving empty icon boxes.
+    text = text.replace(/<base\b[^>]*>/gi, '');
     text = text.replace(/href="(?!\/|#|https?:|mailto:|tel:)([^"?#]+\.html)([?#][^"]*)?"/g, (all, file, rest = '') => {
       if (file.includes('/')) return all;
       return `href="/${file}${rest}"`;
@@ -76,7 +78,7 @@ files.set('404.html', Buffer.from('<!doctype html><html lang="en"><meta charset=
 const aliases = [...files.keys()].filter(name => name.endsWith('.html') && !name.includes('/') && name !== 'index.html' && name !== '404.html');
 files.set('_redirects', Buffer.from(aliases.map(name => `/${name.slice(0,-5)} /${name} 200`).join('\n') + '\n/index.html / 301\n'));
 const csp = resourcePolicy(config, hashes, production);
-let headers = `/*\n  X-Content-Type-Options: nosniff\n  X-Frame-Options: DENY\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=()\n  Content-Security-Policy: base-uri 'self'; object-src 'none'; frame-ancestors 'none'\n  Content-Security-Policy-Report-Only: ${csp}\n  Cache-Control: public, max-age=0, must-revalidate\n`;
+let headers = `/*\n  X-Content-Type-Options: nosniff\n  X-Frame-Options: DENY\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=()\n  Content-Security-Policy: base-uri 'self'; object-src 'none'; frame-ancestors 'none'; upgrade-insecure-requests; block-all-mixed-content\n  Content-Security-Policy-Report-Only: ${csp}\n  Cache-Control: public, max-age=0, must-revalidate\n`;
 if (!production) headers += '  X-Robots-Tag: noindex, nofollow\n';
 for (const name of ['account','team','lifetime_promo','uninstall']) headers += `\n/${name}*\n  Cache-Control: no-store\n  X-Robots-Tag: noindex, nofollow\n  Referrer-Policy: no-referrer\n`;
 files.set('_headers', Buffer.from(headers));

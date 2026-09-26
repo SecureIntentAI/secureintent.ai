@@ -15,6 +15,33 @@ const assert=require('node:assert/strict');
  for(const file of files){await page.goto(BASE+'/'+file,{waitUntil:'networkidle'});}
  assert.deepEqual(errors,[]);assert.deepEqual(failed,[]);
  console.log('PASS: '+files.length+' pages without browser script errors or missing local resources');
+ await page.goto(BASE+'/roadmap.html');
+ await page.evaluate(()=>localStorage.setItem('si_site_theme','light'));
+ await page.reload({waitUntil:'networkidle'});
+ const roadmapTheme=await page.locator('.roadmap-reference').evaluate(el=>({
+  scheme:getComputedStyle(el).colorScheme,
+  background:getComputedStyle(el).backgroundColor,
+  section:getComputedStyle(document.querySelector('#roadmap')).backgroundColor,
+  heading:getComputedStyle(document.querySelector('#roadmap-title')).color,
+ }));
+ assert.equal(roadmapTheme.scheme,'light');
+ assert.notEqual(roadmapTheme.background,'rgb(5, 5, 5)');
+ assert.notEqual(roadmapTheme.section,'rgb(5, 5, 5)');
+ assert.notEqual(roadmapTheme.heading,'rgb(255, 255, 255)');
+ console.log('PASS: Roadmap content follows light mode');
+ await page.goto(BASE+'/solutions.html',{waitUntil:'networkidle'});
+ await page.waitForSelector('.site-footer');
+ const footerTheme=await page.locator('.site-footer').evaluate(el=>({scheme:getComputedStyle(el).colorScheme,background:getComputedStyle(el).backgroundColor}));
+ assert.equal(footerTheme.scheme,'light');
+ assert.notEqual(footerTheme.background,'rgb(5, 5, 5)');
+ console.log('PASS: shared footer follows light mode');
+ await page.goto(BASE+'/business.html',{waitUntil:'networkidle'});
+ const iconBoxes=await page.locator('.organisation-model svg use').evaluateAll(uses=>uses.map(use=>{
+  const box=use.ownerSVGElement.getBBox(); return {href:use.getAttribute('href'),width:box.width,height:box.height};
+ }));
+ assert.ok(iconBoxes.length>=5);
+ assert.ok(iconBoxes.every(icon=>icon.href.startsWith('#i-')&&icon.width>0&&icon.height>0),JSON.stringify(iconBoxes));
+ console.log('PASS: packaged inline SVG icons render');
  await ctx.close();
  const firefox=await browser.newContext({userAgent:'Mozilla/5.0 (X11; Linux x86_64; rv:130.0) Gecko/20100101 Firefox/130.0'});
  await firefox.route('**/*',r=>new URL(r.request().url()).origin===origin?r.continue():r.fulfill({body:''}));
