@@ -101,6 +101,22 @@ function destination(name) {
 if (!Array.isArray(previous)) throw new Error('Invalid build manifest');
 for (const name of previous) destination(name);
 const previousSet = new Set(previous);
+// Keep the build configuration out of the published site. A Netlify build can
+// leave the root config in dist; remove only an exact, regular-file copy so
+// the output guard continues to reject unrelated files and symlinks.
+const copiedNetlifyConfig = path.join(output, 'netlify.toml');
+try {
+  const info = await lstat(copiedNetlifyConfig);
+  if (!info.isFile()) throw new Error('Refusing to remove non-file dist/netlify.toml');
+  const [projectConfig, outputConfig] = await Promise.all([
+    readFile(path.join(root, 'netlify.toml')),
+    readFile(copiedNetlifyConfig),
+  ]);
+  if (!projectConfig.equals(outputConfig)) throw new Error('Refusing to remove unrecognized dist/netlify.toml');
+  await unlink(copiedNetlifyConfig);
+} catch (error) {
+  if (error.code !== 'ENOENT') throw error;
+}
 async function checkOutput(dir, relative = '') {
   for (const entry of await readdir(dir, {withFileTypes:true})) {
     const name = path.posix.join(relative, entry.name);
