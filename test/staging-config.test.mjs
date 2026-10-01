@@ -15,6 +15,7 @@ const settings = {
   SI_STAGING_PADDLE_CLIENT_TOKEN: 'test_fixture',
   SI_STAGING_PADDLE_PRICE_ID: 'pri_' + 'a'.repeat(26),
 };
+const testClerkKey = settings.SI_STAGING_CLERK_PUBLISHABLE_KEY;
 const config = env => publicConfig(production, {...settings, ...env}, 'staging');
 
 test('local default is visual-only with no live or test services', () => {
@@ -31,6 +32,17 @@ test('production retains exactly the existing public identifiers', () => {
 });
 test('Netlify main production context is accepted', () => {
   assert.equal(buildMode({NETLIFY: 'true', CONTEXT: 'production', BRANCH: 'main'}), 'production');
+});
+test('local pilot uses only the isolated API and Clerk development configuration', () => {
+  const result = publicConfig(production, {
+    SI_PILOT_SITE_ORIGIN: 'http://127.0.0.1:3003',
+    SI_PILOT_API_BASE: 'https://secureintent-backend-business-pilot.john-ja-wright.workers.dev',
+    SI_PILOT_CLERK_PUBLISHABLE_KEY: testClerkKey,
+  }, 'pilot');
+  assert.equal(result.production, null);
+  assert.equal(result.preview.pilot, true);
+  assert.equal(result.preview.clerkPublishableKey, testClerkKey);
+  assert.equal(result.preview.paddleToken, '');
 });
 test('only the approved Netlify branch can use connected staging', () => {
   assert.equal(buildMode({NETLIFY: 'true', CONTEXT: 'branch-deploy', BRANCH: 'SecureintnentV2', SI_DEPLOY_ENV: 'staging'}), 'staging');

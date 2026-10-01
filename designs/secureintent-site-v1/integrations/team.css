@@ -198,6 +198,7 @@
         .team-app .side .links { display: flex; flex-wrap: wrap; }
         .team-app .side .links .navlink--signout { grid-column: auto; }
         .team-app .content { padding: 0 16px 60px; }
+        .team-app .view-shadow { width: 100%; }
         .team-app .viewhead { padding-top: 20px; }
       }
       /* On a phone the four tabs only fit without their icons — and four
@@ -521,3 +522,43 @@
       .team-app #member-actions .panel p { color: var(--muted); font-size: 12.5px; line-height: 1.6; margin: 0 0 10px; }
       .team-app #member-actions .panel p:last-child { margin-bottom: 0; }
       .team-app #gate { max-width: 460px; margin: 60px auto; text-align: center; }
+
+/* The Business console is an application from its first paint. */
+.business-console > .site-header, .business-console > footer { display: none; }
+.business-console #team-workspace { padding-top: 24px; min-height: 100vh; }
+.business-console .team-app .content { max-width: none; }
+.business-console .team-app .view-shadow { width: 100%; min-width: 0; }
+.business-console #shadow-root { display: block; min-height: 420px; }
+.business-console .team-app .shadow-viewhead { padding-bottom: 24px; }
+
+/* Keep the application frame stationary as views and live data change height.
+   Scope this to the authorized console so sign-in can still scroll naturally. */
+.business-console:has(#console:not(.hide)) { overflow: hidden; }
+.business-console:has(#console:not(.hide)) #team-workspace {
+  margin: 0 auto; padding: 0; min-height: 0;
+  height: 100vh; height: 100dvh;
+}
+.business-console .team-app #console {
+  height: 100%; min-height: 0; align-items: stretch;
+}
+.business-console .team-app #console .side {
+  position: relative; top: 0; height: 100%; min-height: 0;
+  overflow-y: auto; overscroll-behavior: contain;
+}
+.business-console .team-app #console > .content {
+  min-height: 0; height: 100%; overflow-y: auto;
+  overscroll-behavior: contain; overflow-anchor: none;
+  scrollbar-gutter: stable; scroll-behavior: auto;
+}
+@media (max-width: 880px) {
+  .business-console .team-app #console { grid-template-rows: auto minmax(0, 1fr); }
+  .business-console .team-app #console .side { height: auto; max-height: 45dvh; }
+}
+
+.business-console #gate:has(#clerk-auth:empty):has(#gate-sub:empty)::after {
+  content: ''; display: block; height: 80px; margin: 24px auto;
+  border-radius: 12px; background: linear-gradient(90deg, transparent, rgba(114,255,255,.08), transparent);
+  background-size: 200% 100%; animation: console-loading 1.5s ease-in-out infinite;
+}
+@keyframes console-loading { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .business-console #gate::after { animation: none!important; } }

@@ -253,6 +253,10 @@ const CFG = SI.config;
             return;
           }
           const isAdmin = team.role === "org:admin";
+          if (!isAdmin) {
+            $("plan-name").textContent = "Developer Pro";
+            renderFeatures("developer_pro");
+          }
           $("team-name").textContent = team.name || "Your team";
           // No seats means no subscription: the checkout was started and never
           // finished. Saying "1 of 0 seats in use" makes a paid product look
@@ -266,7 +270,7 @@ const CFG = SI.config;
           }
           $("team-sub").textContent = isAdmin
             ? `Business Pro · ${team.seatsUsed} of ${team.seats} seats in use`
-            : "Business Pro · managed by your team admin";
+            : "Developer Pro · provided by your organization";
           cta.textContent = "Manage team";
           // A member has nothing to manage, so don't offer them a dead end.
           cta.classList.toggle("hide", !isAdmin);
@@ -366,7 +370,9 @@ const CFG = SI.config;
           // so /v1/billing/portal has nothing to open. Offering "Manage
           // subscription" here is a button that can only 404.
           const isBusinessEmail = source === "business_email";
-          $("plan-name").textContent = PLAN_LABEL[plan] ?? plan;
+          const displayPlan = isTeamSeat && !["org:admin", "admin"].includes(data?.entitlement?.org?.role)
+            ? "developer_pro" : plan;
+          $("plan-name").textContent = PLAN_LABEL[displayPlan] ?? displayPlan;
           $("plan-name").classList.toggle("pro", !isFree);
           // Lifetime users have nothing to manage; paid users do; free users upgrade.
           $("upgrade").hidden = !isFree || isTeamSeat;
@@ -392,7 +398,7 @@ const CFG = SI.config;
           }
           // Render the full feature matrix; free plans then fill in the live
           // Anonymise & Paste allowance from the usage endpoint.
-          renderFeatures(plan);
+          renderFeatures(displayPlan);
           if (isFree) loadUsage(token);
           loadTeam();
         } catch (e) {
@@ -504,7 +510,8 @@ const CFG = SI.config;
         // Signed out: keep sign-in AND sign-up on this page (don't fall back to
         // Clerk's hosted Account Portal). Mode chosen from ?mode=signup; the two
         // components cross-link via signInUrl / signUpUrl.
-        const signUpMode = new URLSearchParams(location.search).get("mode") === "signup";
+        const authParams = new URLSearchParams(location.search);
+        const signUpMode = authParams.get("mode") === "signup" || authParams.get("__clerk_status") === "sign_up";
         $("nav-team").hidden = true;
         $("joined").hidden = true;
         if (profileUser) {
