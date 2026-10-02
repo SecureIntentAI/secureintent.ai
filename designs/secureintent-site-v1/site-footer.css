@@ -15,6 +15,8 @@
   letter-spacing: inherit; color: inherit; text-wrap: initial;
 }
 .site-footer a { text-decoration: none; }
+.site-footer .business-phone { color: inherit; }
+.site-footer .business-phone:hover { color: #72ffff; }
 .site-footer svg { display: block; vertical-align: middle; }
 .site-footer :focus-visible { outline: 2px solid #72ffff; outline-offset: 4px; }
 .site-footer .mx-auto { margin-left: auto; margin-right: auto; }
@@ -76,6 +78,7 @@
   color-scheme: light;
 }
 :root[data-theme="light"] .site-footer .text-white { color: var(--ink,#173346); }
+:root[data-theme="light"] .site-footer .business-phone:hover { color: var(--accent,#197d86); }
 :root[data-theme="light"] .site-footer .text-gray-400 { color: var(--body,#345463); }
 :root[data-theme="light"] .site-footer .text-white\/20 { color: color-mix(in srgb,var(--ink,#173346) 22%,transparent); }
 :root[data-theme="light"] .site-footer .border-white\/5 { border-color: var(--field-border,#d9e5e9); }

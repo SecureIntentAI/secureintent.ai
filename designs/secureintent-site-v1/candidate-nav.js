@@ -2,7 +2,7 @@
   'use strict';
   if (!document.querySelector('script[data-site-footer]')) {
     const footerScript = document.createElement('script');
-    footerScript.src = new URL('site-footer.js?v=20260914-original', document.baseURI).href;
+    footerScript.src = new URL('site-footer.js?v=20261002-business-phone', document.baseURI).href;
     footerScript.dataset.siteFooter = 'true';
     document.head.append(footerScript);
   }

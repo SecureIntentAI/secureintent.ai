@@ -9,7 +9,7 @@
     link.setAttribute(marker, '');
     document.head.append(link);
   };
-  addStylesheet(new URL('site-footer.css?v=20260914-original', document.baseURI).href, 'data-footer-styles');
+  addStylesheet(new URL('site-footer.css?v=20261002-business-phone', document.baseURI).href, 'data-footer-styles');
   addStylesheet('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap', 'data-footer-fonts');
   if (!document.querySelector('link[href*="font-awesome/6.5.1"]')) {
     addStylesheet('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css', 'data-footer-icons');
@@ -75,6 +75,7 @@
             <span class="font-bold text-gray-400">SECUREINTENT.AI LTD</span>
             <span>Company Number: 17237217</span>
             <span>124-128 City Road, London, England, EC1V 2NX</span>
+            <a class="business-phone" href="tel:+447848523845">Business phone: 07848523845</a>
         </div>
 
         <div class="mt-6 flex flex-wrap justify-center gap-6">
