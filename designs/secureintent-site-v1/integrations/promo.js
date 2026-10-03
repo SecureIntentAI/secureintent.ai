@@ -2,7 +2,7 @@
   'use strict';
   const SI = window.SI;
   if (new URLSearchParams(location.search).get('offer') === 'business') {
-    location.replace(SI.page('business_promo.html'));
+    location.replace(SI.page('lifetime_business_promo.html'));
     return;
   }
   const $ = id => document.getElementById(id);

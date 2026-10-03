@@ -222,6 +222,7 @@
         background: rgba(114, 255, 255, 0.06);
         font-size: 13.5px;
       }
+      .account-app .joined[hidden], .account-app .joined-cta[hidden] { display: none; }
       .account-app .joined strong { font-weight: 600; }
       .account-app .joined span { color: var(--muted); }
       .account-app .joined-cta {

@@ -91,6 +91,7 @@ function makeReport(snapshot) {
   text(`Organization: ${clipped(identity.organizationName || 'Not available',85)}`,LEFT,y,9,COLORS.ink,true); y+=15;
   text(`Administrator: ${clipped(identity.adminName || 'Not available',85)}`,LEFT,y,9); y+=15;
   text(`Organization email: ${clipped(identity.organizationEmail || 'Not available',85)}`,LEFT,y,9); y+=23;
+  text(`Report for: ${clipped(snapshot.reportSubject || 'Entire organisation',85)}`,LEFT,y,9,COLORS.ink,true); y+=18;
 
   const cards = [
     ['AI services', count(summary.totalTools)],

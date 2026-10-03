@@ -31,7 +31,7 @@ const bytes = value => number(value) < 1024 ? `${fmt(value)} B` : number(value) 
 const pasteMode = tool => Object.hasOwn(modes, tool.pasteMode) ? tool.pasteMode : tool.pasteBlocked ? 'block_all' : 'normal';
 const classification = tool => Object.hasOwn(classifications, tool.classification) ? tool.classification : 'review';
 const badge = tool => `<span class="badge ${classification(tool) === 'recognized' ? 'progress' : classification(tool)}">${classifications[classification(tool)]}</span>`;
-const state = { days: 30, chart: 'visits', search: '', filter: 'all', reviewFilter: 'all', view: 'list', offset: 0, nextOffset: null,
+const state = { days: 30, seatNumber: null, seats: [], seatsLoaded: false, chart: 'visits', search: '', filter: 'all', reviewFilter: 'all', view: 'list', offset: 0, nextOffset: null,
   dashboard: null, ledger: null, recent: [], scope: '', ready: false, saving: false, stale: true };
 let extensionDemo, previewApi, timer, retryDelay = POLL_MS, requestController, requestId = 0, toastTimer, dialogTrigger;
 const tools = () => state.dashboard?.tools || [];
@@ -39,14 +39,20 @@ const canManage = () => state.ready && !state.stale && state.dashboard?.canManag
 const toolById = id => tools().find(tool => tool.serviceId === id);
 
 async function api(path, body, signal) {
-  const token = await window.Clerk?.session?.getToken({ template: window.SI.config.jwtTemplate });
+  // Business grants require the session-bound sid omitted by JWT templates.
+  const token = await window.Clerk?.session?.getToken();
   if (!token) throw Object.assign(new Error('Your session expired. Sign in again.'), { status: 401 });
   const response = await window.SI.fetch(window.SI.config.apiBase + path, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...window.SIAdminAccess?.headers() },
     body: JSON.stringify(body), credentials: 'omit', cache: 'no-store', signal,
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
+    if(data.error==='admin_reauthentication_required') {
+      window.SIAdminAccess?.clear();
+      window.dispatchEvent(new Event('si-admin-lock'));
+      if(!integrated)location.href=window.SI.page('team.html?reauth=1#/shadow');
+    }
     const messages = {
       unauthenticated: 'Your session expired. Sign in again.',
       business_organisation_required: 'Select your Business organisation to view its Shadow AI activity.',
@@ -74,6 +80,9 @@ function closeExportMenu(restoreFocus = false) {
 }
 function reportSnapshot() {
   return { sampleData: PREVIEW, localExtensionDemo: EXTENSION_DEMO, stale: state.stale, periodDays: state.days,
+    reportSubject: state.seatNumber === null ? 'Entire organisation' :
+      (state.seats.find(seat => seat.seatNumber === state.seatNumber)?.name ||
+       state.seats.find(seat => seat.seatNumber === state.seatNumber)?.email || `Seat ${state.seatNumber}`),
     reportIdentity: {adminName: window.Clerk?.user?.fullName || [window.Clerk?.user?.firstName,window.Clerk?.user?.lastName].filter(Boolean).join(' ') || 'Not available', organizationName:state.dashboard?.organization?.name || 'Not available', organizationEmail:state.dashboard?.organization?.email || 'Not available'}, exportedAt:Date.now(),
     dashboard: state.dashboard, ledger: state.ledger, recent: state.recent };
 }
@@ -129,6 +138,36 @@ function renderMetrics() {
   $('#observed-services').textContent = summary ? `${tools().length} observed services` : 'Waiting for services';
   $('#attention-count').textContent = summary ? unsanctioned ? `${unsanctioned} unsanctioned services to review.` : tools().length ? 'All observed services are sanctioned.' : 'No AI services observed yet.' : 'Waiting for service decisions.';
   $('.attention-strip p > span').textContent = summary ? `${fmt(summary.highRiskDestinations)} higher-risk destinations · ${fmt(summary.sensitiveEvents)} sensitive events · ${bytes(summary.pasteBytes)} attempted volume` : 'Activity appears after enrolled extensions report it.';
+}
+function renderPolicyRollout() {
+  const revision = state.dashboard?.policyVersion;
+  const rollout = state.dashboard?.policyRollout;
+  const summary = $('#policy-rollout-summary');
+  const counts = $('#policy-rollout-counts');
+  if (state.seatNumber !== null) {
+    summary.textContent = 'Policy delivery is reported for the whole organisation.';
+    counts.replaceChildren();
+    $('#policy-rollout-note').textContent = 'Select Entire organisation to review connected devices and policy acknowledgements.';
+    return;
+  }
+  if (!state.dashboard || !rollout) {
+    summary.textContent = state.dashboard ? `Revision ${revision} saved. Waiting for fresh device reports…` : 'Waiting for workspace data…';
+    counts.replaceChildren();
+    $('#policy-rollout-note').textContent = 'Reports update as connected extensions receive the policy and confirm their open page guards.';
+    return;
+  }
+  const active = number(rollout.activeDevices);
+  const confirmed = number(rollout.confirmedDevices);
+  const pending = number(rollout.pendingDevices);
+  const attention = number(rollout.attentionDevices);
+  const offline = number(rollout.offlineDevices);
+  summary.textContent = active
+    ? `Revision ${revision}: ${confirmed} of ${active} recently connected devices reported active page guards.`
+    : `Revision ${revision}: no extension has checked in during the last two minutes.`;
+  counts.innerHTML = [
+    `${confirmed} confirmed`, `${pending} pending`, `${attention} need attention`, `${offline} offline`,
+  ].map(label => `<span>${label}</span>`).join('');
+  $('#policy-rollout-note').textContent = `Devices seen in the last 30 days: ${fmt(rollout.observedDevices)}. Last report: ${date(rollout.lastReceiptAt)}. Reports describe open page guards; they do not prove coverage on every site.`;
 }
 function renderChart() {
   const rows = state.dashboard?.trends || [];
@@ -201,6 +240,7 @@ function renderAll() {
   // Keep focus, scroll, and open editors stable when polling returns unchanged data.
   const parts = [
     ['metrics', [state.days, state.dashboard?.summary, tools()], renderMetrics],
+    ['policy-rollout', [state.dashboard?.policyVersion, state.dashboard?.policyRollout], renderPolicyRollout],
     ['chart', [state.days, state.chart, state.dashboard?.trends], renderChart],
     ['services', [state.dashboard !== null, tools()], renderServices],
     ['reviews', tools(), renderReviews],
@@ -245,6 +285,7 @@ async function savePolicy(form) {
     if (state.scope !== scope) return;
     Object.assign(toolById(change.serviceId), change);
     state.dashboard.policyVersion = result.policyVersion;
+    state.dashboard.policyRollout = null;
     const message = EXTENSION_DEMO ? 'Demo policy saved and sent to open tabs.' : PREVIEW ? 'Preview policy updated. Changes reset on reload.' : `Saved: ${modes[change.pasteMode]} (revision ${result.policyVersion}). Waiting for device confirmation.`;
     $('#policy-status').textContent = message;
     $('#policy-message').textContent = message;
@@ -275,15 +316,17 @@ async function load() {
   const controller = new AbortController();
   requestController = controller;
   const timeout = setTimeout(() => controller.abort(), 15000);
-  const days = state.days, offset = state.offset;
+  const days = state.days, offset = state.offset, seatNumber = state.seatNumber;
+  const scope = { days, ...(seatNumber === null ? {} : { seatNumber }) };
   if (EXTENSION_DEMO) extensionDemo.beginRefresh(days, offset);
   $('#refresh').disabled = true;
   $('#dashboard-shell').setAttribute('aria-busy', 'true');
   try {
-    const [dashboard, ledger, latest] = await Promise.all([
-      api('/v1/shadow/admin/dashboard', { days }, controller.signal),
-      api('/v1/shadow/admin/ledger', { days, limit: LIMIT, offset }, controller.signal),
-      offset ? api('/v1/shadow/admin/ledger', { days, limit: 4, offset: 0 }, controller.signal) : Promise.resolve(null),
+    const [dashboard, ledger, latest, seatList] = await Promise.all([
+      api('/v1/shadow/admin/dashboard', scope, controller.signal),
+      api('/v1/shadow/admin/ledger', { ...scope, limit: LIMIT, offset }, controller.signal),
+      offset ? api('/v1/shadow/admin/ledger', { ...scope, limit: 4, offset: 0 }, controller.signal) : Promise.resolve(null),
+      state.seatsLoaded ? Promise.resolve(null) : api('/v1/shadow/admin/seats', {}, controller.signal),
     ]);
     if (id !== requestId) return;
     if (!dashboard.summary || !Array.isArray(dashboard.tools) || !Array.isArray(dashboard.trends) || !Array.isArray(ledger.events)) throw new Error('The server returned incomplete dashboard data.');
@@ -293,6 +336,14 @@ async function load() {
     state.dashboard = dashboard;
     state.ledger = ledger;
     state.recent = (latest || ledger).events;
+    if (seatList) {
+      state.seats = Array.isArray(seatList.seats) ? seatList.seats : [];
+      state.seatsLoaded = true;
+      const select = $('#report-seat');
+      select.replaceChildren(new Option('Entire organisation', ''), ...state.seats.map(seat =>
+        new Option(`${seat.name || seat.email || `Seat ${seat.seatNumber}`} · Seat ${seat.seatNumber}`, String(seat.seatNumber))));
+      select.value = seatNumber === null ? '' : String(seatNumber);
+    }
     state.stale = false;
     $('#error').hidden = true;
     $('#connection-status').textContent = EXTENSION_DEMO ? (dashboard.demoEnabled ? 'Live · local extension events' : 'Local recording paused') : PREVIEW ? 'Local preview · sample data' : 'Live · refreshes every 5s';
@@ -373,6 +424,8 @@ function syncSession() {
   if (scope === state.scope && state.ready) return;
   state.ready = false;
   clearWorkspace();
+  state.seatNumber = null; state.seats = []; state.seatsLoaded = false;
+  $('#report-seat').replaceChildren(new Option('Entire organisation', ''));
   state.scope = scope;
   if (!scope) { showSignIn(); return; }
   themeElement.classList.remove('requires-auth');
@@ -428,6 +481,10 @@ $('#detail-dialog').addEventListener('close', () => {
 });
 $('#service-search').addEventListener('input', event => { state.search = event.target.value.trim().toLowerCase(); renderServices(); });
 $('#period').addEventListener('change', event => { state.days = Number(event.target.value); state.offset = 0; clearWorkspace(); load(); });
+$('#report-seat').addEventListener('change', event => {
+  state.seatNumber = event.target.value === '' ? null : Number(event.target.value);
+  clearWorkspace(); load();
+});
 $('#review-services').addEventListener('click', reviewServices);
 $('#review-policy').addEventListener('click', reviewServices);
 $('#refresh').addEventListener('click', load);

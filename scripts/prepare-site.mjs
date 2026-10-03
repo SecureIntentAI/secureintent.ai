@@ -41,7 +41,7 @@ for (const name of docPaths) files.set(name, execFileSync(process.execPath, [ren
 // These artifacts are identical to main; never invent new store destinations.
 for (const name of ['install-links.js','favicon-16x16.png','favicon-32x32.png','demo.mp4','og-image.png']) files.set(name, await readFile(path.join(root,name)));
 
-const privatePages = /^(account|team|shadow|business_promo|lifetime_promo|uninstall)\.html$/;
+const privatePages = /^(account|team|shadow|business_promo|lifetime_business_promo|lifetime_promo|uninstall)\.html$/;
 const hashes = new Set();
 for (const [name, buffer] of files) {
   if (!/\.(html|css|js|svg)$/.test(name)) continue;
@@ -80,9 +80,9 @@ files.set('_redirects', Buffer.from(aliases.map(name => `/${name.slice(0,-5)} /$
 const csp = resourcePolicy(config, hashes, production);
 let headers = `/*\n  X-Content-Type-Options: nosniff\n  X-Frame-Options: DENY\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=()\n  Content-Security-Policy: base-uri 'self'; object-src 'none'; frame-ancestors 'none'; upgrade-insecure-requests; block-all-mixed-content\n  Content-Security-Policy-Report-Only: ${csp}\n  Cache-Control: public, max-age=0, must-revalidate\n`;
 if (!production) headers += '  X-Robots-Tag: noindex, nofollow\n';
-for (const name of ['account','team','shadow','business_promo','lifetime_promo','uninstall']) headers += `\n/${name}*\n  Cache-Control: no-store\n  X-Robots-Tag: noindex, nofollow\n  Referrer-Policy: no-referrer\n`;
+for (const name of ['account','team','shadow','business_promo','lifetime_business_promo','lifetime_promo','uninstall']) headers += `\n/${name}*\n  Cache-Control: no-store\n  X-Robots-Tag: noindex, nofollow\n  Referrer-Policy: no-referrer\n`;
 files.set('_headers', Buffer.from(headers));
-files.set('robots.txt', Buffer.from(production ? 'User-agent: *\nAllow: /\nDisallow: /account\nDisallow: /team\nDisallow: /shadow\nDisallow: /business_promo\nDisallow: /lifetime_promo\nDisallow: /uninstall\nSitemap: https://secureintent.ai/sitemap.xml\n' : 'User-agent: *\nDisallow: /\n'));
+files.set('robots.txt', Buffer.from(production ? 'User-agent: *\nAllow: /\nDisallow: /account\nDisallow: /team\nDisallow: /shadow\nDisallow: /business_promo\nDisallow: /lifetime_business_promo\nDisallow: /lifetime_promo\nDisallow: /uninstall\nSitemap: https://secureintent.ai/sitemap.xml\n' : 'User-agent: *\nDisallow: /\n'));
 const publicPaths = [...files.keys()].filter(name => name.endsWith('.html') && !privatePages.test(name) && name !== '404.html' && !/^docs\/(getting-started|browser-protection|developer-pro|business-pro|architecture-privacy)\.html$/.test(name));
 files.set('sitemap.xml', Buffer.from('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' + publicPaths.map(name => '<url><loc>https://secureintent.ai' + (name==='index.html'?'/':name.endsWith('/index.html')?'/'+name.slice(0,-10):'/'+name) + '</loc></url>').join('') + '</urlset>\n'));
 files.set('.well-known/security.txt', Buffer.from('Contact: mailto:SOC@secureintent.ai\nPolicy: https://secureintent.ai/#footer-vdp\nCanonical: https://secureintent.ai/.well-known/security.txt\nPreferred-Languages: en\nExpires: 2027-05-29T00:00:00.000Z\n'));

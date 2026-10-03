@@ -1,0 +1,96 @@
+/* Business activation: layout and palette from the supplied 19.jpeg reference. */
+.business-onboarding {
+  --business-ink: #08142c;
+  --business-muted: #64728a;
+  --business-accent: #087ca9;
+  --business-card: #ffffffb8;
+  --business-border: #d1d9e2;
+  color: var(--business-ink);
+  background: radial-gradient(ellipse at 30% 100%, #c9ecff 0, transparent 62%),
+    radial-gradient(ellipse at 95% 75%, #d8f9f6 0, transparent 55%), #f8fcfe;
+  min-height: 100vh;
+}
+[data-theme="dark"] .business-onboarding {
+  --business-ink: #edf7ff;
+  --business-muted: #acbdd0;
+  --business-accent: #63d1f3;
+  --business-card: #102331e8;
+  --business-border: #425767;
+  background: radial-gradient(ellipse at 30% 100%, #12384b, transparent 65%), #08131d;
+}
+.business-onboarding .site-header { position: static; background: transparent; border: 0; backdrop-filter: none; }
+.business-onboarding .header-inner { width: min(1040px, calc(100% - 48px)); min-height: 76px; }
+.business-onboarding .header-actions { margin-left: auto; }
+.business-onboarding .brand { color: var(--business-ink); font-size: 27px; letter-spacing: -1px; gap: 12px; }
+.business-onboarding .brand-suffix { color: inherit; }
+.business-brand-mark { width: 30px; height: 34px; flex: none; }
+.business-onboarding .theme-switch { display: flex; background: #eaf1f7; padding: 4px; border: 0; border-radius: 16px; }
+.business-onboarding .theme-option { padding: 8px 12px; border-radius: 12px; font-size: 14px; color: #63748d; }
+.business-onboarding .theme-option[aria-pressed="true"] { background: #fff; color: #06769b; box-shadow: 0 2px 10px #8bb1c21a; }
+.business-onboarding .utility-page { padding: 20px 24px 40px; min-height: auto; }
+.business-onboarding .utility-panel {
+  width: min(100%, 600px); padding: 30px 36px 24px; border: 2px solid #ffffffb8;
+  border-radius: 22px; background: radial-gradient(ellipse at 72% 0%, #c5fbfa59, transparent 42%), var(--business-card);
+  box-shadow: 0 25px 70px #467fa21c;
+}
+.business-onboarding .eyebrow { color: #119d89; font-size: 12px; font-weight: 700; letter-spacing: 2px; margin-bottom: 18px; text-transform: uppercase; }
+.business-onboarding .utility-panel h1 { color: var(--business-ink); font-size: clamp(30px, 4vw, 44px); line-height: 1.08; letter-spacing: -1.8px; font-weight: 700; }
+.business-onboarding .accent { color: var(--business-accent); }
+.business-onboarding .utility-panel .lede { max-width: none; color: var(--business-muted); font-size: 17px; line-height: 1.5; margin-top: 14px; letter-spacing: -.3px; }
+.business-features { list-style: none; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; padding: 0; margin: 24px -8px 0; }
+.business-features li { display: flex; align-items: center; flex-direction: column; gap: 9px; text-align: center; font-size: 12px; line-height: 1.35; letter-spacing: -.2px; }
+.business-feature-icon { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; background: #dff1fa80; color: #117caf; }
+.business-feature-icon svg { width: 23px; height: 23px; }
+.business-offer-note { color: var(--business-muted); font-size: 14px; line-height: 1.5; margin: 24px 0 0; }
+.business-onboarding .utility-form { margin-top: 20px; }
+.business-onboarding .utility-form label { color: var(--business-muted); font-size: 14px; font-weight: 500; margin: 16px 0 7px; }
+.business-onboarding .utility-form input:not([type="checkbox"]) {
+  width: 100%; min-height: 48px; padding: 12px 15px; border: 1.5px solid var(--business-border);
+  border-radius: 10px; background: #ffffff38; color: var(--business-ink); font: inherit; font-size: 16px;
+  user-select: text; cursor: text; scroll-margin-block: 24px;
+}
+.business-onboarding .utility-form input::placeholder { color: #8997aa; opacity: 1; }
+.business-onboarding :is(input, button, a):focus-visible { outline: 3px solid var(--business-accent); outline-offset: 4px; }
+.business-onboarding .utility-form input[type="checkbox"] { display: inline-block; width: 20px; height: 20px; margin-right: 8px; accent-color: #0b6076; vertical-align: middle; }
+.business-onboarding .button { display: flex; justify-content: center; align-items: center; gap: 8px; min-height: 50px; padding: 13px 18px; background: #095269; color: #fff; border: 0; border-radius: 12px; font-size: 16px; font-weight: 600; }
+.business-onboarding .utility-form .button { margin-top: 18px; }
+.business-onboarding .button:hover { background: #08677f; }
+.business-onboarding .button:disabled { opacity: .6; cursor: wait; }
+.business-onboarding .utility-note { color: var(--business-muted); font-size: 12px; line-height: 1.5; margin-top: 12px; letter-spacing: 0; }
+.business-onboarding #business-status:empty { display: none; }
+.business-onboarding #business-status[role="alert"] { color: #bc303b; }
+.business-onboarding .text-action { color: var(--business-accent); font-size: 14px; }
+.business-onboarding #business-done h1 { margin-bottom: 18px; }
+.business-lifetime { display: block; margin-top: 8px; font-size: .65em; color: var(--business-accent); letter-spacing: -.8px; }
+.business-onboarding #business-done .lede { margin-top: 0; line-height: 1.6; }
+.business-onboarding #business-done strong { overflow-wrap: anywhere; }
+.business-onboarding #business-welcome-status { margin-top: 16px; color: var(--business-muted); font-size: 17px; line-height: 1.6; }
+.business-next-steps { display: grid; gap: 14px; margin: 22px 0 26px; padding: 0; list-style: none; }
+.business-next-steps li { position: relative; padding-left: 25px; color: var(--business-muted); font-size: 16px; line-height: 1.6; }
+.business-next-steps li::before { content: ""; position: absolute; left: 2px; top: .6em; width: 9px; height: 9px; border-radius: 50%; background: #13aa98; }
+.business-onboarding #business-done .button { margin-top: 0; min-height: 54px; background: linear-gradient(115deg, #095b72, #07516a); }
+.business-onboarding #business-done .button:hover { background: #08677f; }
+.business-onboarding #business-install { margin-top: 14px; }
+.business-onboarding #business-pilot-note { margin-top: 18px; font-size: 13px; line-height: 1.55; }
+.business-onboarding .legal-section { font-size: 15px; line-height: 1.6; list-style-position: inside; }
+.business-onboarding [hidden] { display: none !important; }
+@media (max-width: 560px) {
+  .business-onboarding .header-inner { width: calc(100% - 32px); min-height: 68px; }
+  .business-onboarding .brand { font-size: 22px; gap: 8px; }
+  .business-brand-mark { width: 26px; height: 30px; }
+  .business-onboarding .theme-option { font-size: 12px; padding: 8px 10px; }
+  .business-onboarding .utility-page { padding: 12px 16px 28px; }
+  .business-onboarding .utility-panel { padding: 26px 22px; border-radius: 20px; }
+  .business-onboarding .utility-panel h1 { font-size: clamp(28px, 7vw, 38px); letter-spacing: -1.3px; }
+  .business-onboarding .utility-panel .lede { font-size: 16px; }
+  .business-onboarding #business-welcome-status { font-size: 16px; }
+  .business-next-steps li { font-size: 15px; }
+  .business-features { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 10px; margin: 22px 0 0; }
+  .business-features li { font-size: 12px; }
+  .business-onboarding .utility-form input:not([type="checkbox"]) { font-size: 16px; }
+}
+@media (max-width: 390px) {
+  .business-onboarding .brand { font-size: 19px; }
+  .business-onboarding .theme-option { padding: 8px; }
+  .business-onboarding .utility-panel { padding: 24px 18px; }
+}

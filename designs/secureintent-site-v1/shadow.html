@@ -15,7 +15,7 @@
   <link rel="preload" href="assets/shadow/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="assets/shadow/styles.css">
   <link rel="stylesheet" href="assets/shadow/dashboard.css">
-  <script src="integrations/config.js"></script>
+  <script src="integrations/admin-access.js" defer></script><script src="integrations/config.js"></script>
   <script src="integrations/runtime.js"></script>
   <script src="assets/shadow/dashboard.js" type="module"></script>
 </head>
@@ -97,10 +97,15 @@
         <div class="heading-actions"><span class="prototype-label" id="workspace-mode"><span class="sample-dot"></span>Business workspace</span><div class="export-menu-wrap"><button class="button" id="export-button" aria-haspopup="menu" aria-expanded="false" aria-controls="export-menu"><svg class="icon"><use href="#i-download"/></svg>Export overview</button><div class="export-menu" id="export-menu" role="menu" aria-label="Export format" hidden><button type="button" id="export-pdf" role="menuitem">Download PDF report</button><button type="button" id="export-json" role="menuitem">Download JSON data</button></div></div></div>
       </section>
 
-      <div class="overview-toolbar"><div class="section-tabs"><span class="current">Activity summary</span><span class="subtle-dot">·</span><span id="observed-services">Loading services…</span></div><label class="period-control"><svg class="icon"><use href="#i-calendar"/></svg><select id="period" aria-label="Activity reporting period"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option></select><svg class="icon small"><use href="#i-chevron"/></svg></label></div>
+      <div class="overview-toolbar"><div class="section-tabs"><span class="current">Activity summary</span><span class="subtle-dot">·</span><span id="observed-services">Loading services…</span></div><label class="period-control">Report for <select id="report-seat" aria-label="Select organisation or individual user"><option value="">Entire organisation</option></select></label><label class="period-control"><svg class="icon"><use href="#i-calendar"/></svg><select id="period" aria-label="Activity reporting period"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option></select><svg class="icon small"><use href="#i-chevron"/></svg></label></div>
 
       <div id="error" class="error-banner" role="alert" hidden></div>
       <section class="metrics" aria-label="Workspace summary" id="metrics"></section>
+      <section class="panel policy-rollout" aria-labelledby="policy-rollout-title">
+        <div class="panel-heading"><div><h2 id="policy-rollout-title">Policy delivery</h2><p id="policy-rollout-summary" role="status">Checking extension reports…</p></div></div>
+        <div class="policy-rollout-counts" id="policy-rollout-counts"></div>
+        <p class="policy-rollout-note" id="policy-rollout-note">An extension report confirms its active page guards; devices that are offline update when they reconnect.</p>
+      </section>
       <div class="attention-strip"><span class="attention-icon"><svg class="icon small"><use href="#i-shield"/></svg></span><p><strong id="attention-count">Loading service decisions…</strong><span>Review unsanctioned usage before updating your policy.</span></p><button id="review-services" class="text-button">Review services <svg class="icon small"><use href="#i-arrow"/></svg></button></div>
 
       <div class="dashboard-grid">

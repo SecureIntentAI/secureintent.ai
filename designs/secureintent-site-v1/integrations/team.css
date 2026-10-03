@@ -247,7 +247,7 @@
         white-space: nowrap;
         border: 0;
       }
-      .team-app input, .team-app select {
+      .team-app input, .team-app select, .team-app textarea {
         background: var(--panel2);
         border: 1px solid var(--border);
         color: var(--text);
@@ -255,7 +255,7 @@
         padding: 9px 11px;
         font: 400 13px/1.2 var(--sans);
       }
-      .team-app input:focus-visible, .team-app select:focus-visible, .team-app .btn:focus-visible {
+      .team-app input:focus-visible, .team-app select:focus-visible, .team-app textarea:focus-visible, .team-app .btn:focus-visible {
         outline: 2px solid rgba(114, 255, 255, 0.55);
         outline-offset: 2px;
       }
@@ -294,7 +294,7 @@
         transform: translateX(16px);
         background: var(--cyan);
       }
-      .team-app input:disabled, .team-app select:disabled { opacity: 0.45; cursor: not-allowed; }
+      .team-app input:disabled, .team-app select:disabled, .team-app textarea:disabled { opacity: 0.45; cursor: not-allowed; }
 
       .team-app .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
       .team-app .card {
@@ -485,7 +485,11 @@
       .team-app #pat-label { min-width: 170px; max-width: 280px; }
       .team-app #pat-regex { flex: 2; min-width: 240px; max-width: 440px; font-family: var(--mono); }
       .team-app #site-input { max-width: 420px; }
-      .team-app #invite-email { max-width: 380px; }
+      .team-app #invite-email { max-width: 460px; min-width: 240px; min-height: 62px; resize: vertical; flex: 1; }
+      .team-app #invite-progress { min-height: 18px; margin: 2px 0 8px; overflow-wrap: anywhere; }
+      .team-app #invite-results:not([hidden]) { margin: 10px 0 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 13px; }
+      .team-app #invite-results ul { margin: 8px 0 0; padding-left: 20px; }
+      .team-app #invite-results li { margin-top: 4px; overflow-wrap: anywhere; }
       .team-app #alert-webhook { max-width: 460px; }
       .team-app #alert-min { max-width: 460px; }
       .team-app #pat-type { flex: none; }

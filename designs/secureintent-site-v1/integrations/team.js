@@ -52,6 +52,8 @@
       // The team as the server last described it, so the seat editor knows the
       // current count and a cancelled confirmation can redraw the roster.
       let currentTeam = null;
+      let lastPeopleRenderKey = null;
+      let invitesBusy = false;
 
       function authScope() {
         const clerk = window.Clerk;
@@ -62,13 +64,17 @@
         const assertScope = () => {
           if (scope !== authScope()) throw new DOMException('Account changed', 'AbortError');
         };
-        const token = await window.Clerk.session.getToken({ template: CFG.jwtTemplate });
+        const accessHeader=window.SIAdminAccess.headers()['X-SI-Admin-Access'];
+        // Admin grants are bound to Clerk's session ID. Custom JWT templates
+        // omit sid, so dashboard requests must use the session token.
+        const token = await window.Clerk.session.getToken();
         assertScope();
         const res = await SI.fetch(`${CFG.apiBase}${path}`, {
           ...init,
           headers: {
             Authorization: `Bearer ${token}`,
             "content-type": "application/json",
+            ...(accessHeader?{'X-SI-Admin-Access':accessHeader}:{}),
             ...(init.headers || {}),
           },
           cache: "no-store",
@@ -83,6 +89,10 @@
           err.code = typeof body.error === "string" ? body.error : null;
           err.status = res.status;
           err.data = body || {};
+          if(err.code==='admin_reauthentication_required' && (init.headers?.['X-SI-Admin-Access']||accessHeader)===window.SIAdminAccess.headers()['X-SI-Admin-Access']) {
+            const freshlySignedIn=Number(new Date(window.Clerk.session?.createdAt))>Date.now()-5*60_000;
+            showAdminClerkGate({automatic:!freshlySignedIn,reason:freshlySignedIn?'Clerk sign-in finished, but dashboard access was not confirmed. Please retry or contact SecureIntent support.':''});
+          }
           throw err;
         }
         return body;
@@ -365,6 +375,18 @@
       }
       function renderPeople(team) {
         if (!team) return;
+        const key = JSON.stringify([team.orgId, team.role, team.members, team.invitations, team.pendingInvitations]);
+        if (key === lastPeopleRenderKey) return false;
+        const body = $("people");
+        const active = document.activeElement;
+        const focusKey = body.contains(active)
+          ? ["remove", "resend", "revoke", "cancelPending"].find((name) => active.dataset?.[name] !== undefined)
+          : null;
+        const focusValue = focusKey ? active.dataset[focusKey] : null;
+        const focusedPolicyUser = body.contains(active) && active.tagName === "SUMMARY"
+          ? active.closest("details[data-policy-user]")?.dataset.policyUser : null;
+        const scrollPane = $("console").querySelector(".content");
+        const scrollTop = scrollPane.scrollTop;
         const expanded=new Set(Array.from($("people").querySelectorAll("details[open][data-policy-user]"),el=>el.dataset.policyUser));
         const isAdmin = team.role === "org:admin";
         $("invite-row").classList.toggle("hide", !isAdmin);
@@ -373,7 +395,7 @@
             const who = m.name || m.email || "this person";
             return `<tr><td>${esc(m.name || "—")}</td><td>${esc(m.email || "")}</td><td><span class="tag ${
               m.role === "org:admin" ? "admin" : ""
-            }">${m.role === "org:admin" ? "Admin" : "Member"}</span></td><td>${esc(m.connection?.status === "recently_connected" ? "Recently connected" : m.connection?.status === "inactive" ? "Inactive" : "Not yet connected")}${m.connection?.lastSeenAt ? `<br><small>Last check-in: ${esc(new Date(m.connection.lastSeenAt).toLocaleString())}</small>` : ""}${m.connection?.policyStatus ? `<br><small>${policyStatusLabel(m.connection.policyStatus)}</small>` : ""}${devicePolicyDetails(m.connection,m.userId,expanded)}</td><td>${
+            }">${m.role === "org:admin" ? "Admin" : "Member"}</span></td><td>${esc(m.connection?.status === "recently_connected" ? "Recently connected" : m.connection?.status === "inactive" ? "Inactive" : m.role === "org:admin" ? "Not yet connected" : "Joined · not yet connected")}${m.connection?.lastSeenAt ? `<br><small>Last check-in: ${esc(new Date(m.connection.lastSeenAt).toLocaleString())}</small>` : ""}${m.connection?.policyStatus ? `<br><small>${policyStatusLabel(m.connection.policyStatus)}</small>` : ""}${devicePolicyDetails(m.connection,m.userId,expanded)}</td><td>${
               isAdmin && m.role !== "org:admin"
                 ? `<button class="btn" type="button" data-remove="${esc(
                     m.userId,
@@ -383,7 +405,7 @@
           }),
           ...(team.invitations || []).map(
             (i) =>
-              `<tr><td>—</td><td>${esc(i.email)}</td><td><span class="tag pending">Member</span></td><td>Invited · awaiting acceptance</td><td>${
+              `<tr><td>—</td><td>${esc(i.email)}</td><td><span class="tag pending">Member</span></td><td>Invited · awaiting acceptance<br><small>Email delivery not confirmed</small></td><td>${
                 isAdmin
                   ? `<button class="btn" type="button" data-resend="${esc(i.email)}">Resend</button> <button class="btn" type="button" data-revoke="${esc(i.id)}" data-who="${esc(
                       i.email,
@@ -393,7 +415,17 @@
           ),
         ];
         for (const invitation of team.pendingInvitations || []) rows.push(`<tr><td>—</td><td>${esc(invitation.email)}</td><td>Member</td><td>Invitation awaiting confirmation</td><td><button class="btn" data-cancel-pending="${esc(invitation.email)}">Cancel pending invitation</button></td></tr>`);
-        $("people").innerHTML = rows.join("") || '<tr><td colspan="5" class="empty">No users yet</td></tr>';
+        body.innerHTML = rows.join("") || '<tr><td colspan="5" class="empty">No users yet</td></tr>';
+        lastPeopleRenderKey = key;
+        if (focusKey) {
+          const replacement = [...body.querySelectorAll("button")].find((button) => button.dataset[focusKey] === focusValue);
+          replacement?.focus({ preventScroll: true });
+        } else if (focusedPolicyUser) {
+          const replacement = [...body.querySelectorAll("details[data-policy-user]")].find((item) => item.dataset.policyUser === focusedPolicyUser);
+          replacement?.querySelector("summary")?.focus({ preventScroll: true });
+        }
+        scrollPane.scrollTop = scrollTop;
+        return true;
       }
 
       /**
@@ -939,6 +971,7 @@
       // no seats there are no figures, and a policy nothing would enforce.
       const VIEWS_NEED_SEATS = ["overview", "policy", "alerts", "shadow"];
       let currentView = null;
+      const viewScroll = new Map();
       let seatsLive = false;
 
       const viewFromHash = () => {
@@ -970,27 +1003,31 @@
         let want = VIEWS.includes(name) ? name : "overview";
         if (!seatsLive && VIEWS_NEED_SEATS.includes(want)) want = "people";
         const viewChanged = currentView !== want;
+        const contentPane = $("console").querySelector(".content");
+        if (viewChanged && currentView) viewScroll.set(currentView, contentPane.scrollTop);
         currentView = want;
-        VIEWS.forEach((v) => {
-          $(`view-${v}`).hidden = v !== want;
-          const item = document.querySelector(`.navitem[data-view="${v}"]`);
-          if (item) {
-            if (v === want) item.setAttribute("aria-current", "page");
-            else item.removeAttribute("aria-current");
-          }
-        });
-        if (want === "shadow") mountShadow();
+        if (viewChanged) {
+          VIEWS.forEach((v) => {
+            $(`view-${v}`).hidden = v !== want;
+            const item = document.querySelector(`.navitem[data-view="${v}"]`);
+            if (item) {
+              if (v === want) item.setAttribute("aria-current", "page");
+              else item.removeAttribute("aria-current");
+            }
+          });
+          if (want === "shadow") mountShadow();
+        }
         requestedView = want;
         const hash = `#/${want}`;
         if (location.hash !== hash) {
           if (replace) history.replaceState(null, "", location.pathname + location.search + hash);
           else history.pushState(null, "", location.pathname + location.search + hash);
         }
-        window.dispatchEvent(new CustomEvent('si-team-view', {detail: want}));
+        if (viewChanged) window.dispatchEvent(new CustomEvent('si-team-view', {detail: want}));
         if (focus) $(`view-${want}`).focus({ preventScroll: true });
-        // Only the content pane moves. Background team refreshes must preserve
-        // the reader's position in the current view.
-        if (viewChanged) $("console").querySelector(".content").scrollTop = 0;
+        // Each view retains its own reading position. Background refreshes
+        // leave the pane where the reader was.
+        if (viewChanged) contentPane.scrollTop = viewScroll.get(want) ?? 0;
       }
 
       // The API verifies Business entitlement and the organization admin role.
@@ -1090,6 +1127,39 @@
         $("member-actions").classList.toggle("hide", !member);
       }
 
+      let clerkVerificationStarting=false;
+      function showAdminClerkGate({automatic=true,reason=''}={}) {
+        seatsLive=false;
+        window.SIAdminAccess.clear();
+        currentTeam=null;lastMetrics=null;
+        showGate({title:'Verify your admin account with Clerk',sub:'Sign in again with your registered organisation account to open the Business dashboard.'});
+        const host=$('clerk-auth');host.replaceChildren();
+        host.innerHTML='<button class="button" id="admin-clerk-verify" type="button">Continue with Clerk →</button><p id="admin-clerk-status" class="err" role="status" aria-live="polite"></p>';
+        $('admin-clerk-status').textContent=reason;
+        const begin=async()=>{
+          if(clerkVerificationStarting)return;
+          clerkVerificationStarting=true;
+          $('admin-clerk-verify').disabled=true;
+          $('admin-clerk-status').textContent='Opening Clerk sign-in…';
+          try {
+            sessionStorage.setItem('si_admin_clerk_pending','1');
+            if(/^#\/(overview|people|policy|alerts|shadow)$/.test(location.hash)) sessionStorage.setItem('si_admin_return_view',location.hash);
+          } catch {}
+          const destination=SI.page('team.html?admin_verify=1');
+          try {
+            await window.Clerk.signOut({sessionId:window.Clerk.session?.id,redirectUrl:destination});
+            location.assign(destination);
+          } catch {
+            clerkVerificationStarting=false;
+            $('admin-clerk-verify').disabled=false;
+            $('admin-clerk-status').textContent='Could not open Clerk sign-in. Please retry.';
+          }
+        };
+        $('admin-clerk-verify').addEventListener('click',begin);
+        if(automatic)void begin();
+      }
+      window.addEventListener('si-admin-lock',()=>showAdminClerkGate());
+
       /**
        * Everything that needs a live subscription behind it. Disabled with a
        * reason rather than left clickable: unpaid, the server answers every one
@@ -1097,10 +1167,11 @@
        */
       function setPaywalled(live) {
         ["invite-email", "invite-role", "invite", "seats-btn"].forEach((id) => {
-          $(id).disabled = !live;
+          $(id).disabled = !live || invitesBusy;
           if (live) $(id).removeAttribute("title");
           else $(id).title = PAY_HINT;
         });
+        $("users-refresh").disabled = invitesBusy;
         $("invite-hint").hidden = live;
         if (!live) closeSeatsEditor();
       }
@@ -1143,6 +1214,11 @@
         const res = await api(reconcile ? "/v1/team?reconcile=1" : "/v1/team");
         if (!userId || window.Clerk.user?.id !== userId) return;
         let team = res.team;
+        if (currentTeam?.orgId && currentTeam.orgId !== team?.orgId) {
+          viewScroll.clear();
+          currentView = null;
+          lastPeopleRenderKey = null;
+        }
         currentTeam = team || null;
         if (!team) {
           showGate({title:"Business invitation required",sub:"Open the Business promo invitation provided to your organization to activate its 150-seat workspace."});
@@ -1156,9 +1232,9 @@
           // extension onto this browser, which is what their seat pays for.
           showGate({
             title: team.name ? `Covered by ${team.name}` : "You're covered",
-            sub:
-              "Your Developer Pro features are provided by your team, so there's nothing to buy. Install the " +
-              "extension on every browser you work in and it starts protecting you straight away.",
+            sub: CFG.pilot
+              ? "Your Developer Pro features are provided by your team. Load the local pilot extension supplied by your administrator and sign in with this account."
+              : "Your Developer Pro features are provided by your team, so there's nothing to buy. Install the extension and sign in with this account.",
             member: true,
           });
           return;
@@ -1194,6 +1270,8 @@
         $("c-seats").textContent = fmt(team.seats);
         $("c-used").innerHTML = `${fmt(team.seatsUsed)} <small>/ ${fmt(team.seats)}</small>`;
         renderPeople(team);
+        const available = `${fmt(team.seatsAvailable)} seats available`;
+        if (!$("users-refreshed").textContent.includes(available)) $("users-refreshed").textContent = available;
         setPaywalled(live);
 
         // Only an admin gets here, and only a team with seats has anything to
@@ -1207,16 +1285,18 @@
       }
 
       let rosterBusy = false;
-      async function refreshUsers() {
-        if (rosterBusy || document.hidden || currentView !== "people" || document.querySelector("[data-confirmed]")) return;
+      async function refreshUsers({ manual = false } = {}) {
+        if (rosterBusy || invitesBusy || document.hidden || currentView !== "people" || document.querySelector("[data-confirmed]")) return;
         rosterBusy=true;
         const scope=authScope();
         try {
           const result=await api("/v1/team");
-          if (scope!==authScope()) return;
+          if (scope!==authScope() || invitesBusy) return;
           if (result.team?.role !== "org:admin") { await loadTeam(); return; }
           currentTeam=result.team;renderPeople(currentTeam);syncNavSeats(currentTeam);
-          $("users-refreshed").textContent=`Updated ${new Date().toLocaleTimeString()} · ${fmt(currentTeam.seatsAvailable)} seats available`;
+          const available = `${fmt(currentTeam.seatsAvailable)} seats available`;
+          if (manual) $("users-refreshed").textContent=`Updated ${new Date().toLocaleTimeString()} · ${available}`;
+          else if (!$("users-refreshed").textContent.includes(available)) $("users-refreshed").textContent=available;
         } catch(e) { $("users-refreshed").textContent=explain(e); if([401,403].includes(e.status)) showGate({title:"Business admin access required",sub:explain(e)}); }
         finally { rosterBusy=false; }
       }
@@ -1231,6 +1311,84 @@
         }
       }
 
+      async function sendInvitations() {
+        if (invitesBusy) return;
+        const input = $("invite-email");
+        const entries = input.value.split(/[,;\s]+/).filter(Boolean);
+        const emails = [...new Set(entries.map((email) => email.toLowerCase()))];
+        const invalid = emails.filter((email) => !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email));
+        $("team-err").textContent = "";
+        $("invite-progress").textContent = "";
+        $("invite-results").hidden = true;
+        if (!emails.length) {
+          $("team-err").textContent = "Enter at least one email address.";
+          return;
+        }
+        if (invalid.length) {
+          $("team-err").textContent = `Check these email addresses before sending: ${invalid.join(", ")}`;
+          return;
+        }
+        if (emails.length > 149) {
+          $("team-err").textContent = "Enter no more than 149 different addresses at once.";
+          return;
+        }
+
+        invitesBusy = true;
+        setPaywalled(seatsLive);
+        let requested = 0;
+        let alreadyInvited = 0;
+        let alreadyMember = 0;
+        let next = emails.length;
+        const failed = [];
+        try {
+          // The existing endpoint checks admin access, reserves one seat and
+          // creates one Clerk invitation per address. Serial requests avoid
+          // contending with its organisation-wide seat lock.
+          for (let i = 0; i < emails.length; i++) {
+            const email = emails[i];
+            $("invite-progress").textContent = `Processing ${i + 1} of ${emails.length}: ${email}`;
+            try {
+              const result = await api("/v1/team/invite", {
+                method: "POST",
+                body: JSON.stringify({ email, role: $("invite-role").value }),
+              });
+              if (result.alreadyInvited) alreadyInvited++;
+              else requested++;
+            } catch (err) {
+              if (err.code === "already_member") {
+                alreadyMember++;
+                continue;
+              }
+              failed.push({ email, reason: explain(err) });
+              // A full team, changed session, or busy service needs admin
+              // attention. Preserve every unprocessed address for later.
+              if (["seat_limit_reached", "team_busy", "unauthenticated", "forbidden", "admin_reauthentication_required", "invitation_pending_reconciliation"].includes(err.code) ||
+                  [401, 403, 429].includes(err.status) || err.status >= 500 || err.name === "AbortError") {
+                next = i + 1;
+                break;
+              }
+            }
+          }
+          const remaining = [...failed.map(({ email }) => email), ...emails.slice(next)];
+          input.value = remaining.join("\n");
+          const summary = `${requested} requested · ${alreadyInvited} pending · ${alreadyMember} already members · ${entries.length - emails.length} duplicates · ${failed.length} failed · ${emails.length - next} left`;
+          $("invite-progress").textContent = summary;
+          const results = $("invite-results");
+          results.innerHTML = failed.length
+            ? `<strong>Addresses needing attention (kept in the box):</strong><ul>${failed.map(({ email, reason }) => `<li>${esc(email)}: ${esc(reason)}</li>`).join("")}</ul>`
+            : "";
+          results.hidden = !failed.length;
+          try {
+            await loadTeam();
+          } catch (err) {
+            $("team-err").textContent = `Invitations were processed, but the user list could not refresh: ${explain(err)}`;
+          }
+        } finally {
+          invitesBusy = false;
+          setPaywalled(seatsLive);
+        }
+      }
+
       function wire() {
         // Inert until a GET has told us what the current settings are.
         setSettingsEnabled(false);
@@ -1241,6 +1399,8 @@
         // happens long after install-links.js ran, so take the value rather than
         // overwrite what it decided.
         $("member-install").href = window.SI_INSTALL_URL || EXTENSION_URL;
+        $("member-store-action").hidden = Boolean(CFG.pilot);
+        $("member-pilot-instructions").hidden = !CFG.pilot;
 
         // Activation, not purchase: the seats already belong to this account, so
         // this only names the organisation and asks the server to open it.
@@ -1291,19 +1451,11 @@
         );
         updatePrice($("buy-seats"), $("buy-price"));
 
-        $("invite").addEventListener("click", () => {
-          const email = $("invite-email").value.trim();
-          if (!email) {
-            $("team-err").textContent = "Enter an email address.";
-            return;
-          }
-          act(async () => {
-            await api("/v1/team/invite", {
-              method: "POST",
-              body: JSON.stringify({ email, role: $("invite-role").value }),
-            });
-            $("invite-email").value = "";
-          });
+        $("invite").addEventListener("click", sendInvitations);
+        window.addEventListener("beforeunload", (event) => {
+          if (!invitesBusy) return;
+          event.preventDefault();
+          event.returnValue = "";
         });
 
         // An inline control, not a prompt(): it can show the count you're
@@ -1438,7 +1590,7 @@
         $("signout").addEventListener("click", () => window.Clerk.signOut());
         $("signout-side").addEventListener("click", () => window.Clerk.signOut());
 
-        $("users-refresh").addEventListener("click", refreshUsers);
+        $("users-refresh").addEventListener("click", () => refreshUsers({ manual: true }));
         window.setInterval(refreshUsers, 5_000);
         window.setInterval(() => {
           if (!document.hidden && currentView === 'overview' && !$("console").classList.contains('hide')) loadMetrics();
@@ -1493,13 +1645,18 @@
           // from here: ?mode=signup mounts it, and the two components link to
           // each other rather than to a page that only ever shows sign-in.
           const signUpMode = params.get("mode") === "signup";
+          const adminVerification = params.get('admin_verify') === '1';
+          try {
+            sessionStorage.setItem('si_admin_clerk_pending','1');
+            if(/^#\/(overview|people|policy|alerts|shadow)$/.test(location.hash)) sessionStorage.setItem('si_admin_return_view',location.hash);
+          } catch {}
           const want = signUpMode ? "signup" : "signin";
           showGate({
-            title: signUpMode ? "Create your account" : "Sign in to manage your team",
+            title: adminVerification ? 'Verify your admin account with Clerk' : signUpMode ? "Create your account" : "Sign in to manage your team",
             sub: signUpMode
               ? "Use the business email address named in your organization invitation."
-              : "",
-            pitch: true,
+              : adminVerification ? 'Use the registered organisation account. Clerk handles password recovery and any additional verification.' : '',
+            pitch: !adminVerification,
           });
           $("signout").hidden = true;
           if (authMounted === want) return; // already showing it — don't disturb the flow
@@ -1508,20 +1665,24 @@
           // Come back HERE after signing in. Without these Clerk uses the
           // instance default (the landing page), which drops someone who was
           // half way through buying seats.
+          // Clerk's standalone component uses the URL fragment for its own steps.
+          // Restore the console view after sign-in instead of passing #/shadow to Clerk.
+          const signInReturn = SI.page('team.html?admin_return=1');
           const common = {
             appearance: SI.appearance(),
-            forceRedirectUrl: SI.authReturn("team.html"),
-            signInForceRedirectUrl: SI.authReturn("team.html"),
-            signUpForceRedirectUrl: SI.authReturn("team.html"),
-            afterSignInUrl: TEAM_PATH,
+            forceRedirectUrl: signInReturn,
+            signInForceRedirectUrl: signInReturn,
+            signUpForceRedirectUrl: signInReturn,
+            afterSignInUrl: signInReturn,
             afterSignUpUrl: TEAM_PATH,
-            fallbackRedirectUrl: TEAM_PATH,
+            fallbackRedirectUrl: signInReturn,
             signUpFallbackRedirectUrl: TEAM_PATH,
           };
           if (signUpMode) {
             window.Clerk.mountSignUp($("clerk-auth"), { ...common, signInUrl: TEAM_PATH });
           } else {
-            window.Clerk.mountSignIn($("clerk-auth"), { ...common, signUpUrl: TEAM_SIGNUP_PATH });
+            window.Clerk.mountSignIn($("clerk-auth"), { ...common, signUpUrl: TEAM_SIGNUP_PATH,
+              ...(adminVerification ? {withSignUp:false,transferable:false} : {}) });
           }
           return;
         }
@@ -1529,6 +1690,36 @@
         authMounted = null;
         $("signout").hidden = false;
         try {
+          let requestedOrg=null;
+          try { requestedOrg=sessionStorage.getItem('si_business_open_org'); } catch {}
+          if (requestedOrg && /^org_[a-zA-Z0-9]+$/.test(requestedOrg)) {
+            try { sessionStorage.removeItem('si_business_open_org'); } catch {}
+            await window.Clerk.setActive({organization:requestedOrg});
+          }
+          let clerkPending=false;
+          try { clerkPending=sessionStorage.getItem('si_admin_clerk_pending')==='1'; } catch {}
+          const freshSession=Number(new Date(window.Clerk.session?.createdAt))>Date.now()-5*60_000;
+          if(params.get('admin_return')==='1'||clerkPending||(freshSession&&!window.SIAdminAccess.headers()['X-SI-Admin-Access'])) {
+            try {
+              await window.SIAdminAccess.unlockWithClerk();
+              let returnView='';
+              try {
+                returnView=sessionStorage.getItem('si_admin_return_view')||'';
+                sessionStorage.removeItem('si_admin_return_view');
+                sessionStorage.removeItem('si_admin_clerk_pending');
+              } catch {}
+              const explicitView = /^#\/(overview|people|policy|alerts|shadow)$/.test(location.hash) ? location.hash : '';
+              history.replaceState(null,'',SI.page('team.html')+(explicitView || (/^#\/(overview|people|policy|alerts|shadow)$/.test(returnView)?returnView:'') || '#/overview'));
+            } catch(error) {
+              if(['forbidden','business_promo_required','business_organisation_required'].includes(error.code)) {
+                try { sessionStorage.removeItem('si_admin_clerk_pending'); } catch {}
+                history.replaceState(null,'',SI.page('team.html')+(location.hash||'#/overview'));
+              } else {
+                showAdminClerkGate({automatic:false,reason:error.message});
+                return;
+              }
+            }
+          }
           const welcome = params.get("welcome") === "1";
           // `claim` is ours, set on the success URL we hand Paddle. `_ptxn` is
           // Paddle's: it sends people to this page to PAY, so an unclaimed one
@@ -1556,6 +1747,7 @@
           // Say which case this is rather than leaving someone guessing.
           if (claim && !claim.seats) explainPending(claim.transactionStatus);
         } catch (e) {
+          if(e.code==='admin_reauthentication_required')return;
           showGate({
             title: "Couldn't load your team",
             sub: explain(e, {

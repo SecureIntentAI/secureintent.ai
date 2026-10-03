@@ -76,6 +76,38 @@ const CFG = SI.config;
       }
 
       const $ = (id) => document.getElementById(id);
+      const invitationParams = new URLSearchParams(location.search);
+      const fromInvitation = invitationParams.get("joined") === "1";
+      const invitedOrg = /^org_[A-Za-z0-9]+$/.test(invitationParams.get("org") || "")
+        ? invitationParams.get("org") : null;
+      let selectedInviteOrg = "";
+
+      function renderInvitation(entitlement, unavailable = false) {
+        if (!fromInvitation) return;
+        const banner = $("joined");
+        const install = $("joined-install");
+        banner.hidden = false;
+        install.hidden = true;
+        if (unavailable) {
+          $("joined-title").textContent = "We couldn't confirm your invitation yet";
+          $("joined-sub").textContent = "Retry your account check before installing the extension.";
+          return;
+        }
+        const org = entitlement?.source === "org_seat" ? entitlement.org : null;
+        if (!org || (invitedOrg && org.id !== invitedOrg) || ["org:admin", "admin"].includes(org.role)) {
+          $("joined-title").textContent = "Invitation not active for this account";
+          $("joined-sub").textContent = "Sign in with the exact email that was invited, then accept the invitation. If you just joined, retry the account check.";
+          return;
+        }
+        $("joined-title").textContent = `You're covered by ${org.name || "your organisation"}`;
+        $("joined-sub").textContent = CFG.pilot
+          ? "Load the pilot extension supplied by SecureIntent, then sign in with this same account."
+          : "Install the extension and sign in with this same account to start protection.";
+        if (!CFG.pilot) {
+          install.href = window.SI_INSTALL_URL || install.href;
+          install.hidden = false;
+        }
+      }
 
       // Remember whether the "What's included" section is expanded (default: shown).
       (function setupFeatureToggle() {
@@ -230,74 +262,40 @@ const CFG = SI.config;
         }
       }
 
-      async function loadTeam() {
-        const userId = window.Clerk.user?.id;
+      function renderTeam(entitlement) {
         const card = $("team-card");
         const cta = $("team-cta");
         const retry = $("team-retry");
-        retry.disabled = true;
-        try {
-          const { team } = await api("/v1/team");
-          if (!userId || window.Clerk.user?.id !== userId) return;
-          // The console is for whoever administers the team. A member has
-          // nothing to do there, so they don't get pointed at it.
-          $("nav-team").hidden = team?.role !== "org:admin";
-          card.hidden = false;
-          retry.hidden = true;
-          if (!team) {
-            $("team-name").textContent = "Protecting a team?";
-            $("team-sub").textContent =
-              "One subscription, a seat per person, and a view of what's being stopped.";
-            cta.textContent = "Buy seats";
-            cta.classList.remove("hide");
-            return;
-          }
-          const isAdmin = team.role === "org:admin";
-          if (!isAdmin) {
-            $("plan-name").textContent = "Developer Pro";
-            renderFeatures("developer_pro");
-          }
-          $("team-name").textContent = team.name || "Your team";
-          // No seats means no subscription: the checkout was started and never
-          // finished. Saying "1 of 0 seats in use" makes a paid product look
-          // broken — tell them what actually happened and where to finish.
-          if (isAdmin && !(team.seats > 0)) {
-            $("team-sub").textContent =
-              "Payment wasn't completed, so no seats are active yet.";
-            cta.textContent = "Finish checkout";
-            cta.classList.remove("hide");
-            return;
-          }
-          $("team-sub").textContent = isAdmin
-            ? `Business Pro · ${team.seatsUsed} of ${team.seats} seats in use`
-            : "Developer Pro · provided by your organization";
-          cta.textContent = "Manage team";
-          // A member has nothing to manage, so don't offer them a dead end.
-          cta.classList.toggle("hide", !isAdmin);
-        } catch (e) {
-          console.error("[account] loadTeam failed", e);
-          // Keep the card. Hiding it takes an admin's only route into the console
-          // away, with nothing said about why — and leave the Team nav item as it
-          // already was rather than removing it on a blip.
-          card.hidden = false;
-          $("team-name").textContent = "Couldn't load your team";
-          $("team-sub").textContent = "We couldn't reach the team service just now.";
-          cta.classList.add("hide");
-          retry.hidden = false;
-        } finally {
-          retry.disabled = false;
+        // /v1/team is an admin console endpoint and requires fresh Clerk
+        // reauthentication. The signed entitlement already identifies the
+        // caller's active organization and role without exposing the roster.
+        const team = entitlement?.source === "org_seat" ? entitlement.org : null;
+        const isAdmin = team && ["org:admin", "admin"].includes(team.role);
+        $("nav-team").hidden = !isAdmin;
+        card.hidden = false;
+        retry.hidden = true;
+        if (!team) {
+          $("team-name").textContent = "Protecting a team?";
+          $("team-sub").textContent =
+            "One subscription, a seat per person, and a view of what's being stopped.";
+          cta.textContent = "Buy seats";
+          cta.classList.remove("hide");
+          return;
         }
+        $("team-name").textContent = team.name || "Your team";
+        $("team-sub").textContent = isAdmin
+          ? "Business Pro · manage seats and policies in your dashboard"
+          : "Developer Pro · provided by your organization";
+        cta.textContent = "Manage team";
+        cta.classList.toggle("hide", !isAdmin);
       }
 
-      async function api(path, init = {}) {
-        const token = await window.Clerk.session.getToken({ template: CFG.jwtTemplate });
-        const res = await SI.fetch(`${CFG.apiBase}${path}`, {
-          ...init,
-          headers: { Authorization: `Bearer ${token}`, ...(init.headers || {}) },
-          cache: "no-store",
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
+      function showTeamUnavailable() {
+        $("team-card").hidden = false;
+        $("team-name").textContent = "Couldn't load your team";
+        $("team-sub").textContent = "We couldn't confirm your account right now. Please retry.";
+        $("team-cta").classList.add("hide");
+        $("team-retry").hidden = false;
       }
 
       /**
@@ -343,6 +341,13 @@ const CFG = SI.config;
         const retry = $("plan-retry");
         retry.disabled = true;
         try {
+          // A recipient with several organisations may not have the invited
+          // one selected in Clerk. Switching is safe: Clerk checks membership.
+          if (fromInvitation && invitedOrg && window.Clerk.organization?.id !== invitedOrg &&
+              selectedInviteOrg !== `${userId}:${invitedOrg}`) {
+            selectedInviteOrg = `${userId}:${invitedOrg}`;
+            await window.Clerk.setActive({ organization: invitedOrg }).catch(() => {});
+          }
           const token = await window.Clerk.session.getToken({ template: CFG.jwtTemplate });
           sendAttribution(token); // fire-and-forget; never blocks the plan render
           const res = await SI.fetch(`${CFG.apiBase}/v1/entitlement`, {
@@ -398,15 +403,17 @@ const CFG = SI.config;
           }
           // Render the full feature matrix; free plans then fill in the live
           // Anonymise & Paste allowance from the usage endpoint.
-          renderFeatures(displayPlan);
+          // The member-facing plan name is Developer Pro, while their signed
+          // organization seat also enables policy sync and team alerts.
+          renderFeatures(plan);
           if (isFree) loadUsage(token);
-          loadTeam();
+          renderTeam(data?.entitlement);
+          renderInvitation(data?.entitlement);
         } catch (e) {
           console.error("[account] loadPlan failed", e);
           showPlanUnavailable();
-          // Different endpoint, different failure: don't take an admin's route
-          // into the team console away because billing blipped.
-          loadTeam();
+          showTeamUnavailable();
+          renderInvitation(null, true);
         } finally {
           retry.disabled = false;
         }
@@ -500,7 +507,7 @@ const CFG = SI.config;
             window.Clerk.mountUserProfile($("clerk-profile"), { appearance: SI.appearance() });
             resumePendingTxn();
           }
-          if (new URLSearchParams(location.search).get("joined") === "1") {
+          if (fromInvitation) {
             $("joined").hidden = false;
           }
           loadPlan();
@@ -525,22 +532,26 @@ const CFG = SI.config;
         $("clerk-auth").replaceChildren();
         const common = {
           appearance: SI.appearance(),
-          afterSignInUrl: SI.page("account.html"),
-          afterSignUpUrl: SI.page("account.html"),
+          afterSignInUrl: SI.authReturn("account.html"),
+          afterSignUpUrl: SI.authReturn("account.html"),
           forceRedirectUrl: SI.authReturn("account.html"),
           signInForceRedirectUrl: SI.authReturn("account.html"),
           signUpForceRedirectUrl: SI.authReturn("account.html"),
         };
         if (signUpMode) {
           $("auth-title").textContent = "Create account";
-          $("auth-sub").textContent = "Start protecting your prompts in seconds.";
-          window.Clerk.mountSignUp($("clerk-auth"), { ...common, signInUrl: SI.page("account.html") });
+          $("auth-sub").textContent = fromInvitation
+            ? "Use the exact email address invited by your organisation."
+            : "Start protecting your prompts in seconds.";
+          window.Clerk.mountSignUp($("clerk-auth"), { ...common, signInUrl: SI.authReturn("account.html") });
         } else {
           $("auth-title").textContent = "Sign in";
-          $("auth-sub").textContent = "Unlock Pro features and manage your account.";
+          $("auth-sub").textContent = fromInvitation
+            ? "Use the exact email address invited by your organisation."
+            : "Unlock Pro features and manage your account.";
           window.Clerk.mountSignIn($("clerk-auth"), {
             ...common,
-            signUpUrl: SI.page("account.html?mode=signup"),
+            signUpUrl: SI.authReturn("account.html?mode=signup"),
           });
         }
       }
@@ -564,7 +575,7 @@ const CFG = SI.config;
           $("upgrade").addEventListener("click", openCheckout);
           $("manage").addEventListener("click", openPortal);
           $("plan-retry").addEventListener("click", loadPlan);
-          $("team-retry").addEventListener("click", loadTeam);
+          $("team-retry").addEventListener("click", loadPlan);
           $("overlap-cancel").addEventListener("click", cancelPersonal);
           $("signout-top").addEventListener("click", () => window.Clerk.signOut());
           render();

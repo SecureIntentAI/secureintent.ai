@@ -113,7 +113,7 @@
     // Preserve payment recovery and invitation state across sign-in, never accept
     // a caller-supplied external return URL.
     const current = new URLSearchParams(location.search);
-    for (const key of ['_ptxn', 'welcome', 'claim', 'joined']) if (current.has(key)) url.searchParams.set(key, current.get(key));
+    for (const key of ['_ptxn', 'welcome', 'claim', 'joined', 'org']) if (current.has(key)) url.searchParams.set(key, current.get(key));
     url.hash = location.hash;
     return url.pathname + url.search + url.hash;
   }
