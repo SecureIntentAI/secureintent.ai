@@ -224,6 +224,8 @@
       }
       .account-app .joined[hidden], .account-app .joined-cta[hidden] { display: none; }
       .account-app .joined strong { font-weight: 600; }
+      .account-app .policy-update { margin-top: 12px; }
+      .account-app .policy-update .text-action { align-self: flex-start; margin-top: 6px; }
       .account-app .joined span { color: var(--muted); }
       .account-app .joined-cta {
         margin-left: auto;

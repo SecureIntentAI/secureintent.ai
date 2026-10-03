@@ -93,6 +93,56 @@ const CFG = SI.config;
         ? invitationParams.get("org") : null;
       let inviteError = "";
       let selectedInviteOrg = "";
+      let policyNoticeBusy = false;
+      let policyNoticeKey = "";
+
+      async function loadPolicyNotice() {
+        if (policyNoticeBusy || !window.Clerk.user || !window.Clerk.session) return;
+        policyNoticeBusy = true;
+        const userId = window.Clerk.user.id;
+        try {
+          const token = await window.Clerk.session.getToken();
+          if (!token) return;
+          const response = await SI.fetch(`${CFG.apiBase}/v1/business/connection/policy-status`, {
+            headers: { Authorization: `Bearer ${token}` }, cache: "no-store",
+          });
+          if (!response.ok) {
+            if (response.status === 403 || response.status === 401) $("policy-update").hidden = true;
+            return;
+          }
+          const policy = await response.json();
+          if (window.Clerk.user?.id !== userId || !policy.orgId || !policy.version) {
+            $("policy-update").hidden = true;
+            return;
+          }
+          const key = `si:policy-notice:${userId}:${policy.orgId}:${policy.version}`;
+          policyNoticeKey = key;
+          if (localStorage.getItem(key) === "seen" && policy.status === "applied") {
+            $("policy-update").hidden = true;
+            return;
+          }
+          const controls = policy.controls || {};
+          const parts = [controls.blockInsteadOfWarn ? "Sensitive pastes are blocked" : "Sensitive pastes show a warning",
+            controls.requireSessionLock ? "Session Lock is required" : "Session Lock is optional"];
+          if (controls.blockedSiteCount) {
+            const sites = Array.isArray(controls.blockedSites) ? controls.blockedSites.slice(0, 3).join(", ") : "";
+            parts.push(`${controls.blockedSiteCount} destination${controls.blockedSiteCount === 1 ? " is" : "s are"} restricted${sites ? `, including ${sites}` : ""}`);
+          }
+          if (controls.aiServiceRuleCount) parts.push(`${controls.aiServiceRuleCount} AI tool${controls.aiServiceRuleCount === 1 ? "" : "s"} have paste rules`);
+          $("policy-update-title").textContent = `${policy.orgName || "Your organisation"} updated its protection policy`;
+          const when = policy.updatedAt && !Number.isNaN(Date.parse(policy.updatedAt))
+            ? ` on ${new Date(policy.updatedAt).toLocaleString()}` : "";
+          const state = policy.status === "applied" ? "Your connected extensions reported the current revision."
+            : policy.status === "offline" ? "Your extensions have not checked in recently; they will update when connected."
+            : policy.status === "not_connected" ? "Sign in to the extension with this account to apply the policy."
+            : "Your extension has not confirmed this revision yet.";
+          $("policy-update-body").textContent = `Revision ${policy.version}${when}. ${parts.length ? `Current controls: ${parts.join("; ")}. ` : ""}${state}`;
+          $("policy-update-dismiss").hidden = policy.status !== "applied";
+          $("policy-update").hidden = false;
+        } catch {
+          // A failed status read must never be presented as an applied policy.
+        } finally { policyNoticeBusy = false; }
+      }
 
       function renderInvitation(entitlement, unavailable = false) {
         if (!fromInvitation) return;
@@ -465,6 +515,8 @@ const CFG = SI.config;
           if (isFree) loadUsage(token);
           renderTeam(data?.entitlement);
           renderInvitation(data?.entitlement);
+          if (data?.entitlement?.source === "org_seat") void loadPolicyNotice();
+          else $("policy-update").hidden = true;
         } catch (e) {
           console.error("[account] loadPlan failed", e);
           showPlanUnavailable();
@@ -574,7 +626,8 @@ const CFG = SI.config;
         // Clerk's hosted Account Portal). Mode chosen from ?mode=signup; the two
         // components cross-link via signInUrl / signUpUrl.
         const authParams = new URLSearchParams(location.search);
-        const signUpMode = authParams.get("mode") === "signup" || authParams.get("__clerk_status") === "sign_up";
+        const signUpMode = authParams.get("mode") === "signup" || authParams.get("__clerk_status") === "sign_up" ||
+          (fromInvitation && authParams.get("mode") !== "signin");
         $("nav-team").hidden = true;
         $("joined").hidden = true;
         if (profileUser) {
@@ -599,7 +652,8 @@ const CFG = SI.config;
           $("auth-sub").textContent = fromInvitation
             ? "Use the exact email address invited by your organisation."
             : "Start protecting your prompts in seconds.";
-          window.Clerk.mountSignUp($("clerk-auth"), { ...common, signInUrl: SI.authReturn("account.html") });
+          window.Clerk.mountSignUp($("clerk-auth"), { ...common,
+            signInUrl: SI.authReturn(fromInvitation ? "account.html?mode=signin" : "account.html") });
         } else {
           $("auth-title").textContent = "Sign in";
           $("auth-sub").textContent = fromInvitation
@@ -634,6 +688,14 @@ const CFG = SI.config;
           $("team-retry").addEventListener("click", loadPlan);
           $("overlap-cancel").addEventListener("click", cancelPersonal);
           $("signout-top").addEventListener("click", () => window.Clerk.signOut());
+          $("policy-update-dismiss").addEventListener("click", () => {
+            if (policyNoticeKey) localStorage.setItem(policyNoticeKey, "seen");
+            $("policy-update").hidden = true;
+          });
+          document.addEventListener("visibilitychange", () => {
+            if (!document.hidden && window.Clerk.user) void loadPolicyNotice();
+          });
+          setInterval(() => { if (!document.hidden && window.Clerk.user) void loadPolicyNotice(); }, 60000);
           render();
           window.Clerk.addListener(render);
         } catch (e) {
