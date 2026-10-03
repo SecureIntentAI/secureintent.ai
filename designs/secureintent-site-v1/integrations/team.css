@@ -334,6 +334,21 @@
       .team-app .rollout-downloaded { background: #6fdbe8; }
       .team-app .rollout-pending { background: #e6b960; }
       .team-app .rollout-offline { background: #7d8796; }
+      .team-app .team-refresh-notice {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 16px;
+        padding: 12px 14px;
+        border: 1px solid rgba(230, 185, 96, .45);
+        border-radius: 10px;
+        color: var(--text);
+        background: rgba(230, 185, 96, .1);
+        font-size: 13px;
+      }
+      .team-app .team-refresh-notice[hidden] { display: none; }
       /* Which day each end of the chart is. Without them the bars are a shape
          with no scale, and the hover title is no use on a phone. */
       .team-app .axis {
