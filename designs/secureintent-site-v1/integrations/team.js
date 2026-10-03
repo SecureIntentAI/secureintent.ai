@@ -369,6 +369,34 @@
           disabled:"Protection disabled",failed:"Policy could not be applied",offline:"Offline · update on reconnect",
           pending:"Policy confirmation pending"})[status] || "Policy confirmation pending";
       }
+      function renderPolicyRollout(team) {
+        const devices = (team.members || []).flatMap(member => member.connection?.devices || []);
+        const current = Number(team.policyVersion) || 0;
+        const confirmed = devices.filter(d => d.appliedPolicyVersion === current && d.policyStatus === "guards_confirmed").length;
+        const downloaded = devices.filter(d => d.appliedPolicyVersion === current && d.policyStatus === "downloaded").length;
+        const offline = devices.filter(d => d.policyStatus === "offline").length;
+        const pending = devices.length - confirmed - downloaded - offline;
+        const summary = current
+          ? `Revision ${current} · ${confirmed} active, ${downloaded} downloaded, ${pending} pending, ${offline} offline`
+          : "No team policy has been published yet.";
+        $("policy-rollout-summary").textContent = summary;
+        const track = $("policy-rollout-track");
+        track.replaceChildren();
+        track.setAttribute("aria-label", summary);
+        if (devices.length) {
+          for (const [kind,count] of [["confirmed",confirmed],["downloaded",downloaded],["pending",pending],["offline",offline]]) {
+            if (!count) continue;
+            const bar = document.createElement("span");
+            bar.className = `rollout-segment rollout-${kind}`;
+            bar.style.width = `${count / devices.length * 100}%`;
+            bar.title = `${count} ${kind}`;
+            track.appendChild(bar);
+          }
+        }
+        $("policy-rollout-detail").textContent = devices.length
+          ? `${devices.length} reported device${devices.length === 1 ? "" : "s"}. Active means a device confirmed page guards; downloaded means it saved the revision but has not confirmed active pages.`
+          : "No extension has checked in yet. Users without a connected device are shown in Users.";
+      }
       function devicePolicyDetails(connection, userId, expanded) {
         if (!connection?.devices?.length) return "";
         return `<details data-policy-user="${esc(userId)}" ${expanded.has(userId) ? "open" : ""}><summary>${connection.devices.length} device(s)</summary>${connection.devices.map((d,i)=>
@@ -852,6 +880,10 @@
           const back = res && (res.settings || (res.policy ? res : null));
           settings = normalizeSettings(back || settings);
           savedWebhook = settings.alertWebhook;
+          if (currentTeam) {
+            currentTeam.policyVersion = settings.policyVersion;
+            renderPolicyRollout(currentTeam);
+          }
           renderSettings();
           markSettingsSaved();
           flash(statusEl, "Saved. Extension application has not yet been confirmed.", "ok");
@@ -1271,6 +1303,7 @@
         $("c-seats").textContent = fmt(team.seats);
         $("c-used").innerHTML = `${fmt(team.seatsUsed)} <small>/ ${fmt(team.seats)}</small>`;
         renderPeople(team);
+        renderPolicyRollout(team);
         const available = `${fmt(team.seatsAvailable)} seats available`;
         if (!$("users-refreshed").textContent.includes(available)) $("users-refreshed").textContent = available;
         setPaywalled(live);
@@ -1286,6 +1319,19 @@
       }
 
       let rosterBusy = false;
+      let rolloutBusy = false;
+      async function refreshPolicyRollout() {
+        if (rolloutBusy || document.hidden || currentView !== "overview" || $("console").classList.contains("hide")) return;
+        rolloutBusy = true;
+        const scope = authScope();
+        try {
+          const result = await api("/v1/team");
+          if (scope !== authScope() || result.team?.role !== "org:admin") return;
+          currentTeam = result.team;
+          renderPolicyRollout(currentTeam);
+        } catch { $("policy-rollout-detail").textContent = "Could not refresh rollout status. Showing the last confirmed report; retrying automatically."; }
+        finally { rolloutBusy = false; }
+      }
       async function refreshUsers({ manual = false } = {}) {
         if (rosterBusy || invitesBusy || document.hidden || currentView !== "people" || document.querySelector("[data-confirmed]")) return;
         rosterBusy=true;
@@ -1596,6 +1642,7 @@
         window.setInterval(() => {
           if (!document.hidden && currentView === 'overview' && !$("console").classList.contains('hide')) loadMetrics();
         }, 5000);
+        window.setInterval(refreshPolicyRollout, 15000);
 
         // Sidebar navigation. The anchors carry real hrefs so they can be
         // opened, copied and tabbed to like links; this only takes over to keep
