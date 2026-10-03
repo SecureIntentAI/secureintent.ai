@@ -1154,6 +1154,7 @@
         $("gate-wrap").hidden = false;
         $("gate-title").textContent = title;
         $("gate-sub").textContent = sub;
+        $("gate-retry").hidden = true;
         $("pitch").classList.toggle("hide", !pitch);
         $("gate-actions").classList.toggle("hide", !actions);
         $("comp-actions").classList.toggle("hide", !comp);
@@ -1253,6 +1254,7 @@
           lastPeopleRenderKey = null;
         }
         currentTeam = team || null;
+        clearTeamRefreshNotice();
         if (!team) {
           showGate({title:"Business invitation required",sub:"Open the Business promo invitation provided to your organization to activate its 150-seat workspace."});
           return;
@@ -1320,16 +1322,39 @@
 
       let rosterBusy = false;
       let rolloutBusy = false;
+      function handleTeamReadError(error) {
+        if (error.code === 'admin_reauthentication_required' || error.name === 'AbortError') return;
+        if ([401, 403].includes(error.status)) {
+          clearTeamRefreshNotice();
+          currentTeam = null;
+          showGate({title: error.status === 401 ? 'Your session expired' : 'Team access unavailable', sub: explain(error)});
+          return;
+        }
+        if (currentTeam && !$('console').classList.contains('hide')) {
+          $('team-refresh-notice').hidden = false;
+          scheduleTeamRetry();
+        }
+      }
       async function refreshPolicyRollout() {
         if (rolloutBusy || document.hidden || currentView !== "overview" || $("console").classList.contains("hide")) return;
         rolloutBusy = true;
         const scope = authScope();
         try {
           const result = await api("/v1/team");
-          if (scope !== authScope() || result.team?.role !== "org:admin") return;
+          if (scope !== authScope()) return;
+          if (result.team?.role !== "org:admin") {
+            currentTeam = null;
+            clearTeamRefreshNotice();
+            showGate({title:'Team access unavailable',sub:'This account no longer has administrator access.'});
+            return;
+          }
           currentTeam = result.team;
           renderPolicyRollout(currentTeam);
-        } catch { $("policy-rollout-detail").textContent = "Could not refresh rollout status. Showing the last confirmed report; retrying automatically."; }
+          clearTeamRefreshNotice();
+        } catch (error) {
+          handleTeamReadError(error);
+          if (![401, 403].includes(error.status)) $("policy-rollout-detail").textContent = "Could not refresh rollout status. Showing the last confirmed report; retrying automatically.";
+        }
         finally { rolloutBusy = false; }
       }
       async function refreshUsers({ manual = false } = {}) {
@@ -1340,11 +1365,11 @@
           const result=await api("/v1/team");
           if (scope!==authScope() || invitesBusy) return;
           if (result.team?.role !== "org:admin") { await loadTeam(); return; }
-          currentTeam=result.team;renderPeople(currentTeam);syncNavSeats(currentTeam);
+          currentTeam=result.team;renderPeople(currentTeam);syncNavSeats(currentTeam);clearTeamRefreshNotice();
           const available = `${fmt(currentTeam.seatsAvailable)} seats available`;
           if (manual) $("users-refreshed").textContent=`Updated ${new Date().toLocaleTimeString()} · ${available}`;
           else if (!$("users-refreshed").textContent.includes(available)) $("users-refreshed").textContent=available;
-        } catch(e) { $("users-refreshed").textContent=explain(e); if([401,403].includes(e.status)) showGate({title:"Business admin access required",sub:explain(e)}); }
+        } catch(e) { $("users-refreshed").textContent=explain(e); handleTeamReadError(e); }
         finally { rosterBusy=false; }
       }
 
@@ -1674,8 +1699,42 @@
       // remount it under someone mid-way through typing a password.
       let authMounted = null;
       let renderedScope;
+      let renderInFlight = null;
+      let teamRetryTimer = null;
+      let teamRetryDelay = 2000;
 
-      async function render() {
+      function clearTeamRefreshNotice() {
+        if (teamRetryTimer) clearTimeout(teamRetryTimer);
+        teamRetryTimer = null;
+        teamRetryDelay = 2000;
+        $("team-refresh-notice").hidden = true;
+      }
+      function scheduleTeamRetry() {
+        if (teamRetryTimer) return;
+        const delay = teamRetryDelay;
+        teamRetryDelay = Math.min(teamRetryDelay * 2, 30000);
+        teamRetryTimer = setTimeout(() => {
+          teamRetryTimer = null;
+          if (window.Clerk.user) void render(true);
+        }, delay);
+      }
+
+      async function render(forceRefresh = false) {
+        const scope = authScope();
+        if (renderInFlight) return renderInFlight;
+        // Clerk emits updates while renewing tokens. A healthy dashboard does
+        // not need a full roster reload on each emission; background reads keep
+        // the live views fresh, and explicit retry forces a read when needed.
+        if (forceRefresh !== true && currentTeam && renderedScope === scope) return;
+        renderInFlight = renderInternal();
+        try { await renderInFlight; }
+        finally {
+          renderInFlight = null;
+          if (scope !== authScope()) location.reload();
+        }
+      }
+
+      async function renderInternal() {
         const scope = authScope();
         if (renderedScope !== undefined && renderedScope !== scope) {
           // Discard the entire previous account's DOM and unsaved working copy.
@@ -1796,12 +1855,20 @@
           if (claim && !claim.seats) explainPending(claim.transactionStatus);
         } catch (e) {
           if(e.code==='admin_reauthentication_required')return;
-          showGate({
-            title: "Couldn't load your team",
-            sub: explain(e, {
-              fallback: `We couldn't reach your team just now. Reload the page, or email ${BILLING_EMAIL} if it keeps happening.`,
-            }),
-          });
+          if (e.name === 'AbortError') return;
+          if ([401, 403].includes(e.status)) {
+            clearTeamRefreshNotice();
+            currentTeam = null;
+            showGate({title: e.status === 401 ? 'Your session expired' : 'Team access unavailable', sub: explain(e)});
+            return;
+          }
+          if (currentTeam && !$("console").classList.contains("hide")) {
+            $("team-refresh-notice").hidden = false;
+          } else {
+            showGate({title: 'Connection interrupted', sub: 'We could not refresh your team right now. Retrying automatically.'});
+            $("gate-retry").hidden = false;
+          }
+          scheduleTeamRetry();
         }
       }
 
@@ -1834,7 +1901,9 @@
         await window.Clerk.load({ appearance: SI.appearance() });
         initPaddle();
         wire();
-        window.addEventListener('si-team-auth-required', () => { showGate({title:'Your session expired', sub:'Sign in again to continue.'}); render(); });
+        $("gate-retry").addEventListener('click', () => void render(true));
+        $("team-refresh-now").addEventListener('click', () => void render(true));
+        window.addEventListener('si-team-auth-required', () => { showGate({title:'Your session expired', sub:'Sign in again to continue.'}); render(true); });
         window.Clerk.addListener(render);
         render();
       }

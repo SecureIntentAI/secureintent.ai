@@ -398,15 +398,32 @@ const CFG = SI.config;
         $("feature-list").replaceChildren();
         showPlanNotice(
           "Couldn't load your plan",
-          "We couldn't reach the billing service. Your subscription isn't affected — this is only what we can show right now.",
+          "We couldn't confirm your account right now. Your access has not been changed; retry the check.",
           { retry: true },
         );
       }
 
+      let planInFlight = false;
+      let planRetryTimer = null;
+      let planRetryDelay = 2000;
+      let lastGoodUserId = null;
+      function schedulePlanRetry() {
+        if (planRetryTimer) return;
+        const delay = planRetryDelay;
+        planRetryDelay = Math.min(planRetryDelay * 2, 30000);
+        planRetryTimer = setTimeout(() => {
+          planRetryTimer = null;
+          if (window.Clerk.user) void loadPlan();
+        }, delay);
+      }
       async function loadPlan() {
+        if (planInFlight) return;
+        planInFlight = true;
         const userId = window.Clerk.user?.id;
         const retry = $("plan-retry");
         retry.disabled = true;
+        if (planRetryTimer) clearTimeout(planRetryTimer);
+        planRetryTimer = null;
         try {
           if (inviteToken) {
             // Acceptance needs Clerk's session ID. The default session token
@@ -462,7 +479,7 @@ const CFG = SI.config;
           });
           // A non-200 says nothing about this account. Falling through to the
           // default plan would quietly show a paying customer "Free".
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { status: res.status });
           const data = await res.json();
           if (!userId || window.Clerk.user?.id !== userId) return;
           hidePlanNotice();
@@ -517,13 +534,23 @@ const CFG = SI.config;
           renderInvitation(data?.entitlement);
           if (data?.entitlement?.source === "org_seat") void loadPolicyNotice();
           else $("policy-update").hidden = true;
+          lastGoodUserId = userId;
+          planRetryDelay = 2000;
         } catch (e) {
           console.error("[account] loadPlan failed", e);
-          showPlanUnavailable();
-          showTeamUnavailable();
-          renderInvitation(null, true);
+          if (window.Clerk.user?.id !== userId) return;
+          if (lastGoodUserId === userId && ![401, 403].includes(e.status)) {
+            showPlanNotice("Connection interrupted", "Showing the last confirmed account details. Retrying automatically.", { retry: true });
+          } else {
+            showPlanUnavailable();
+            showTeamUnavailable();
+            renderInvitation(null, true);
+          }
+          if (![401, 403].includes(e.status)) schedulePlanRetry();
         } finally {
           retry.disabled = false;
+          planInFlight = false;
+          if (window.Clerk.user && window.Clerk.user.id !== userId) queueMicrotask(loadPlan);
         }
       }
 
