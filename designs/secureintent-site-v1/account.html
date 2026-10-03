@@ -8,7 +8,7 @@
 <body>
   <a class="skip" href="#main">Skip to content</a>
   <header class="site-header"><div class="container header-inner"><a href="index.html" class="brand"><span aria-hidden="true" class="brand-dot">●</span><span>SecureIntent<span class="brand-suffix">.ai</span></span></a><div class="header-actions"><div class="theme-switch" role="group" aria-label="Colour theme"><button class="theme-option" type="button" data-set-theme="dark" aria-pressed="true">Dark</button><button class="theme-option" type="button" data-set-theme="light" aria-pressed="false">Light</button></div><a class="text-action" href="index.html">Back to site →</a></div></div></header>
-  <main id="main" tabindex="-1" class="utility-page"><section class="account-app"><div class="app-actions"><a id="nav-team" href="team.html" hidden>Team</a><button class="text-action" id="signout-top" type="button" hidden>Sign out</button></div><div>
+  <main id="main" tabindex="-1" class="utility-page"><section class="account-app"><div class="app-actions"><a id="nav-team" href="team.html#/overview" hidden>Team</a><button class="text-action" id="signout-top" type="button" hidden>Sign out</button></div><div>
       <div id="loading">Loading…</div>
 
       <!-- Signed-out -->
@@ -24,13 +24,15 @@
       <section id="account" hidden>
         <!-- Shown when someone lands here from an invitation email. -->
         <div class="joined" id="joined" hidden>
-          <strong id="joined-title">You're covered by your team's plan</strong>
-          <span id="joined-sub">Install the extension to start being protected.</span>
+          <strong id="joined-title">Checking your organisation access…</strong>
+          <span id="joined-sub">We’ll confirm your membership before activating your team seat.</span>
           <a
             class="joined-cta"
+            id="joined-install"
             href="https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof"
             target="_blank"
             rel="noreferrer"
+            hidden
             >Install SecureIntent</a
           >
         </div>
@@ -86,7 +88,7 @@
             <span class="team-name" id="team-name">—</span>
             <span class="team-sub" id="team-sub">—</span>
           </div>
-          <a class="team-cta" id="team-cta" href="team.html">Manage team</a>
+          <a class="team-cta" id="team-cta" href="team.html#/overview">Manage team</a>
           <button class="overlap-cta team-retry" id="team-retry" type="button" hidden>Retry</button>
         </div>
 

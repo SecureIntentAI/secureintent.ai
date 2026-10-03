@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en" data-theme="secureintent">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="color-scheme" content="dark light">
+  <title>Shadow AI · SecureIntent</title>
+  <script>
+    try {
+      if (localStorage.getItem('si-taskflow-v2-theme') === 'white') document.documentElement.dataset.theme = 'white';
+      if (new URLSearchParams(location.search).get('embed') === '1') document.documentElement.classList.add('embedded');
+    } catch (_) {}
+  </script>
+  <link rel="preload" href="assets/shadow/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/shadow/styles.css">
+  <link rel="stylesheet" href="assets/shadow/dashboard.css">
+  <script src="integrations/admin-access.js" defer></script><script src="integrations/config.js"></script>
+  <script src="integrations/runtime.js"></script>
+  <script src="assets/shadow/dashboard.js" type="module"></script>
+</head>
+<body>
+  <svg class="symbol-library" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6z"/><path d="m8 12 3 3 5-6"/></symbol>
+      <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 10 5-10 5L2 8zM2 12l10 5 10-5M2 16l10 5 10-5"/></symbol>
+      <symbol id="i-checklist" viewBox="0 0 24 24"><path d="m3 6 2 2 3-4m-5 9 2 2 3-4m-5 9 2 2 3-4M12 6h9M12 13h9M12 20h9"/></symbol>
+      <symbol id="i-activity" viewBox="0 0 24 24"><path d="M2 12h4l3-8 6 16 3-8h4"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+      <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></symbol>
+      <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="M6 18 18 6M6 6h12v12"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.8 14A9 9 0 0 1 10 3.2 9 9 0 1 0 20.8 14Z"/></symbol>
+      <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z"/></symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 11h18m-12 4h.01M12 15h.01M16 15h.01"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-4-4 4 4 4-4M4 15v5h16v-5"/></symbol>
+      <symbol id="i-clipboard" viewBox="0 0 24 24"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M8 5H5v16h14V5h-3M8 12h8m-8 4h5"/></symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+      <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h12M9 12h12M9 18h12M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+      <symbol id="i-board" viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="10" rx="2"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+      <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></symbol>
+    </defs>
+  </svg>
+
+  <section class="auth-gate panel" id="auth-gate" aria-labelledby="gate-title">
+    <span class="eyebrow">SECUREINTENT · BUSINESS WORKSPACE</span>
+    <h1 id="gate-title">Sign in to your workspace</h1>
+    <p id="gate-copy">Loading secure sign-in…</p>
+    <div id="clerk-auth"></div>
+    <p id="gate-error" class="error-banner" role="alert" hidden></p>
+  </section>
+  <noscript><p class="error-banner">Enable JavaScript to view your Shadow AI dashboard.</p></noscript>
+  <div id="dashboard-shell" hidden>
+  <a class="skip-link" href="#main">Skip to dashboard</a>
+  <div class="mobile-scrim" id="scrim" hidden></div>
+  <aside class="sidebar" id="sidebar" aria-label="Workspace navigation">
+    <a class="brand" href="#overview" aria-label="SecureIntent overview"><span class="brand-mark"><svg class="icon"><use href="#i-shield"/></svg></span>Secure<span>Intent</span></a>
+    <div class="workspace-card"><span class="workspace-avatar">S</span><div><strong id="workspace-name">Business workspace</strong><small>Business plan</small></div><svg class="icon small" aria-hidden="true"><use href="#i-lock"/></svg></div>
+    <span class="nav-caption">WORKSPACE</span>
+    <nav class="nav">
+      <a href="team.html"><svg class="icon"><use href="#i-arrow"/></svg>Team console</a>
+      <a class="active" href="#overview" data-section="overview"><svg class="icon"><use href="#i-grid"/></svg>Overview</a>
+      <a href="#services" data-section="services"><svg class="icon"><use href="#i-layers"/></svg>AI services<span class="nav-count" id="nav-service-count">—</span></a>
+      <a href="#reviews" data-section="reviews"><svg class="icon"><use href="#i-checklist"/></svg>Review queue<span class="nav-count accent-count" id="nav-review-count">—</span></a>
+      <a href="#activity" data-section="activity"><svg class="icon"><use href="#i-activity"/></svg>Activity log</a>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="insight-card"><svg class="icon"><use href="#i-lock"/></svg><strong>Private by design</strong><p>Review activity signals without collecting private prompts.</p><a href="#activity">View activity log<svg class="icon"><use href="#i-arrow"/></svg></a></div>
+      <div class="sidebar-profile"><span class="avatar avatar-alex profile-initials">SI</span><div><strong id="profile-name">Workspace member</strong><small id="profile-role">Business workspace</small></div><span class="profile-dot"></span></div>
+      <div class="studio-link"><span id="connection-status" role="status">Connecting…</span><button class="text-button" id="signout">Sign out</button></div>
+    </div>
+  </aside>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="topbar-left"><button class="icon-button menu-button" id="menu-button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg class="icon"><use href="#i-menu"/></svg></button><div class="breadcrumb">Workspace <span>/</span> <strong>Overview</strong></div></div>
+      <div class="topbar-actions">
+        <div class="theme-control" role="group" aria-label="Color theme">
+          <button data-theme-choice="secureintent" aria-pressed="true"><svg class="icon"><use href="#i-spark"/></svg><span>Navy / cyan</span></button>
+          <button data-theme-choice="white" aria-pressed="false"><svg class="icon"><use href="#i-sun"/></svg><span>White</span></button>
+        </div>
+        <a class="icon-button notification-button" href="#activity" aria-label="View recent activity"><svg class="icon"><use href="#i-bell"/></svg><span></span></a>
+        <span class="avatar avatar-alex top-avatar profile-initials" aria-label="Your workspace">SI</span>
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="page-heading" id="overview">
+        <div><div class="eyebrow">SECURITY WORKSPACE</div><h1>Shadow AI overview</h1><p>Discover AI tools, understand usage, and review sensitive activity.</p></div>
+        <div class="heading-actions"><span class="prototype-label" id="workspace-mode"><span class="sample-dot"></span>Business workspace</span><div class="export-menu-wrap"><button class="button" id="export-button" aria-haspopup="menu" aria-expanded="false" aria-controls="export-menu"><svg class="icon"><use href="#i-download"/></svg>Export overview</button><div class="export-menu" id="export-menu" role="menu" aria-label="Export format" hidden><button type="button" id="export-pdf" role="menuitem">Download PDF report</button><button type="button" id="export-json" role="menuitem">Download JSON data</button></div></div></div>
+      </section>
+
+      <div class="overview-toolbar"><div class="section-tabs"><span class="current">Activity summary</span><span class="subtle-dot">·</span><span id="observed-services">Loading services…</span></div><label class="period-control">Report for <select id="report-seat" aria-label="Select organisation or individual user"><option value="">Entire organisation</option></select></label><label class="period-control"><svg class="icon"><use href="#i-calendar"/></svg><select id="period" aria-label="Activity reporting period"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option></select><svg class="icon small"><use href="#i-chevron"/></svg></label></div>
+
+      <div id="error" class="error-banner" role="alert" hidden></div>
+      <section class="metrics" aria-label="Workspace summary" id="metrics"></section>
+      <section class="panel policy-rollout" aria-labelledby="policy-rollout-title">
+        <div class="panel-heading"><div><h2 id="policy-rollout-title">Policy delivery</h2><p id="policy-rollout-summary" role="status">Checking extension reports…</p></div></div>
+        <div class="policy-rollout-counts" id="policy-rollout-counts"></div>
+        <p class="policy-rollout-note" id="policy-rollout-note">An extension report confirms its active page guards; devices that are offline update when they reconnect.</p>
+      </section>
+      <div class="attention-strip"><span class="attention-icon"><svg class="icon small"><use href="#i-shield"/></svg></span><p><strong id="attention-count">Loading service decisions…</strong><span>Review unsanctioned usage before updating your policy.</span></p><button id="review-services" class="text-button">Review services <svg class="icon small"><use href="#i-arrow"/></svg></button></div>
+
+      <div class="dashboard-grid">
+        <section class="panel chart-panel" aria-labelledby="chart-title">
+          <div class="panel-heading"><div><h2 id="chart-title">Activity overview</h2><p>Observed visits and paste attempts.</p></div><div class="segmented compact" role="group" aria-label="Chart metric"><button class="selected" data-chart="visits" aria-pressed="true">Visits</button><button data-chart="pastes" aria-pressed="false">Pastes</button></div></div>
+          <div class="chart-topline"><div><strong id="chart-total">—</strong><span id="chart-unit">observed visits</span></div><div class="legend"><span class="legend-dot"></span><span id="chart-legend">Service visits</span></div></div>
+          <div class="chart" id="chart"></div>
+          <div class="chart-caption"><svg class="icon small"><use href="#i-activity"/></svg><span id="chart-caption">A visit is an observed page visit, not a submitted AI request.</span></div>
+        </section>
+
+        <section class="panel progress-panel" aria-labelledby="progress-title"><div class="panel-heading"><div><h2 id="progress-title">Review progress</h2><p>Service and policy decisions.</p></div><span class="panel-symbol"><svg class="icon"><use href="#i-checklist"/></svg></span></div><div class="progress-visual"><svg viewBox="0 0 180 180" class="progress-ring" aria-hidden="true"><circle class="ring-track" cx="90" cy="90" r="72"/><circle class="ring-value" id="ring-value" cx="90" cy="90" r="72"/></svg><div class="progress-value"><strong id="progress-percent">—<span>%</span></strong><span>services sanctioned</span></div></div><div class="progress-stats"><div><i class="team-dot cyan"></i><strong id="completed-count">—</strong><span>Sanctioned</span></div><div><i class="team-dot peach"></i><strong id="open-count">—</strong><span>Unsanctioned</span></div></div><a class="progress-link" href="#reviews">Open review queue <svg class="icon"><use href="#i-arrow"/></svg></a></section>
+
+        <section class="panel services-panel" id="services" aria-labelledby="services-title">
+          <div class="panel-heading"><div><div class="title-with-count"><h2 id="services-title">AI service inventory</h2><span class="count-badge" id="inventory-count">—</span></div><p>Service discovery and workspace classifications.</p></div><label class="search-control"><svg class="icon"><use href="#i-search"/></svg><input id="service-search" type="search" placeholder="Find a service…" aria-label="Search AI services"></label></div>
+          <div class="filter-row" role="group" aria-label="Service status filter"><button class="selected" data-service-filter="all" aria-pressed="true">All services</button><button data-service-filter="review" aria-pressed="false">Needs review <span id="review-filter-count">—</span></button><button data-service-filter="sanctioned" aria-pressed="false">Sanctioned <span id="sanctioned-filter-count">—</span></button></div>
+          <div class="service-grid" id="service-grid"></div><p id="service-empty" class="empty-state" hidden>No services match. Try another name or status.</p>
+        </section>
+
+        <section class="panel activity-panel" id="activity" aria-labelledby="activity-title"><div class="panel-heading"><div><h2 id="activity-title">Recent activity</h2><p>Latest DLP outcomes.</p></div><span class="pulse-label" id="activity-label">Live</span></div><ol class="timeline" id="timeline"></ol><div class="privacy-note"><svg class="icon"><use href="#i-shield"/></svg><span>Metadata only.<br>No prompts or pasted content collected.</span></div></section>
+      </div>
+
+      <section class="panel reviews-panel" id="reviews" aria-labelledby="reviews-title">
+        <div class="panel-heading"><div><div class="title-with-count"><h2 id="reviews-title">Review queue</h2><span class="count-badge" id="queue-count">—</span></div><p>Review service classifications and team paste policies.</p></div><button class="button primary" id="review-policy"><svg class="icon"><use href="#i-shield"/></svg>Review services</button></div>
+        <div class="review-toolbar"><div class="filter-row" role="group" aria-label="Review status filter"><button class="selected" data-review-filter="all" aria-pressed="true">All reviews</button><button data-review-filter="open" aria-pressed="false">Unsanctioned</button><button data-review-filter="done" aria-pressed="false">Sanctioned</button></div><div class="segmented" role="group" aria-label="Review layout"><button class="selected" data-view="list" aria-pressed="true"><svg class="icon small"><use href="#i-list"/></svg>List</button><button data-view="board" aria-pressed="false"><svg class="icon small"><use href="#i-board"/></svg>Board</button></div></div>
+        <div id="review-list"></div><div class="review-board" id="review-board" hidden></div>
+        <div class="queue-footer"><span id="queue-summary">Loading service policies…</span><span id="policy-status">Policies apply across your organisation</span></div>
+      </section>
+      <section class="panel ledger-panel" id="ledger" aria-labelledby="ledger-title">
+        <div class="panel-heading"><div><h2 id="ledger-title">DLP event ledger</h2><p>Detection reasons and outcomes. Hostnames only; no pasted content.</p></div><button class="button" id="refresh">Refresh data</button></div>
+        <div class="ledger-scroll"><table class="ledger-table"><caption class="sr-only">Sensitive paste activity</caption><thead><tr><th scope="col">Time</th><th scope="col">Seat</th><th scope="col">Destination</th><th scope="col">Detection reason</th><th scope="col">Resolution</th><th scope="col">Findings</th></tr></thead><tbody id="ledger-body"></tbody></table></div>
+        <div class="queue-footer"><span id="ledger-count">Loading events…</span><div class="pager"><button class="button" id="prev" disabled>Previous</button><button class="button" id="next" disabled>Next</button></div></div>
+      </section>
+      <footer class="page-footer" id="design-info"><span>SecureIntent <span class="footer-slash">/</span> Shadow AI</span><span id="updated">Waiting for data</span></footer>
+    </main>
+  </div>
+
+  <dialog id="detail-dialog" aria-labelledby="detail-title"><div class="dialog-head"><span class="eyebrow">WORKSPACE DETAILS</span><button class="icon-button" data-close-dialog aria-label="Close details"><svg class="icon"><use href="#i-close"/></svg></button></div><div id="detail-content"></div></dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  </div>
+</body>
+</html>

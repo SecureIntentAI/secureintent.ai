@@ -8,13 +8,20 @@ import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('../dist/',import.meta.url));
 const port=Number(process.env.PORT || 3002);
 const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.mp4':'video/mp4','.woff2':'font/woff2','.txt':'text/plain; charset=utf-8','.xml':'application/xml'};
+async function readHeaderGroups() {
 const headerText=await readFile(path.join(root,'_headers'),'utf8');
 const groups=[];let group;
 for(const line of headerText.split('\n')) {
  if(line.startsWith('/')){group={pattern:line,headers:{}};groups.push(group);}
  else if(group && line.includes(':')) {const i=line.indexOf(':');group.headers[line.slice(0,i).trim()]=line.slice(i+1).trim();}
 }
+return groups;
+}
 http.createServer(async(req,res)=>{
+ // Rebuilds change inline-script hashes: serve headers from the current artifact.
+ let groups;
+ try { groups=await readHeaderGroups(); }
+ catch { res.writeHead(503);res.end('Preview rebuilding. Please refresh.');return; }
  const url=new URL(req.url,'http://127.0.0.1:'+port);
  for(const g of groups) if(g.pattern==='/*'||url.pathname.startsWith(g.pattern.replace(/\*$/,''))) for(const [name,value] of Object.entries(g.headers))res.setHeader(name,value);
  if(!['GET','HEAD'].includes(req.method)){res.writeHead(405);res.end();return;}

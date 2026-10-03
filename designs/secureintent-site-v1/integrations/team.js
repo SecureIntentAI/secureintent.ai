@@ -16,8 +16,8 @@
       const BILLING_EMAIL = "billing@secureintent.ai";
       // Must match the Worker: MIN_SEATS/MAX_SEATS in backend/src/routes/team.ts,
       // and the per-seat price behind PADDLE_TEAM_PRICE_ID.
-      const MIN_SEATS = 3;
-      const MAX_SEATS = 500;
+      const MIN_SEATS = 1;
+      const MAX_SEATS = 150;
       const SEAT_PRICE = 9; // main price; confirm against Paddle before launch.
       const PAY_HINT = "Available once your payment completes";
 
@@ -29,11 +29,13 @@
         );
       const fmt = (n) => (Number(n) || 0).toLocaleString();
       const ACTION_LABEL = {
+        blocked: "Blocked by policy",
         cancelled: "Cancelled the paste",
         paste_anonymously: "Pasted anonymised",
         paste_anyway: "Pasted anyway",
       };
       const TYPE_LABEL = {
+        "high-entropy": "Credential-like string",
         "known-key": "Known API key",
         "private-key": "Private key",
         "env-credential": "Env credential",
@@ -50,19 +52,35 @@
       // The team as the server last described it, so the seat editor knows the
       // current count and a cancelled confirmation can redraw the roster.
       let currentTeam = null;
+      let lastPeopleRenderKey = null;
+      let invitesBusy = false;
 
+      function authScope() {
+        const clerk = window.Clerk;
+        return `${clerk.user?.id || ''}:${clerk.session?.id || ''}:${clerk.organization?.id || ''}`;
+      }
       async function api(path, init = {}) {
-        const token = await window.Clerk.session.getToken({ template: CFG.jwtTemplate });
+        const scope = authScope();
+        const assertScope = () => {
+          if (scope !== authScope()) throw new DOMException('Account changed', 'AbortError');
+        };
+        const accessHeader=window.SIAdminAccess.headers()['X-SI-Admin-Access'];
+        // Admin grants are bound to Clerk's session ID. Custom JWT templates
+        // omit sid, so dashboard requests must use the session token.
+        const token = await window.Clerk.session.getToken();
+        assertScope();
         const res = await SI.fetch(`${CFG.apiBase}${path}`, {
           ...init,
           headers: {
             Authorization: `Bearer ${token}`,
             "content-type": "application/json",
+            ...(accessHeader?{'X-SI-Admin-Access':accessHeader}:{}),
             ...(init.headers || {}),
           },
           cache: "no-store",
         });
         const body = await res.json().catch(() => ({}));
+        assertScope();
         if (!res.ok) {
           // Carry the code, the status and the rest of the body on the error:
           // explain() needs `minSeats` and `seatsUsed` to say something an admin
@@ -71,6 +89,10 @@
           err.code = typeof body.error === "string" ? body.error : null;
           err.status = res.status;
           err.data = body || {};
+          if(err.code==='admin_reauthentication_required' && (init.headers?.['X-SI-Admin-Access']||accessHeader)===window.SIAdminAccess.headers()['X-SI-Admin-Access']) {
+            const freshlySignedIn=Number(new Date(window.Clerk.session?.createdAt))>Date.now()-5*60_000;
+            showAdminClerkGate({automatic:!freshlySignedIn,reason:freshlySignedIn?'Clerk sign-in finished, but dashboard access was not confirmed. Please retry or contact SecureIntent support.':''});
+          }
           throw err;
         }
         return body;
@@ -86,6 +108,14 @@
         "A team starts at three seats — for fewer, Developer Pro on your account page is the cheaper plan.";
       const ABOVE_MAX_SEATS = `${MAX_SEATS} seats is the most you can buy here — email ${BILLING_EMAIL} for anything larger.`;
       const ERROR_TEXT = {
+        business_promo_required: "This console requires an activated Business invitation from SecureIntent.",
+        member_role_required: "Invitations are for member seats. Only the organization owner administers this workspace.",
+        team_busy: "Another user change is in progress. Please retry shortly.",
+        already_member: "This user already belongs to your organization.",
+        too_soon: "Wait one minute before resending this invitation.",
+        invitation_not_pending: "This invitation is no longer pending. Refresh the user list.",
+        invitation_pending_reconciliation: "The invitation delivery could not be confirmed. Its seat remains reserved. Refresh the user list before retrying.",
+        policy_conflict: "A newer policy was saved elsewhere. Reload the settings before making your change again.",
         unauthenticated: "Your session has expired. Sign in again and pick up where you left off.",
         forbidden: "Only an admin of this team can do that.",
         "email required": "Your account needs an email address before you can buy seats.",
@@ -147,8 +177,8 @@
         if (code === "seat_limit_reached") {
           const n = Number(data.seats);
           return Number.isFinite(n) && n > 0
-            ? `All ${n} seats are taken. Add seats before inviting anyone else.`
-            : "Every seat is taken. Add seats before inviting anyone else.";
+            ? `All ${n} seats are reserved. Revoke an unused invitation or remove a user before inviting someone else.`
+            : "Every seat is reserved. Revoke an unused invitation or remove a user first.";
         }
         if (code === "delivery_failed") {
           // The status is the webhook's answer, not ours (the call itself 502s).
@@ -257,18 +287,23 @@
        * views plus the two headline cards. Kept apart from loadTeam so the
        * range picker can redraw without re-reading the roster.
        */
+      let metricsBusy = false;
       async function loadMetrics() {
+        if (metricsBusy) return;
+        metricsBusy = true;
         const want = days;
+        const status = $("metrics-status");
         $("range").disabled = true;
         try {
           const { metrics } = await api(`/v1/team/metrics?days=${want}`);
-          const m = metrics || {};
+          if (!metrics || !Number.isFinite(metrics.total)) throw new Error('metrics_unavailable');
+          const m = metrics;
           // The server clamps the window (1–365), so label the cards with what
           // it actually counted rather than what we asked for.
           const shown = Number(m.days) || want;
           lastMetrics = { ...m, days: shown };
-          $("c-total-k").textContent = `Detections · ${shown}d`;
-          $("c-actors-k").textContent = `People involved · ${shown}d`;
+          $("c-total-k").textContent = `${m.source === 'shadow_events' ? 'AI detections' : 'Detections'} · ${shown}d`;
+          $("c-actors-k").textContent = `Users involved · ${shown}d`;
           $("c-total").textContent = fmt(m.total);
           // Just the count: people who triggered a detection in the window. Not
           // "of seats" — someone can hold a seat and never trip a warning.
@@ -278,7 +313,16 @@
           bars($("p-sites"), m.bySite);
           bars($("p-actions"), m.byAction, ACTION_LABEL);
           $("export").disabled = false;
+          status.textContent = `${m.source === 'shadow_events' ? 'AI destinations only · Counts match the Shadow AI event ledger. ' : ''}Updated ${new Date().toLocaleTimeString()}`;
+        } catch (error) {
+          if (error.name === 'AbortError') return;
+          status.textContent = 'Overview data is temporarily unavailable. Retrying automatically.';
+          $("export").disabled = true;
+          if (!lastMetrics) {
+            $("c-total").textContent = '—'; $("c-actors").textContent = '—';
+          } else status.textContent += ' Showing the last successful update.';
         } finally {
+          metricsBusy = false;
           $("range").disabled = false;
         }
       }
@@ -303,7 +347,7 @@
           rows.push(["action", r.key, ACTION_LABEL[r.key] || r.key, r.n]),
         );
         rows.push(["summary", "total", "All detections", m.total ?? 0]);
-        rows.push(["summary", "activeActors", "People involved", m.activeActors ?? 0]);
+        rows.push(["summary", "activeActors", "Users involved", m.activeActors ?? 0]);
         rows.push(["summary", "days", "Days covered", m.days]);
         // The BOM is what makes Excel read this as UTF-8 rather than Latin-1.
         const body = `${rows.map((r) => r.map(csvCell).join(",")).join("\r\n")}\r\n`;
@@ -319,8 +363,31 @@
         setTimeout(() => URL.revokeObjectURL(url), 30000);
       }
 
+      function policyStatusLabel(status) {
+        return ({guards_confirmed:"Active page guards confirmed",downloaded:"Downloaded · awaiting active pages",
+          disabled:"Protection disabled",failed:"Policy could not be applied",offline:"Offline · update on reconnect",
+          pending:"Policy confirmation pending"})[status] || "Policy confirmation pending";
+      }
+      function devicePolicyDetails(connection, userId, expanded) {
+        if (!connection?.devices?.length) return "";
+        return `<details data-policy-user="${esc(userId)}" ${expanded.has(userId) ? "open" : ""}><summary>${connection.devices.length} device(s)</summary>${connection.devices.map((d,i)=>
+          `<div>Device ${i+1} · v${esc(d.extensionVersion)}<br>${esc(policyStatusLabel(d.policyStatus))} · revision ${esc(d.appliedPolicyVersion)}<br><small>${esc(d.confirmedGuards)} guards responded · ${esc(d.expectedPages)} web pages checked</small></div>`).join("")}</details>`;
+      }
       function renderPeople(team) {
         if (!team) return;
+        const key = JSON.stringify([team.orgId, team.role, team.members, team.invitations, team.pendingInvitations]);
+        if (key === lastPeopleRenderKey) return false;
+        const body = $("people");
+        const active = document.activeElement;
+        const focusKey = body.contains(active)
+          ? ["remove", "resend", "revoke", "cancelPending"].find((name) => active.dataset?.[name] !== undefined)
+          : null;
+        const focusValue = focusKey ? active.dataset[focusKey] : null;
+        const focusedPolicyUser = body.contains(active) && active.tagName === "SUMMARY"
+          ? active.closest("details[data-policy-user]")?.dataset.policyUser : null;
+        const scrollPane = $("console").querySelector(".content");
+        const scrollTop = scrollPane.scrollTop;
+        const expanded=new Set(Array.from($("people").querySelectorAll("details[open][data-policy-user]"),el=>el.dataset.policyUser));
         const isAdmin = team.role === "org:admin";
         $("invite-row").classList.toggle("hide", !isAdmin);
         const rows = [
@@ -328,7 +395,7 @@
             const who = m.name || m.email || "this person";
             return `<tr><td>${esc(m.name || "—")}</td><td>${esc(m.email || "")}</td><td><span class="tag ${
               m.role === "org:admin" ? "admin" : ""
-            }">${m.role === "org:admin" ? "Admin" : "Member"}</span></td><td>${
+            }">${m.role === "org:admin" ? "Admin" : "Member"}</span></td><td>${esc(m.connection?.status === "recently_connected" ? "Recently connected" : m.connection?.status === "inactive" ? "Inactive" : m.role === "org:admin" ? "Not yet connected" : "Joined · not yet connected")}${m.connection?.lastSeenAt ? `<br><small>Last check-in: ${esc(new Date(m.connection.lastSeenAt).toLocaleString())}</small>` : ""}${m.connection?.policyStatus ? `<br><small>${policyStatusLabel(m.connection.policyStatus)}</small>` : ""}${devicePolicyDetails(m.connection,m.userId,expanded)}</td><td>${
               isAdmin && m.role !== "org:admin"
                 ? `<button class="btn" type="button" data-remove="${esc(
                     m.userId,
@@ -338,16 +405,27 @@
           }),
           ...(team.invitations || []).map(
             (i) =>
-              `<tr><td>—</td><td>${esc(i.email)}</td><td><span class="tag pending">Invited</span></td><td>${
+              `<tr><td>—</td><td>${esc(i.email)}</td><td><span class="tag pending">Member</span></td><td>Invited · awaiting acceptance<br><small>Email delivery not confirmed</small></td><td>${
                 isAdmin
-                  ? `<button class="btn" type="button" data-revoke="${esc(i.id)}" data-who="${esc(
+                  ? `<button class="btn" type="button" data-resend="${esc(i.email)}">Resend</button> <button class="btn" type="button" data-revoke="${esc(i.id)}" data-who="${esc(
                       i.email,
                     )}" aria-label="Revoke the invitation for ${esc(i.email)}">Revoke</button>`
                   : ""
               }</td></tr>`,
           ),
         ];
-        $("people").innerHTML = rows.join("") || '<tr><td colspan="4" class="empty">No one yet</td></tr>';
+        for (const invitation of team.pendingInvitations || []) rows.push(`<tr><td>—</td><td>${esc(invitation.email)}</td><td>Member</td><td>Invitation awaiting confirmation</td><td><button class="btn" data-cancel-pending="${esc(invitation.email)}">Cancel pending invitation</button></td></tr>`);
+        body.innerHTML = rows.join("") || '<tr><td colspan="5" class="empty">No users yet</td></tr>';
+        lastPeopleRenderKey = key;
+        if (focusKey) {
+          const replacement = [...body.querySelectorAll("button")].find((button) => button.dataset[focusKey] === focusValue);
+          replacement?.focus({ preventScroll: true });
+        } else if (focusedPolicyUser) {
+          const replacement = [...body.querySelectorAll("details[data-policy-user]")].find((item) => item.dataset.policyUser === focusedPolicyUser);
+          replacement?.querySelector("summary")?.focus({ preventScroll: true });
+        }
+        scrollPane.scrollTop = scrollTop;
+        return true;
       }
 
       /**
@@ -519,6 +597,7 @@
                 regex: String(x.regex),
                 type: TYPES.includes(x.type) ? x.type : "known-key",
               })),
+            aiServices: Array.isArray(p.aiServices) ? p.aiServices : [],
             blockedSites: (Array.isArray(p.blockedSites) ? p.blockedSites : [])
               .map((h) => String(h ?? "").trim())
               .filter(Boolean),
@@ -672,7 +751,7 @@
                   )}" aria-label="Remove ${esc(h)}">×</button></span>`,
               )
               .join("")}</div>`
-          : '<div class="empty">Nothing blocked outright — the extension warns as usual everywhere.</div>';
+          : '<div class="empty">No hostname blocks in this list. Shadow AI paste policies still apply.</div>';
         syncDirty();
       }
 
@@ -706,10 +785,8 @@
         renderSites();
         renderPatterns();
         $("policy-version").textContent = settings.policyVersion
-          ? `Policy version ${settings.policyVersion}. A new version reaches your team's extensions ` +
-            "at their next config refresh — within a couple of hours, or straight away if someone " +
-            "opens the SecureIntent popup and taps Refresh."
-          : "Nothing published yet. Save to send the first policy to your team's extensions.";
+          ? `Policy version ${settings.policyVersion} saved. Extension application has not yet been confirmed.`
+          : "No organization policy saved yet.";
       }
 
       /** Read once per page load; re-read only after a failure. */
@@ -766,6 +843,7 @@
               alertWebhook: settings.alertWebhook,
               alertMinType: settings.alertMinType,
               policy: settings.policy,
+              expectedVersion: settings.policyVersion,
             }),
           });
           // Take the server's copy when it sends one back (it owns
@@ -775,7 +853,7 @@
           savedWebhook = settings.alertWebhook;
           renderSettings();
           markSettingsSaved();
-          flash(statusEl, "Saved. Your team picks this up at their next config refresh.", "ok");
+          flash(statusEl, "Saved. Extension application has not yet been confirmed.", "ok");
         } catch (e) {
           flash(statusEl, explain(e, { fallback: ERROR_TEXT["save failed"] }), "err");
         } finally {
@@ -883,22 +961,26 @@
       }
 
       // ---------------------------------------------------------------------
-      // Views. Four jobs behind one sidebar, addressed by hash so the back
+      // Views behind one sidebar, addressed by hash so the back
       // button works and a link can point at the one you mean. The hash carries
       // a slash (#/policy) so it can never collide with an element id on the
       // page and make the browser jump to it instead.
       // ---------------------------------------------------------------------
-      const VIEWS = ["overview", "people", "policy", "alerts"];
+      const VIEWS = ["overview", "people", "policy", "alerts", "shadow"];
       // Everything except the roster needs a live subscription behind it: with
       // no seats there are no figures, and a policy nothing would enforce.
-      const VIEWS_NEED_SEATS = ["overview", "policy", "alerts"];
+      const VIEWS_NEED_SEATS = ["overview", "policy", "alerts", "shadow"];
       let currentView = null;
+      const viewScroll = new Map();
       let seatsLive = false;
 
       const viewFromHash = () => {
         const name = String(location.hash || "").replace(/^#\/?/, "");
         return VIEWS.includes(name) ? name : null;
       };
+      // Preserve the incoming deep link while Clerk and the team record load.
+      // Early renders must not replace an explicit #/shadow with Overview.
+      let requestedView = viewFromHash();
 
       /** Which nav items are reachable, and why not when they aren't. */
       function syncNavLocks() {
@@ -920,24 +1002,49 @@
       function showView(name, { focus = false, replace = false } = {}) {
         let want = VIEWS.includes(name) ? name : "overview";
         if (!seatsLive && VIEWS_NEED_SEATS.includes(want)) want = "people";
+        const viewChanged = currentView !== want;
+        const contentPane = $("console").querySelector(".content");
+        if (viewChanged && currentView) viewScroll.set(currentView, contentPane.scrollTop);
         currentView = want;
-        VIEWS.forEach((v) => {
-          $(`view-${v}`).hidden = v !== want;
-          const item = document.querySelector(`.navitem[data-view="${v}"]`);
-          if (item) {
-            if (v === want) item.setAttribute("aria-current", "page");
-            else item.removeAttribute("aria-current");
-          }
-        });
+        if (viewChanged) {
+          VIEWS.forEach((v) => {
+            $(`view-${v}`).hidden = v !== want;
+            const item = document.querySelector(`.navitem[data-view="${v}"]`);
+            if (item) {
+              if (v === want) item.setAttribute("aria-current", "page");
+              else item.removeAttribute("aria-current");
+            }
+          });
+          if (want === "shadow") mountShadow();
+        }
+        requestedView = want;
         const hash = `#/${want}`;
         if (location.hash !== hash) {
           if (replace) history.replaceState(null, "", location.pathname + location.search + hash);
-          else location.hash = hash;
+          else history.pushState(null, "", location.pathname + location.search + hash);
         }
+        if (viewChanged) window.dispatchEvent(new CustomEvent('si-team-view', {detail: want}));
         if (focus) $(`view-${want}`).focus({ preventScroll: true });
-        // A new view starts at its own top; carrying the old scroll over lands
-        // people halfway down a page they have not seen.
-        window.scrollTo(0, 0);
+        // Each view retains its own reading position. Background refreshes
+        // leave the pane where the reader was.
+        if (viewChanged) contentPane.scrollTop = viewScroll.get(want) ?? 0;
+      }
+
+      // The API verifies Business entitlement and the organization admin role.
+      // Seat count or a personal Pro subscription cannot unlock this link.
+      let shadowMount;
+      function mountShadow() {
+        if (shadowMount) return;
+        shadowMount = import('./team-shadow.js').then(module => module.mountShadow(document.getElementById('shadow-root'))).catch(() => {
+          shadowMount = null;
+          const host = document.getElementById('shadow-root');
+          host.replaceChildren();
+          const message = document.createElement('p');
+          message.textContent = 'Shadow AI could not load. Please retry.';
+          const retry = document.createElement('button');
+          retry.className = 'btn'; retry.textContent = 'Retry'; retry.onclick = mountShadow;
+          host.append(message, retry);
+        });
       }
 
       /** Seats used, on the People item, so the number follows you around. */
@@ -1020,6 +1127,39 @@
         $("member-actions").classList.toggle("hide", !member);
       }
 
+      let clerkVerificationStarting=false;
+      function showAdminClerkGate({automatic=true,reason=''}={}) {
+        seatsLive=false;
+        window.SIAdminAccess.clear();
+        currentTeam=null;lastMetrics=null;
+        showGate({title:'Verify your admin account with Clerk',sub:'Sign in again with your registered organisation account to open the Business dashboard.'});
+        const host=$('clerk-auth');host.replaceChildren();
+        host.innerHTML='<button class="button" id="admin-clerk-verify" type="button">Continue with Clerk →</button><p id="admin-clerk-status" class="err" role="status" aria-live="polite"></p>';
+        $('admin-clerk-status').textContent=reason;
+        const begin=async()=>{
+          if(clerkVerificationStarting)return;
+          clerkVerificationStarting=true;
+          $('admin-clerk-verify').disabled=true;
+          $('admin-clerk-status').textContent='Opening Clerk sign-in…';
+          try {
+            sessionStorage.setItem('si_admin_clerk_pending','1');
+            if(/^#\/(overview|people|policy|alerts|shadow)$/.test(location.hash)) sessionStorage.setItem('si_admin_return_view',location.hash);
+          } catch {}
+          const destination=SI.page('team.html?admin_verify=1');
+          try {
+            await window.Clerk.signOut({sessionId:window.Clerk.session?.id,redirectUrl:destination});
+            location.assign(destination);
+          } catch {
+            clerkVerificationStarting=false;
+            $('admin-clerk-verify').disabled=false;
+            $('admin-clerk-status').textContent='Could not open Clerk sign-in. Please retry.';
+          }
+        };
+        $('admin-clerk-verify').addEventListener('click',begin);
+        if(automatic)void begin();
+      }
+      window.addEventListener('si-admin-lock',()=>showAdminClerkGate());
+
       /**
        * Everything that needs a live subscription behind it. Disabled with a
        * reason rather than left clickable: unpaid, the server answers every one
@@ -1027,10 +1167,11 @@
        */
       function setPaywalled(live) {
         ["invite-email", "invite-role", "invite", "seats-btn"].forEach((id) => {
-          $(id).disabled = !live;
+          $(id).disabled = !live || invitesBusy;
           if (live) $(id).removeAttribute("title");
           else $(id).title = PAY_HINT;
         });
+        $("users-refresh").disabled = invitesBusy;
         $("invite-hint").hidden = live;
         if (!live) closeSeatsEditor();
       }
@@ -1065,6 +1206,7 @@
       }
 
       async function loadTeam({ reconcile = false } = {}) {
+        $("shadow-nav").hidden = false;
         const userId = window.Clerk.user?.id;
         // ?reconcile=1 makes the server ask Paddle directly instead of waiting on
         // a webhook. Costs a Paddle call, so it's for the first look after
@@ -1072,23 +1214,14 @@
         const res = await api(reconcile ? "/v1/team?reconcile=1" : "/v1/team");
         if (!userId || window.Clerk.user?.id !== userId) return;
         let team = res.team;
+        if (currentTeam?.orgId && currentTeam.orgId !== team?.orgId) {
+          viewScroll.clear();
+          currentView = null;
+          lastPeopleRenderKey = null;
+        }
         currentTeam = team || null;
         if (!team) {
-          // A lifetime plan that includes seats has already paid for this team,
-          // so showing it a price and a card form would be wrong twice over.
-          const grantSeats = Number(res.grantSeats) || 0;
-          if (grantSeats > 0) {
-            showGate({
-              title: "Activate your team",
-              sub: "Your plan includes " + grantSeats + " seats. Name your team and they're yours — there's nothing to pay.",
-              comp: true,
-            });
-            $("comp-note").textContent =
-              grantSeats + " seats, included with your plan. No card, no renewal.";
-            return;
-          }
-          showGate({ title: "Set up your team", pitch: true, actions: true });
-          updatePrice($("buy-seats"), $("buy-price"));
+          showGate({title:"Business invitation required",sub:"Open the Business promo invitation provided to your organization to activate its 150-seat workspace."});
           return;
         }
 
@@ -1099,9 +1232,9 @@
           // extension onto this browser, which is what their seat pays for.
           showGate({
             title: team.name ? `Covered by ${team.name}` : "You're covered",
-            sub:
-              "Your Business Pro seat comes from your team, so there's nothing to buy. Install the " +
-              "extension on every browser you work in and it starts protecting you straight away.",
+            sub: CFG.pilot
+              ? "Your Developer Pro features are provided by your team. Load the local pilot extension supplied by your administrator and sign in with this account."
+              : "Your Developer Pro features are provided by your team, so there's nothing to buy. Install the extension and sign in with this account.",
             member: true,
           });
           return;
@@ -1130,21 +1263,42 @@
         syncNavLocks();
         // First paint honours a deep link (#/policy); later ones keep you where
         // you were, unless what you were reading has just been locked.
-        showView(currentView || viewFromHash() || "overview", { replace: true });
+        // A URL chosen by the user or extension is authoritative on page load.
+        // Without this ordering, an early render's in-memory Overview selection
+        // overwrote direct links such as #/shadow after authentication settled.
+        showView(requestedView || viewFromHash() || currentView || "overview", { replace: true });
         $("c-seats").textContent = fmt(team.seats);
         $("c-used").innerHTML = `${fmt(team.seatsUsed)} <small>/ ${fmt(team.seats)}</small>`;
         renderPeople(team);
+        const available = `${fmt(team.seatsAvailable)} seats available`;
+        if (!$("users-refreshed").textContent.includes(available)) $("users-refreshed").textContent = available;
         setPaywalled(live);
 
         // Only an admin gets here, and only a team with seats has anything to
         // show or configure — the loop above already hid both for the rest.
         if (live) {
-          await loadMetrics();
-          await loadSettings();
+          await Promise.all([loadMetrics(), loadSettings()]);
         } else {
           $("c-total").textContent = "—";
           $("c-actors").textContent = "—";
         }
+      }
+
+      let rosterBusy = false;
+      async function refreshUsers({ manual = false } = {}) {
+        if (rosterBusy || invitesBusy || document.hidden || currentView !== "people" || document.querySelector("[data-confirmed]")) return;
+        rosterBusy=true;
+        const scope=authScope();
+        try {
+          const result=await api("/v1/team");
+          if (scope!==authScope() || invitesBusy) return;
+          if (result.team?.role !== "org:admin") { await loadTeam(); return; }
+          currentTeam=result.team;renderPeople(currentTeam);syncNavSeats(currentTeam);
+          const available = `${fmt(currentTeam.seatsAvailable)} seats available`;
+          if (manual) $("users-refreshed").textContent=`Updated ${new Date().toLocaleTimeString()} · ${available}`;
+          else if (!$("users-refreshed").textContent.includes(available)) $("users-refreshed").textContent=available;
+        } catch(e) { $("users-refreshed").textContent=explain(e); if([401,403].includes(e.status)) showGate({title:"Business admin access required",sub:explain(e)}); }
+        finally { rosterBusy=false; }
       }
 
       async function act(fn, ctx = {}) {
@@ -1154,6 +1308,84 @@
           await loadTeam();
         } catch (e) {
           $("team-err").textContent = explain(e, ctx);
+        }
+      }
+
+      async function sendInvitations() {
+        if (invitesBusy) return;
+        const input = $("invite-email");
+        const entries = input.value.split(/[,;\s]+/).filter(Boolean);
+        const emails = [...new Set(entries.map((email) => email.toLowerCase()))];
+        const invalid = emails.filter((email) => !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email));
+        $("team-err").textContent = "";
+        $("invite-progress").textContent = "";
+        $("invite-results").hidden = true;
+        if (!emails.length) {
+          $("team-err").textContent = "Enter at least one email address.";
+          return;
+        }
+        if (invalid.length) {
+          $("team-err").textContent = `Check these email addresses before sending: ${invalid.join(", ")}`;
+          return;
+        }
+        if (emails.length > 149) {
+          $("team-err").textContent = "Enter no more than 149 different addresses at once.";
+          return;
+        }
+
+        invitesBusy = true;
+        setPaywalled(seatsLive);
+        let requested = 0;
+        let alreadyInvited = 0;
+        let alreadyMember = 0;
+        let next = emails.length;
+        const failed = [];
+        try {
+          // The existing endpoint checks admin access, reserves one seat and
+          // creates one Clerk invitation per address. Serial requests avoid
+          // contending with its organisation-wide seat lock.
+          for (let i = 0; i < emails.length; i++) {
+            const email = emails[i];
+            $("invite-progress").textContent = `Processing ${i + 1} of ${emails.length}: ${email}`;
+            try {
+              const result = await api("/v1/team/invite", {
+                method: "POST",
+                body: JSON.stringify({ email, role: $("invite-role").value }),
+              });
+              if (result.alreadyInvited) alreadyInvited++;
+              else requested++;
+            } catch (err) {
+              if (err.code === "already_member") {
+                alreadyMember++;
+                continue;
+              }
+              failed.push({ email, reason: explain(err) });
+              // A full team, changed session, or busy service needs admin
+              // attention. Preserve every unprocessed address for later.
+              if (["seat_limit_reached", "team_busy", "unauthenticated", "forbidden", "admin_reauthentication_required", "invitation_pending_reconciliation"].includes(err.code) ||
+                  [401, 403, 429].includes(err.status) || err.status >= 500 || err.name === "AbortError") {
+                next = i + 1;
+                break;
+              }
+            }
+          }
+          const remaining = [...failed.map(({ email }) => email), ...emails.slice(next)];
+          input.value = remaining.join("\n");
+          const summary = `${requested} requested · ${alreadyInvited} pending · ${alreadyMember} already members · ${entries.length - emails.length} duplicates · ${failed.length} failed · ${emails.length - next} left`;
+          $("invite-progress").textContent = summary;
+          const results = $("invite-results");
+          results.innerHTML = failed.length
+            ? `<strong>Addresses needing attention (kept in the box):</strong><ul>${failed.map(({ email, reason }) => `<li>${esc(email)}: ${esc(reason)}</li>`).join("")}</ul>`
+            : "";
+          results.hidden = !failed.length;
+          try {
+            await loadTeam();
+          } catch (err) {
+            $("team-err").textContent = `Invitations were processed, but the user list could not refresh: ${explain(err)}`;
+          }
+        } finally {
+          invitesBusy = false;
+          setPaywalled(seatsLive);
         }
       }
 
@@ -1167,6 +1399,8 @@
         // happens long after install-links.js ran, so take the value rather than
         // overwrite what it decided.
         $("member-install").href = window.SI_INSTALL_URL || EXTENSION_URL;
+        $("member-store-action").hidden = Boolean(CFG.pilot);
+        $("member-pilot-instructions").hidden = !CFG.pilot;
 
         // Activation, not purchase: the seats already belong to this account, so
         // this only names the organisation and asks the server to open it.
@@ -1217,19 +1451,11 @@
         );
         updatePrice($("buy-seats"), $("buy-price"));
 
-        $("invite").addEventListener("click", () => {
-          const email = $("invite-email").value.trim();
-          if (!email) {
-            $("team-err").textContent = "Enter an email address.";
-            return;
-          }
-          act(async () => {
-            await api("/v1/team/invite", {
-              method: "POST",
-              body: JSON.stringify({ email, role: $("invite-role").value }),
-            });
-            $("invite-email").value = "";
-          });
+        $("invite").addEventListener("click", sendInvitations);
+        window.addEventListener("beforeunload", (event) => {
+          if (!invitesBusy) return;
+          event.preventDefault();
+          event.returnValue = "";
         });
 
         // An inline control, not a prompt(): it can show the count you're
@@ -1255,6 +1481,8 @@
         $("people").addEventListener("click", (e) => {
           const btn = e.target.closest?.("button");
           if (!btn) return;
+          if (btn.dataset.resend) { btn.disabled=true; act(()=>api("/v1/team/invite/resend",{method:"POST",body:JSON.stringify({email:btn.dataset.resend})})); return; }
+          if (btn.dataset.cancelPending) { btn.disabled=true; act(()=>api("/v1/team/invite/cancel-pending",{method:"POST",body:JSON.stringify({email:btn.dataset.cancelPending})})); return; }
           const { remove, revoke, who, confirmed, cancel } = btn.dataset;
           if (cancel) {
             renderPeople(currentTeam);
@@ -1265,7 +1493,7 @@
             // Ask first, naming them: neither of these can be undone from here.
             askConfirm(btn.closest("td"), {
               question: remove
-                ? `Remove ${who}? Their protection ends within about 4 hours.`
+                ? `Remove ${who}? Their organization access will be revoked. Previously issued extension access expires separately.`
                 : `Revoke the invitation for ${who}? They won't be able to join with it.`,
               verb: remove ? "Remove" : "Revoke",
               attr: remove ? "remove" : "revoke",
@@ -1362,6 +1590,12 @@
         $("signout").addEventListener("click", () => window.Clerk.signOut());
         $("signout-side").addEventListener("click", () => window.Clerk.signOut());
 
+        $("users-refresh").addEventListener("click", () => refreshUsers({ manual: true }));
+        window.setInterval(refreshUsers, 5_000);
+        window.setInterval(() => {
+          if (!document.hidden && currentView === 'overview' && !$("console").classList.contains('hide')) loadMetrics();
+        }, 5000);
+
         // Sidebar navigation. The anchors carry real hrefs so they can be
         // opened, copied and tabbed to like links; this only takes over to keep
         // the scroll position and focus sane, and to refuse a locked view.
@@ -1372,10 +1606,14 @@
           if (item.getAttribute("aria-disabled") === "true") return;
           showView(item.dataset.view, { focus: true });
         });
-        window.addEventListener("hashchange", () => {
+        const followRoute = () => {
           const v = viewFromHash();
-          if (v && v !== currentView) showView(v);
-        });
+          if (!v) return;
+          requestedView = v;
+          if (seatsLive && v !== currentView) showView(v);
+        };
+        window.addEventListener("hashchange", followRoute);
+        window.addEventListener("popstate", followRoute);
 
         // Edits that never reach the server until Save. The dot in the sidebar
         // is the only thing that says so once you have walked to another view.
@@ -1387,8 +1625,18 @@
       // Which auth component is on screen, so Clerk's own change events don't
       // remount it under someone mid-way through typing a password.
       let authMounted = null;
+      let renderedScope;
 
       async function render() {
+        const scope = authScope();
+        if (renderedScope !== undefined && renderedScope !== scope) {
+          // Discard the entire previous account's DOM and unsaved working copy.
+          currentTeam = null; lastMetrics = null; settings = null; settingsLoaded = false;
+          $("console").classList.add("hide"); $("shadow-nav").hidden = false;
+          location.reload();
+          return;
+        }
+        renderedScope = scope;
         const params = new URLSearchParams(location.search);
         const signedIn = !!window.Clerk.user;
         document.querySelectorAll("[data-team-intro]").forEach(el => el.hidden = signedIn);
@@ -1397,13 +1645,18 @@
           // from here: ?mode=signup mounts it, and the two components link to
           // each other rather than to a page that only ever shows sign-in.
           const signUpMode = params.get("mode") === "signup";
+          const adminVerification = params.get('admin_verify') === '1';
+          try {
+            sessionStorage.setItem('si_admin_clerk_pending','1');
+            if(/^#\/(overview|people|policy|alerts|shadow)$/.test(location.hash)) sessionStorage.setItem('si_admin_return_view',location.hash);
+          } catch {}
           const want = signUpMode ? "signup" : "signin";
           showGate({
-            title: signUpMode ? "Create your account" : "Sign in to manage your team",
+            title: adminVerification ? 'Verify your admin account with Clerk' : signUpMode ? "Create your account" : "Sign in to manage your team",
             sub: signUpMode
-              ? "One account buys the seats and administers the team."
-              : "",
-            pitch: true,
+              ? "Use the business email address named in your organization invitation."
+              : adminVerification ? 'Use the registered organisation account. Clerk handles password recovery and any additional verification.' : '',
+            pitch: !adminVerification,
           });
           $("signout").hidden = true;
           if (authMounted === want) return; // already showing it — don't disturb the flow
@@ -1412,20 +1665,24 @@
           // Come back HERE after signing in. Without these Clerk uses the
           // instance default (the landing page), which drops someone who was
           // half way through buying seats.
+          // Clerk's standalone component uses the URL fragment for its own steps.
+          // Restore the console view after sign-in instead of passing #/shadow to Clerk.
+          const signInReturn = SI.page('team.html?admin_return=1');
           const common = {
             appearance: SI.appearance(),
-            forceRedirectUrl: SI.authReturn("team.html"),
-            signInForceRedirectUrl: SI.authReturn("team.html"),
-            signUpForceRedirectUrl: SI.authReturn("team.html"),
-            afterSignInUrl: TEAM_PATH,
+            forceRedirectUrl: signInReturn,
+            signInForceRedirectUrl: signInReturn,
+            signUpForceRedirectUrl: signInReturn,
+            afterSignInUrl: signInReturn,
             afterSignUpUrl: TEAM_PATH,
-            fallbackRedirectUrl: TEAM_PATH,
+            fallbackRedirectUrl: signInReturn,
             signUpFallbackRedirectUrl: TEAM_PATH,
           };
           if (signUpMode) {
             window.Clerk.mountSignUp($("clerk-auth"), { ...common, signInUrl: TEAM_PATH });
           } else {
-            window.Clerk.mountSignIn($("clerk-auth"), { ...common, signUpUrl: TEAM_SIGNUP_PATH });
+            window.Clerk.mountSignIn($("clerk-auth"), { ...common, signUpUrl: TEAM_SIGNUP_PATH,
+              ...(adminVerification ? {withSignUp:false,transferable:false} : {}) });
           }
           return;
         }
@@ -1433,6 +1690,36 @@
         authMounted = null;
         $("signout").hidden = false;
         try {
+          let requestedOrg=null;
+          try { requestedOrg=sessionStorage.getItem('si_business_open_org'); } catch {}
+          if (requestedOrg && /^org_[a-zA-Z0-9]+$/.test(requestedOrg)) {
+            try { sessionStorage.removeItem('si_business_open_org'); } catch {}
+            await window.Clerk.setActive({organization:requestedOrg});
+          }
+          let clerkPending=false;
+          try { clerkPending=sessionStorage.getItem('si_admin_clerk_pending')==='1'; } catch {}
+          const freshSession=Number(new Date(window.Clerk.session?.createdAt))>Date.now()-5*60_000;
+          if(params.get('admin_return')==='1'||clerkPending||(freshSession&&!window.SIAdminAccess.headers()['X-SI-Admin-Access'])) {
+            try {
+              await window.SIAdminAccess.unlockWithClerk();
+              let returnView='';
+              try {
+                returnView=sessionStorage.getItem('si_admin_return_view')||'';
+                sessionStorage.removeItem('si_admin_return_view');
+                sessionStorage.removeItem('si_admin_clerk_pending');
+              } catch {}
+              const explicitView = /^#\/(overview|people|policy|alerts|shadow)$/.test(location.hash) ? location.hash : '';
+              history.replaceState(null,'',SI.page('team.html')+(explicitView || (/^#\/(overview|people|policy|alerts|shadow)$/.test(returnView)?returnView:'') || '#/overview'));
+            } catch(error) {
+              if(['forbidden','business_promo_required','business_organisation_required'].includes(error.code)) {
+                try { sessionStorage.removeItem('si_admin_clerk_pending'); } catch {}
+                history.replaceState(null,'',SI.page('team.html')+(location.hash||'#/overview'));
+              } else {
+                showAdminClerkGate({automatic:false,reason:error.message});
+                return;
+              }
+            }
+          }
           const welcome = params.get("welcome") === "1";
           // `claim` is ours, set on the success URL we hand Paddle. `_ptxn` is
           // Paddle's: it sends people to this page to PAY, so an unclaimed one
@@ -1460,6 +1747,7 @@
           // Say which case this is rather than leaving someone guessing.
           if (claim && !claim.seats) explainPending(claim.transactionStatus);
         } catch (e) {
+          if(e.code==='admin_reauthentication_required')return;
           showGate({
             title: "Couldn't load your team",
             sub: explain(e, {
@@ -1498,6 +1786,7 @@
         await window.Clerk.load({ appearance: SI.appearance() });
         initPaddle();
         wire();
+        window.addEventListener('si-team-auth-required', () => { showGate({title:'Your session expired', sub:'Sign in again to continue.'}); render(); });
         window.Clerk.addListener(render);
         render();
       }

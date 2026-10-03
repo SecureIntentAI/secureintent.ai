@@ -37,7 +37,9 @@
   links();
   // Headers/footers can insert links after main's unchanged installer script ran.
   new MutationObserver(links).observe(document.body, {childList: true, subtree: true});
-  if (!window.SI_IS_PROD || window.SI_DISABLE_ANALYTICS) return;
+  // Authentication tickets and workspace activity must never enter marketing analytics.
+  const privatePage = /\/(account|team|shadow|business_promo|lifetime_promo)(?:\.html)?\/?$/.test(location.pathname);
+  if (privatePage || !window.SI_IS_PROD || window.SI_DISABLE_ANALYTICS) return;
   window.dataLayer = window.dataLayer || [];
   const gtag = function () { window.dataLayer.push(arguments); };
   window.gtag = gtag;

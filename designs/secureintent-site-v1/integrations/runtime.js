@@ -20,19 +20,22 @@
       throw new Error('This origin is not approved for the configured test services.');
     }
     const api = new URL(config.apiBase, location.origin);
+    const loopback = host => ['localhost', '127.0.0.1', '[::1]'].includes(host);
+    const pilot = !isProduction && config.pilot === true && loopback(location.hostname) &&
+      api.hostname === 'secureintent-backend-business-pilot.john-ja-wright.workers.dev';
     if (!['http:', 'https:'].includes(api.protocol) || api.username || api.password) throw new Error('Invalid API configuration.');
-    if (!isProduction && (/^(?:www\.|api\.|clerk\.)?secureintent\.ai\.?$/i.test(api.hostname) || config.paddleEnv === 'production' || config.paddleToken?.startsWith('live_') || config.clerkPublishableKey?.startsWith('pk_live_'))) {
+    if (!isProduction && !pilot && (/^(?:www\.|api\.|clerk\.)?secureintent\.ai\.?$/i.test(api.hostname) || config.paddleEnv === 'production' || config.paddleToken?.startsWith('live_') || config.clerkPublishableKey?.startsWith('pk_live_'))) {
       throw new Error('This preview needs test services; production credentials are disabled here.');
     }
-    const loopback = host => ['localhost', '127.0.0.1', '[::1]'].includes(host);
     if (api.protocol !== 'https:' && !(loopback(location.hostname) && loopback(api.hostname))) throw new Error('The API must use HTTPS outside local testing.');
     if (!isProduction && config.clerkScriptUrl) {
       const clerk = new URL(config.clerkScriptUrl);
       const localFixture = loopback(location.hostname) && clerk.origin === location.origin;
-      if (clerk.username || clerk.password || (!localFixture && (clerk.protocol !== 'https:' || !/^[a-z0-9-]+\.clerk\.accounts\.dev$/.test(clerk.hostname)))) {
+      const pilotClerk = pilot && clerk.protocol === 'https:' && /^[a-z0-9-]+\.clerk\.accounts\.dev$/.test(clerk.hostname);
+      if (clerk.username || clerk.password || (!localFixture && !pilotClerk && (clerk.protocol !== 'https:' || !/^[a-z0-9-]+\.clerk\.accounts\.dev$/.test(clerk.hostname)))) {
         throw new Error('Configure a Clerk development-instance script for this preview.');
       }
-      if (!config.clerkPublishableKey?.startsWith('pk_test_')) throw new Error('Configure a Clerk test publishable key for this preview.');
+      if (!config.clerkPublishableKey?.startsWith('pk_test_')) throw new Error('Configure the expected Clerk development publishable key for this preview.');
     }
     if (!isProduction && config.paddleToken && (config.paddleEnv !== 'sandbox' || !config.paddleToken.startsWith('test_'))) {
       throw new Error('Configure a Paddle sandbox client token for this preview.');
@@ -110,7 +113,7 @@
     // Preserve payment recovery and invitation state across sign-in, never accept
     // a caller-supplied external return URL.
     const current = new URLSearchParams(location.search);
-    for (const key of ['_ptxn', 'welcome', 'claim', 'joined']) if (current.has(key)) url.searchParams.set(key, current.get(key));
+    for (const key of ['_ptxn', 'welcome', 'claim', 'joined', 'org']) if (current.has(key)) url.searchParams.set(key, current.get(key));
     url.hash = location.hash;
     return url.pathname + url.search + url.hash;
   }

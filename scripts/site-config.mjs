@@ -8,15 +8,21 @@ export const stagingVariables = {
   paddleToken: 'SI_STAGING_PADDLE_CLIENT_TOKEN',
   priceId: 'SI_STAGING_PADDLE_PRICE_ID',
 };
+export const pilotVariables = {
+  siteOrigin: 'SI_PILOT_SITE_ORIGIN',
+  apiBase: 'SI_PILOT_API_BASE',
+  clerkPublishableKey: 'SI_PILOT_CLERK_PUBLISHABLE_KEY',
+};
 
 export function buildMode(env = {}, args = []) {
-  const flags = args.filter(arg => ['--production', '--staging', '--visual-preview'].includes(arg));
+  const flags = args.filter(arg => ['--production', '--staging', '--pilot', '--visual-preview'].includes(arg));
   if (flags.length > 1 || args.some(arg => !flags.includes(arg))) throw new Error('Use one build mode: --production, --staging or --visual-preview.');
   const explicit = flags[0]?.slice(2);
   const configured = env.SI_DEPLOY_ENV;
   if (explicit && configured && explicit !== configured) throw new Error('Conflicting build modes.');
   const mode = explicit || configured || (env.CONTEXT === 'production' ? 'production' : 'visual-preview');
-  if (!['production', 'staging', 'visual-preview'].includes(mode)) throw new Error('Invalid SI_DEPLOY_ENV.');
+  if (!['production', 'staging', 'pilot', 'visual-preview'].includes(mode)) throw new Error('Invalid SI_DEPLOY_ENV.');
+  if (mode === 'pilot' && env.NETLIFY === 'true') throw new Error('Pilot builds are local-only.');
   if (env.CONTEXT === 'production' && mode !== 'production') throw new Error('Production context requires production configuration.');
   if (env.CONTEXT && env.CONTEXT !== 'production' && mode === 'production') throw new Error('Non-production context cannot build production configuration.');
   if (env.NETLIFY === 'true') {
@@ -39,7 +45,7 @@ function origin(value, name, hosted) {
 }
 
 export function publicConfig(production, env = {}, mode = buildMode(env)) {
-  if (!['production', 'staging', 'visual-preview'].includes(mode)) throw new Error('Invalid build mode.');
+  if (!['production', 'staging', 'pilot', 'visual-preview'].includes(mode)) throw new Error('Invalid build mode.');
   const live = Object.fromEntries(fields.map(key => [key, production[key]]));
   const present = Object.values(stagingVariables).filter(key => env[key]);
   // A staging artifact carries no usable production configuration, even if
@@ -51,6 +57,31 @@ export function publicConfig(production, env = {}, mode = buildMode(env)) {
   if (mode === 'visual-preview') {
     if (present.length) throw new Error('Staging values require SI_DEPLOY_ENV=staging; refusing an ambiguous visual-only build.');
     return {production: null, preview: null};
+  }
+  if (mode === 'pilot') {
+    const siteOrigin = origin(env.SI_PILOT_SITE_ORIGIN, pilotVariables.siteOrigin, false);
+    const apiBase = origin(env.SI_PILOT_API_BASE, pilotVariables.apiBase, false);
+    const clerkPublishableKey = String(env.SI_PILOT_CLERK_PUBLISHABLE_KEY || '').trim();
+    if (!['localhost', '127.0.0.1', '[::1]'].includes(new URL(siteOrigin).hostname)) {
+      throw new Error('Pilot website must use a local loopback origin.');
+    }
+    if (new URL(apiBase).hostname !== 'secureintent-backend-business-pilot.john-ja-wright.workers.dev') {
+      throw new Error('Pilot API must use the isolated Business pilot Worker.');
+    }
+    if (!/^pk_test_[A-Za-z0-9+/=_-]+$/.test(clerkPublishableKey)) {
+      throw new Error('Pilot requires a Clerk development publishable key.');
+    }
+    const clerkHost = Buffer.from(clerkPublishableKey.slice('pk_test_'.length), 'base64').toString('utf8');
+    if (!/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.clerk\.accounts\.dev\$$/.test(clerkHost)) {
+      throw new Error('Pilot Clerk key must identify a development instance.');
+    }
+    return {production: null, preview: {
+      apiBase, clerkPublishableKey,
+      clerkScriptUrl: `https://${clerkHost.slice(0, -1)}/npm/@clerk/clerk-js@5/dist/clerk.browser.js`,
+      jwtTemplate: live.jwtTemplate,
+      paddleToken: '', paddleEnv: 'sandbox', priceId: '', pilot: true,
+      allowedOrigins: [siteOrigin],
+    }};
   }
   const missing = Object.values(stagingVariables).filter(key => !env[key]?.trim());
   if (missing.length) throw new Error(`Missing public staging settings: ${missing.join(', ')}`);

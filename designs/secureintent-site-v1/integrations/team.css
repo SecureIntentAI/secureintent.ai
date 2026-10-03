@@ -198,6 +198,7 @@
         .team-app .side .links { display: flex; flex-wrap: wrap; }
         .team-app .side .links .navlink--signout { grid-column: auto; }
         .team-app .content { padding: 0 16px 60px; }
+        .team-app .view-shadow { width: 100%; }
         .team-app .viewhead { padding-top: 20px; }
       }
       /* On a phone the four tabs only fit without their icons — and four
@@ -246,7 +247,7 @@
         white-space: nowrap;
         border: 0;
       }
-      .team-app input, .team-app select {
+      .team-app input, .team-app select, .team-app textarea {
         background: var(--panel2);
         border: 1px solid var(--border);
         color: var(--text);
@@ -254,7 +255,7 @@
         padding: 9px 11px;
         font: 400 13px/1.2 var(--sans);
       }
-      .team-app input:focus-visible, .team-app select:focus-visible, .team-app .btn:focus-visible {
+      .team-app input:focus-visible, .team-app select:focus-visible, .team-app textarea:focus-visible, .team-app .btn:focus-visible {
         outline: 2px solid rgba(114, 255, 255, 0.55);
         outline-offset: 2px;
       }
@@ -293,7 +294,7 @@
         transform: translateX(16px);
         background: var(--cyan);
       }
-      .team-app input:disabled, .team-app select:disabled { opacity: 0.45; cursor: not-allowed; }
+      .team-app input:disabled, .team-app select:disabled, .team-app textarea:disabled { opacity: 0.45; cursor: not-allowed; }
 
       .team-app .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
       .team-app .card {
@@ -484,7 +485,11 @@
       .team-app #pat-label { min-width: 170px; max-width: 280px; }
       .team-app #pat-regex { flex: 2; min-width: 240px; max-width: 440px; font-family: var(--mono); }
       .team-app #site-input { max-width: 420px; }
-      .team-app #invite-email { max-width: 380px; }
+      .team-app #invite-email { max-width: 460px; min-width: 240px; min-height: 62px; resize: vertical; flex: 1; }
+      .team-app #invite-progress { min-height: 18px; margin: 2px 0 8px; overflow-wrap: anywhere; }
+      .team-app #invite-results:not([hidden]) { margin: 10px 0 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 13px; }
+      .team-app #invite-results ul { margin: 8px 0 0; padding-left: 20px; }
+      .team-app #invite-results li { margin-top: 4px; overflow-wrap: anywhere; }
       .team-app #alert-webhook { max-width: 460px; }
       .team-app #alert-min { max-width: 460px; }
       .team-app #pat-type { flex: none; }
@@ -521,3 +526,43 @@
       .team-app #member-actions .panel p { color: var(--muted); font-size: 12.5px; line-height: 1.6; margin: 0 0 10px; }
       .team-app #member-actions .panel p:last-child { margin-bottom: 0; }
       .team-app #gate { max-width: 460px; margin: 60px auto; text-align: center; }
+
+/* The Business console is an application from its first paint. */
+.business-console > .site-header, .business-console > footer { display: none; }
+.business-console #team-workspace { padding-top: 24px; min-height: 100vh; }
+.business-console .team-app .content { max-width: none; }
+.business-console .team-app .view-shadow { width: 100%; min-width: 0; }
+.business-console #shadow-root { display: block; min-height: 420px; }
+.business-console .team-app .shadow-viewhead { padding-bottom: 24px; }
+
+/* Keep the application frame stationary as views and live data change height.
+   Scope this to the authorized console so sign-in can still scroll naturally. */
+.business-console:has(#console:not(.hide)) { overflow: hidden; }
+.business-console:has(#console:not(.hide)) #team-workspace {
+  margin: 0 auto; padding: 0; min-height: 0;
+  height: 100vh; height: 100dvh;
+}
+.business-console .team-app #console {
+  height: 100%; min-height: 0; align-items: stretch;
+}
+.business-console .team-app #console .side {
+  position: relative; top: 0; height: 100%; min-height: 0;
+  overflow-y: auto; overscroll-behavior: contain;
+}
+.business-console .team-app #console > .content {
+  min-height: 0; height: 100%; overflow-y: auto;
+  overscroll-behavior: contain; overflow-anchor: none;
+  scrollbar-gutter: stable; scroll-behavior: auto;
+}
+@media (max-width: 880px) {
+  .business-console .team-app #console { grid-template-rows: auto minmax(0, 1fr); }
+  .business-console .team-app #console .side { height: auto; max-height: 45dvh; }
+}
+
+.business-console #gate:has(#clerk-auth:empty):has(#gate-sub:empty)::after {
+  content: ''; display: block; height: 80px; margin: 24px auto;
+  border-radius: 12px; background: linear-gradient(90deg, transparent, rgba(114,255,255,.08), transparent);
+  background-size: 200% 100%; animation: console-loading 1.5s ease-in-out infinite;
+}
+@keyframes console-loading { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .business-console #gate::after { animation: none!important; } }

@@ -1,6 +1,10 @@
 (() => {
   'use strict';
   const SI = window.SI;
+  if (new URLSearchParams(location.search).get('offer') === 'business') {
+    location.replace(SI.page('lifetime_business_promo.html'));
+    return;
+  }
   const $ = id => document.getElementById(id);
   let email = '', newUser = true, busy = false;
   const note = $('promo-review-note');
