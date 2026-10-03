@@ -4,6 +4,7 @@
   const key='si_business_invitation';
   let token='',busy=false,valid=false;
   const errors={invitation_unavailable:'This invitation expired or was revoked. Ask SecureIntent for a new invitation.',invitation_email_mismatch:'Sign in with the verified business email address named in this invitation.',invitation_used:'This invitation is already assigned to another account.',activation_in_progress:'Activation is already in progress. Wait a moment and try again.',organization_already_claimed:'This account already owns a Business organization. Contact SecureIntent for help.',activation_unavailable:'Organization activation is temporarily unavailable. Your invitation is preserved; please retry.',forbidden:'This account is not the administrator of the invited organization.'};
+  errors.organization_domain_claimed='An organisation already uses this work email domain. Contact SecureIntent for help.';
   try {
     token=new URLSearchParams(location.hash.slice(1)).get('invite') || sessionStorage.getItem(key) || '';
     if (/^[a-f0-9]{64}$/.test(token)) sessionStorage.setItem(key,token);
@@ -41,7 +42,7 @@
     $('business-message').textContent='Activating your organization…';
     try {
       const result=await post('/v1/business-promo/redeem',{token},true);
-      await window.Clerk.setActive({organization:result.orgId});
+      if (!result.orgId.startsWith('org_si_')) await window.Clerk.setActive({organization:result.orgId});
       try{sessionStorage.removeItem(key);}catch{}
       valid=false;$('business-activate').hidden=true;$('business-open').hidden=false;
       $('business-message').textContent='Your Business workspace is ready: 1 admin seat and 149 user seats.';

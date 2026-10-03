@@ -121,6 +121,7 @@
         "email required": "Your account needs an email address before you can buy seats.",
         company_name_required: "Company name is required.",
         invalid_email: "That doesn't look like an email address.",
+        organization_email_required: "Invite an address at your organisation's registered work email domain.",
         no_active_subscription:
           "Your payment hasn't reached us yet, so there are no seats to fill. Complete the payment above first.",
         "no subscription":
