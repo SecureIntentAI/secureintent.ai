@@ -77,9 +77,21 @@ const CFG = SI.config;
 
       const $ = (id) => document.getElementById(id);
       const invitationParams = new URLSearchParams(location.search);
-      const fromInvitation = invitationParams.get("joined") === "1";
-      const invitedOrg = /^org_[A-Za-z0-9]+$/.test(invitationParams.get("org") || "")
+      const inviteStorageKey = "si:business-member-invite";
+      const urlInvite = new URLSearchParams(location.hash.slice(1)).get("invite") || "";
+      if (/^[a-f0-9]{64}$/.test(urlInvite)) {
+        sessionStorage.setItem(inviteStorageKey, urlInvite);
+        history.replaceState(null, "", location.pathname + location.search);
+      }
+      let inviteToken = sessionStorage.getItem(inviteStorageKey) || "";
+      if (!/^[a-f0-9]{64}$/.test(inviteToken)) {
+        inviteToken = "";
+        sessionStorage.removeItem(inviteStorageKey);
+      }
+      const fromInvitation = invitationParams.get("joined") === "1" || !!inviteToken;
+      let invitedOrg = /^org_[A-Za-z0-9_]+$/.test(invitationParams.get("org") || "")
         ? invitationParams.get("org") : null;
+      let inviteError = "";
       let selectedInviteOrg = "";
 
       function renderInvitation(entitlement, unavailable = false) {
@@ -91,6 +103,11 @@ const CFG = SI.config;
         if (unavailable) {
           $("joined-title").textContent = "We couldn't confirm your invitation yet";
           $("joined-sub").textContent = "Retry your account check before installing the extension.";
+          return;
+        }
+        if (inviteError) {
+          $("joined-title").textContent = "Invitation could not be activated";
+          $("joined-sub").textContent = inviteError;
           return;
         }
         const org = entitlement?.source === "org_seat" ? entitlement.org : null;
@@ -341,9 +358,35 @@ const CFG = SI.config;
         const retry = $("plan-retry");
         retry.disabled = true;
         try {
+          if (inviteToken) {
+            const signInToken = await window.Clerk.session.getToken({ template: CFG.jwtTemplate });
+            const accepted = await SI.fetch(`${CFG.apiBase}/v1/business-member/accept`, {
+              method: "POST", headers: { Authorization: `Bearer ${signInToken}`, "content-type": "application/json" },
+              body: JSON.stringify({ inviteToken }), cache: "no-store",
+            });
+            const outcome = await accepted.json().catch(() => ({}));
+            if (accepted.ok) {
+              invitedOrg = outcome.orgId;
+              inviteToken = "";
+              sessionStorage.removeItem(inviteStorageKey);
+              inviteError = "";
+              history.replaceState(null, "", location.pathname + location.search);
+            } else {
+              if (outcome.error === "invitation_unavailable") {
+                inviteToken = "";
+                sessionStorage.removeItem(inviteStorageKey);
+              }
+              inviteError = outcome.error === "invitation_email_mismatch"
+                ? "Sign in with the exact work email named in your invitation."
+                : outcome.error === "invitation_unavailable"
+                  ? "This invitation has expired or was revoked. Ask your organisation administrator for a new one."
+                  : "We couldn't confirm the invitation. Retry the account check or contact your administrator.";
+            }
+          }
           // A recipient with several organisations may not have the invited
           // one selected in Clerk. Switching is safe: Clerk checks membership.
           if (fromInvitation && invitedOrg && window.Clerk.organization?.id !== invitedOrg &&
+              !invitedOrg.startsWith("org_si_") &&
               selectedInviteOrg !== `${userId}:${invitedOrg}`) {
             selectedInviteOrg = `${userId}:${invitedOrg}`;
             await window.Clerk.setActive({ organization: invitedOrg }).catch(() => {});
