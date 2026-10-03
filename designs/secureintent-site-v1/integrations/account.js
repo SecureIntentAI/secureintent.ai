@@ -359,7 +359,10 @@ const CFG = SI.config;
         retry.disabled = true;
         try {
           if (inviteToken) {
-            const signInToken = await window.Clerk.session.getToken({ template: CFG.jwtTemplate });
+            // Acceptance needs Clerk's session ID. The default session token
+            // carries it; the custom entitlement template may omit it.
+            const signInToken = await window.Clerk.session.getToken();
+            if (!signInToken) throw new Error("Clerk session token unavailable");
             const accepted = await SI.fetch(`${CFG.apiBase}/v1/business-member/accept`, {
               method: "POST", headers: { Authorization: `Bearer ${signInToken}`, "content-type": "application/json" },
               body: JSON.stringify({ inviteToken }), cache: "no-store",
@@ -372,6 +375,10 @@ const CFG = SI.config;
               inviteError = "";
               history.replaceState(null, "", location.pathname + location.search);
             } else {
+              console.warn("[account] invitation activation failed", {
+                status: accepted.status,
+                error: typeof outcome.error === "string" ? outcome.error : "unknown",
+              });
               if (outcome.error === "invitation_unavailable") {
                 inviteToken = "";
                 sessionStorage.removeItem(inviteStorageKey);
@@ -380,6 +387,12 @@ const CFG = SI.config;
                 ? "Sign in with the exact work email named in your invitation."
                 : outcome.error === "invitation_unavailable"
                   ? "This invitation has expired or was revoked. Ask your organisation administrator for a new one."
+                  : outcome.error === "unauthenticated"
+                    ? "Your sign-in could not be confirmed yet. Refresh this page and retry."
+                    : outcome.error === "authentication_unavailable"
+                      ? "Clerk could not confirm your session just now. Refresh this page and retry."
+                      : outcome.error === "already_member"
+                        ? "This account already belongs to a Business workspace. Contact your administrator."
                   : "We couldn't confirm the invitation. Retry the account check or contact your administrator.";
             }
           }
