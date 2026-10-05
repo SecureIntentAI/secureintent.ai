@@ -1,9 +1,29 @@
 (() => {
  'use strict';
- let grant=null;
+ // The admin pass a password sign-in earns. Kept in this browser (every tab,
+ // and across a refresh) for 30 idle minutes and at most 12 hours, mirroring the
+ // server, which extends it on each verified request and stays the authority:
+ // an expired or revoked pass is refused there whatever this copy says.
+ const KEY='si_admin_access';
+ const IDLE_MS=30*60_000,MAX_MS=12*60*60_000;
+ let memory=null;
  const scope=()=>[window.Clerk?.user?.id,window.Clerk?.session?.id,window.Clerk?.organization?.id].join(':');
- const clear=()=>{grant=null;};
- const headers=()=>grant&&grant.scope===scope()&&grant.expiresAt>Date.now()?{'X-SI-Admin-Access':grant.token}:{};
+ const read=()=>{
+  try { const raw=localStorage.getItem(KEY); return raw?JSON.parse(raw):null; } catch { return memory; }
+ };
+ const write=grant=>{
+  memory=grant;
+  try { grant?localStorage.setItem(KEY,JSON.stringify(grant)):localStorage.removeItem(KEY); } catch {}
+ };
+ const clear=()=>write(null);
+ const valid=grant=>grant&&typeof grant.token==='string'&&/^[a-f0-9]{64}$/.test(grant.token)&&
+  grant.scope===scope()&&grant.expiresAt>Date.now()&&grant.issuedAt+MAX_MS>Date.now();
+ const headers=()=>{const grant=read();return valid(grant)?{'X-SI-Admin-Access':grant.token}:{};};
+ // A request the server accepted moved its expiry; keep ours in step.
+ const touch=()=>{
+  const grant=read();
+  if(valid(grant))write({...grant,expiresAt:Math.min(Date.now()+IDLE_MS,grant.issuedAt+MAX_MS)});
+ };
  async function unlockWithClerk(){
   const startScope=scope(),token=await window.Clerk?.session?.getToken();
   if(!token)throw new Error('Sign in with your registered admin account first.');
@@ -29,9 +49,7 @@
    error.code=data.error;
    throw error;
   }
-  grant={token:data.accessToken,expiresAt:data.expiresAt,scope:startScope};
+  write({token:data.accessToken,expiresAt:data.expiresAt,issuedAt:Date.now(),scope:startScope});
  }
- // Deliberately kept in page memory: opening the console again requires a new Clerk sign-in.
- window.SIAdminAccess={headers,unlockWithClerk,clear};
- window.addEventListener('pagehide',clear);
+ window.SIAdminAccess={headers,unlockWithClerk,clear,touch};
 })();
