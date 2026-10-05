@@ -58,7 +58,7 @@ http.createServer(async (req,res) => {
   }
   if (url.pathname.startsWith('/mock-api/')) {
     if (url.pathname === '/mock-api/v1/business-signup/inspect') return json(res, { enabled: false });
-    if (url.pathname === '/mock-api/v1/business-promo/inspect') return json(res,{companyName:'Northstar Engineering',emailHint:'m***@northstar.example',seats:150});
+    if (url.pathname === '/mock-api/v1/business-promo/inspect') return json(res,{companyName:'Northstar Engineering',email:'maya@northstar.example',emailHint:'m***@northstar.example',expiresAt:Date.now()+6*86400000,activated:false,seats:150,domain:{status:'available'}});
     if (url.pathname === '/mock-api/v1/business-promo/redeem') return json(res,{ok:true,orgId:'org_demo_northstar',seats:150});
     if (url.pathname === '/mock-api/v1/team' && req.method === 'GET') return json(res, team);
     if (url.pathname === '/mock-api/v1/team/settings' && req.method === 'GET') return json(res, settings);

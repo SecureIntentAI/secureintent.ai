@@ -25,14 +25,17 @@ const path = require('node:path');
     page.on('pageerror', error => errors.push(error.message));
 
     await page.goto(`${origin}/business_promo.html#invite=${'a'.repeat(64)}`);
-    await expect(page.locator('#business-activate')).toBeVisible();
+    // Signed in with the invited email: straight to the Activate step.
+    await expect(page.locator('#bp-confirm')).toBeVisible();
+    await expect(page.locator('#bp-activate')).toBeVisible();
     await expect(page).toHaveURL(`${origin}/business_promo.html`);
-    await expect(page.locator('#business-description')).toContainText('Northstar Engineering');
+    await expect(page.locator('#bp-activate')).toContainText('Northstar Engineering');
     await page.route('**/business-promo/redeem', route => route.fulfill({ status: 403, json: { error: 'invitation_email_mismatch' } }));
-    await page.locator('#business-activate').click();
-    await expect(page.locator('#business-message')).toContainText('verified business email');
+    await page.locator('#bp-activate').click();
+    await expect(page.locator('#business-status')).toContainText('verified business email');
     await page.unroute('**/business-promo/redeem');
-    await page.locator('#business-activate').click();
+    await page.locator('#bp-activate').click();
+    await expect(page.locator('#bp-done')).toBeVisible();
     await expect(page).toHaveURL(`${origin}/team.html#/overview`);
     await expect(page.locator('#console')).toBeVisible();
     await expect(page.locator('#shadow-nav')).toBeVisible();
