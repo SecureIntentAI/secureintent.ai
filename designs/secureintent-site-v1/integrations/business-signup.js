@@ -5,8 +5,10 @@
  let email='',companyName='',claimToken='',newUser=false,busy=false,retryUntil=0;
  const messages={campaign_unavailable:'This Business invitation is missing, expired, or disabled. Request an active promo link from SecureIntent.',campaign_full_or_claimed:'This campaign has reached its allowance, or your account already has an activation in progress. Contact SecureIntent.',invalid_details:'Enter your organisation name and a valid work email.',invalid:'That code did not match. Check it and try again.',expired:'Verification expired. Request a new code.',locked:'Too many attempts. Request a new code.',too_soon:'Please wait 30 seconds before requesting another code.',too_many:'Too many requests. Please try again later.',in_progress:'Another request is in progress. Please wait and retry.',weak_password:'Choose a stronger password. Your email verification is preserved.',account_details_required:'Enter your name and a password with at least eight characters.',account_verification_required:'Sign in to your existing SecureIntent account and verify this email, then retry.',organization_already_claimed:'This account already owns a Business workspace. Sign in to the Business console.',activation_in_progress:'Workspace activation is already in progress. Please retry shortly.',forbidden:'This workspace is unavailable. Contact SecureIntent.',invitation_unavailable:'This activation has been revoked or expired. Contact SecureIntent.',recipient_denied:'This email is not enabled for the staging environment.',send_failed:'We couldn’t send your code. Wait for the countdown, then retry. If this continues, contact SecureIntent support.',organization_plan_unavailable:'SecureIntent is configuring the capacity for your Business workspace. Your invitation is reserved. Please contact SecureIntent support; requesting another code will not resolve this.',activation_unavailable:'Activation could not be confirmed. Retry activation; an existing workspace will be reused.'};
  messages.organization_domain_claimed='An organisation already uses this work email domain. Ask its administrator for an invitation or contact SecureIntent.';
+ messages.organization_domain_suspended="Your organisation's previous SecureIntent workspace is suspended. Contact SecureIntent at info@secureintent.ai to restore or remove it.";
+ messages.already_member='This email already belongs to a SecureIntent Business workspace. Ask that workspace\'s administrator, or contact SecureIntent.';
  function message(text,error=false){$('business-status').textContent=text;$('business-status').setAttribute('role',error?'alert':'status');}
- function screen(name){for(const key of ['start','code','account','done','closed','existing'])$('business-'+key).hidden=key!==name;}
+ function screen(name){for(const key of ['start','code','account','done','closed','existing','registered'])$('business-'+key).hidden=key!==name;}
  function updateSendButtons(){
   const remaining=Math.max(0,Math.ceil((retryUntil-Date.now())/1000));
   const start=$('business-email-form').querySelector('button[type="submit"]'),resend=$('business-resend');
@@ -34,7 +36,19 @@
   $('business-existing-console').href=SI.page('team.html?reauth=1#/overview');
   screen('existing');message('');
  }
- function failed(error){if(error.code==='organization_already_claimed'&&error.data?.orgId){existingWorkspace(error.data);return;}if(['promo_closed','campaign_unavailable'].includes(error.code))screen('closed');message(error.name==='AbortError'?'The request timed out. Retry to check or complete your activation.':error.message,true);}
+ function registered(error){
+  // The same card as the admin invitation page: who holds the domain, and what to do.
+  const d=error.data?.domain||{},suspended=error.code==='organization_domain_suspended',dom=email.split('@')[1]||'';
+  const h=$('business-registered-title'),accent=document.createElement('span');accent.className='accent';
+  accent.textContent=suspended?'is suspended.':'already registered.';
+  h.replaceChildren(document.createTextNode(suspended?"Your organisation's workspace":'Your organisation is'),document.createElement('br'),accent);
+  $('business-registered-eyebrow').textContent=suspended?'Workspace suspended':'Already registered';
+  $('business-registered-text').textContent=suspended
+   ?`${d.companyName||'A previous workspace'}${dom?` for @${dom}`:''} is suspended. Contact SecureIntent to restore or remove it.`
+   :`${d.companyName||'Your organisation'} already uses SecureIntent Business${dom?` for @${dom}`:''}. Ask your workspace administrator${d.adminHint?` (${d.adminHint})`:''} to invite you as a member.`;
+  message('');screen('registered');
+ }
+ function failed(error){if(error.code==='organization_domain_claimed'||error.code==='organization_domain_suspended'){registered(error);return;}if(error.code==='organization_already_claimed'&&error.data?.orgId){existingWorkspace(error.data);return;}if(['promo_closed','campaign_unavailable'].includes(error.code))screen('closed');message(error.name==='AbortError'?'The request timed out. Retry to check or complete your activation.':error.message,true);}
  async function send(resend=false){
   if(busy||Date.now()<retryUntil||(!resend&&!$('business-email-form').reportValidity()))return;
   if(!resend){email=$('business-email').value.trim().toLowerCase();companyName=$('business-company').value.trim();}

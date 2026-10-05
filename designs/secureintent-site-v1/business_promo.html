@@ -1,10 +1,72 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><title>Activate Business · SecureIntent.ai</title>
-<link rel="stylesheet" href="how-it-works.css"><link rel="stylesheet" href="integrations/team.css"><link rel="stylesheet" href="integrations/app.css">
-<script src="integrations/config.js"></script><script src="integrations/runtime.js"></script><script src="integrations/business-promo.js?v=20261003-local-members" defer></script></head>
-<body><main class="team-app"><div class="wrap"><a class="brand" href="index.html"><svg aria-hidden="true" width="32" height="32" viewBox="0 0 250 250"><path d="M50 195 110 75" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round"/><path d="m130 195 30-60" fill="none" stroke="#72FFFF" stroke-width="28" stroke-linecap="round"/><circle cx="190" cy="75" r="14" fill="#72FFFF"/></svg>SecureIntent.ai</a>
-<section class="panel" style="margin-top:32px"><h1>Activate your Business workspace</h1><p class="sub" id="business-description">Checking your invitation…</p><p>150 seats: one administrator and 149 invited users. Members receive Developer Pro features through your organization. No card required.</p>
-<div id="business-auth"></div><p id="business-account"></p><p id="business-message" role="status" aria-live="polite"></p>
-<div class="actions"><button class="btn primary" id="business-activate" hidden>Activate organization</button><button class="btn" id="business-signout" hidden>Use a different account</button><a class="btn" id="business-open" href="team.html" hidden>Open Business console</a></div>
-<p class="note">Only the verified email address named in your invitation can activate this workspace. The administrator alone can access the Business console.</p></section></div></main></body></html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8"><script src="integrations/config.js"></script><script src="integrations/runtime.js"></script><script>(function(){try{document.documentElement.dataset.theme=localStorage.getItem('si_site_theme')==='dark'?'dark':'light';}catch(_){}})();</script>
+  <meta name="theme-color" content="#050608" id="theme-color"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><title>Activate Business · SecureIntent</title><base href="/designs/secureintent-site-v1/">
+  <link rel="icon" href="../../favicon-32x32.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="how-it-works.css"><link rel="stylesheet" href="site-pages.css"><script src="how-it-works.js?v=20260915-menu-cleanup" defer></script><script src="integrations/business-promo.js?v=20261005-onboarding-v2" defer></script>
+<link rel="stylesheet" href="integrations/app.css"><script src="../../install-links.js" defer></script><script src="integrations/site.js" defer></script><link rel="stylesheet" href="business-onboarding.css?v=20261005-onboarding-v2"></head>
+<body class="business-onboarding">
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header"><div class="container header-inner"><a href="index.html" class="brand"><svg class="business-brand-mark" viewBox="0 0 44 48" fill="none" aria-hidden="true"><path d="M26 6 7 42" stroke="#0a5166" stroke-width="6" stroke-linecap="round"/><path d="m38 22-10 20" stroke="#14a6a5" stroke-width="6" stroke-linecap="round"/></svg><span>SecureIntent<span class="brand-suffix">.ai</span></span></a><div class="header-actions"><div class="theme-switch" role="group" aria-label="Colour theme"><button class="theme-option" type="button" data-set-theme="dark" aria-pressed="true">Dark</button><button class="theme-option" type="button" data-set-theme="light" aria-pressed="false">Light</button></div></div></div></header>
+  <main id="main" tabindex="-1"><section class="utility-page"><div class="utility-panel" data-glow data-business-promo>
+
+    <div id="bp-loading"><div class="eyebrow">Business invitation</div><h1>Checking your<br><span class="accent">invitation…</span></h1><p class="lede">This only takes a moment.</p></div>
+
+    <div id="bp-welcome" hidden>
+      <div class="eyebrow">Business invitation · Administrator</div>
+      <h1>Activate SecureIntent<br><span class="accent">Business for <span data-company></span>.</span></h1>
+      <p class="lede">You've been invited to set up and manage <strong data-company></strong>'s workspace. Your team gets protection on every seat; you get the console.</p>
+      <ul class="business-features" aria-label="Included in your Business workspace"><li><span class="business-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3"/><path d="M6 21v-3a6 6 0 0 1 12 0v3M4 5a3 3 0 0 0 0 6m16-6a3 3 0 0 1 0 6M1 18v-2a4 4 0 0 1 3-4m19 6v-2a4 4 0 0 0-3-4"/></svg></span><span>150<br>team seats</span></li><li><span class="business-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20v-6m8 6V8m8 12V2" stroke-width="5"/></svg></span><span>Business<br>dashboard</span></li><li><span class="business-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2c0 6-4 10-10 10 6 0 10 4 10 10 0-6 4-10 10-10-6 0-10-4-10-10ZM20 2v4m-2-2h4"/></svg></span><span>Shadow AI<br>visibility</span></li><li><span class="business-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 3 6v6c0 5 5 9 9 11 4-2 9-6 9-11V6Z"/></svg></span><span>Team<br>policies</span></li><li><span class="business-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 9a7 7 0 0 1 14 0v6l3 4H2l3-4ZM10 22h4M12 2V0"/></svg></span><span>Security<br>alerts</span></li><li><span class="business-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2h10l6 6v14H4ZM14 2v7h6M8 12h8m-8 4h8M8 7h2"/></svg></span><span>Downloadable<br>reports</span></li></ul>
+      <ul class="bp-facts"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m3 7 9 6 9-6"/></svg><span>Invitation for <strong data-email></strong></span></li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Valid until <strong data-expires></strong></span></li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16v10H4zM4 11h16"/></svg><span>No card required</span></li></ul>
+      <button class="button bp-primary" type="button" id="bp-start">Activate workspace <span aria-hidden="true">→</span></button>
+      <p class="utility-note">Only <strong data-email></strong> can activate this workspace.</p>
+    </div>
+
+    <div id="bp-auth" hidden>
+      <ol class="bp-steps" aria-label="Activation steps"><li data-step="1"><span>1</span>Your account</li><li data-step="2"><span>2</span>Activate</li><li data-step="3"><span>3</span>Invite your team</li></ol>
+      <div class="eyebrow" id="bp-auth-eyebrow">Step 1 · Your admin account</div>
+      <h1 id="bp-auth-title">Create your<br><span class="accent">admin account.</span></h1>
+      <p class="lede">Use <strong data-email></strong>. We'll email you a code to verify it.</p>
+      <div class="bp-tabs" role="tablist" aria-label="Account"><button type="button" role="tab" id="bp-tab-signup" aria-selected="true">Create account</button><button type="button" role="tab" id="bp-tab-signin" aria-selected="false">I already have an account</button></div>
+      <div id="business-auth" class="bp-clerk"></div>
+      <div class="utility-links"><button class="text-action" type="button" id="bp-back">← Back to invitation</button></div>
+    </div>
+
+    <div id="bp-confirm" hidden>
+      <ol class="bp-steps" aria-label="Activation steps"><li data-step="1"><span>1</span>Your account</li><li data-step="2"><span>2</span>Activate</li><li data-step="3"><span>3</span>Invite your team</li></ol>
+      <div class="eyebrow">Step 2 · Activate</div>
+      <h1>One click<br><span class="accent">to go live.</span></h1>
+      <p class="bp-check"><span class="bp-check-icon" aria-hidden="true">✓</span><span>Signed in as <strong id="bp-signed-in"></strong></span></p>
+      <p class="lede">Activating creates <strong data-company></strong>'s workspace with 150 seats, with you as its administrator.</p>
+      <button class="button bp-primary" type="button" id="bp-activate"><span>Activate <span data-company></span> workspace</span> <span aria-hidden="true">→</span></button>
+      <div class="utility-links"><button class="text-action" type="button" id="bp-switch">Use a different account</button></div>
+    </div>
+
+    <div id="bp-mismatch" hidden>
+      <div class="eyebrow bp-warn">Different account</div>
+      <h1>This invitation is for<br><span class="accent" data-email></span></h1>
+      <p class="lede">You're signed in as <strong id="bp-wrong-email"></strong>. Only the invited email can activate <strong data-company></strong>'s workspace.</p>
+      <button class="button bp-primary" type="button" id="bp-use-invited">Sign in with the invited email <span aria-hidden="true">→</span></button>
+      <p class="utility-note">If the invited email is wrong, ask SecureIntent for a new invitation.</p>
+    </div>
+
+    <div id="bp-done" hidden>
+      <div class="eyebrow">Workspace ready</div>
+      <h1><span data-company></span> is<br><span class="accent">ready.</span></h1>
+      <ul class="business-next-steps"><li>150 seats, with you as administrator</li><li>Next: invite your team from the Business console</li><li>Each member installs the extension and signs in</li></ul>
+      <a class="button bp-primary" href="team.html#/people" id="bp-console">Open Business console <span aria-hidden="true">→</span></a>
+      <p class="utility-note" id="bp-redirect-note">Taking you there now…</p>
+    </div>
+
+    <div id="bp-blocked" hidden>
+      <div class="bp-notice-icon" aria-hidden="true" id="bp-blocked-icon"></div>
+      <div class="eyebrow" id="bp-blocked-eyebrow"></div>
+      <h1 id="bp-blocked-title"></h1>
+      <p class="lede" id="bp-blocked-text"></p>
+      <a class="button bp-primary" id="bp-blocked-action" href="mailto:info@secureintent.ai?subject=Business%20invitation">Contact SecureIntent <span aria-hidden="true">→</span></a>
+      <p class="utility-note" id="bp-blocked-note" hidden></p>
+    </div>
+
+    <p id="business-status" class="utility-note" role="status" aria-live="polite"></p>
+  </div></section></main>
+</body></html>
