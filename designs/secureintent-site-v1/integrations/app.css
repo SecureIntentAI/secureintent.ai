@@ -1,5 +1,6 @@
-/* Existing app controls, expressed using the approved site's theme tokens. */
-.account-app, .team-app {
+/* Existing app controls, expressed using the approved site's theme tokens.
+   The team console defines its own tokens and layout in team.css. */
+.account-app {
   --base: var(--paper); --panel: var(--surface); --panel2: var(--field);
   --cyan: var(--accent); --navy: var(--button-text); --text: var(--ink);
   --faint: var(--muted); --border: var(--field-border); --ok: #34d399;
@@ -7,7 +8,7 @@
   --sans: Inter, system-ui, sans-serif;
   width: 100%; min-width: 0; color: var(--ink); font-family: var(--sans);
 }
-.account-app [hidden], .team-app [hidden], [data-team-intro][hidden] { display: none !important; }
+.account-app [hidden], [data-team-intro][hidden] { display: none !important; }
 .account-app { max-width: 520px; margin: 0 auto; }
 .account-app.is-signed-in { max-width: 940px; }
 .account-app #auth { max-width: none; gap: 12px; align-items: stretch; }
@@ -18,35 +19,19 @@
 .app-actions { display: flex; justify-content: flex-end; align-items: center; gap: 20px; }
 .app-actions button { border: 0; background: transparent; font: inherit; cursor: pointer; }
 .account-app .plan, .account-app .features, .account-app .team-card,
-.account-app .overlap, .team-app .panel, .team-app .card { background: var(--surface); border-color: var(--field-border); }
-.account-app .upgrade, .team-app .btn.primary { background: var(--button); color: var(--button-text); }
+.account-app .overlap { background: var(--surface); border-color: var(--field-border); }
+.account-app .upgrade { background: var(--button); color: var(--button-text); }
 .account-app .feature-item, .account-app .feature-name { color: var(--ink); }
 .account-app .plan-name, .account-app .feature-list { color: var(--ink); }
 .account-app #clerk-profile { min-width: 0; }
-.account-app .cl-card, .team-app .cl-card { background: var(--surface); color: var(--ink); }
+.account-app .cl-card { background: var(--surface); color: var(--ink); }
 .account-app .cl-headerTitle, .team-app .cl-headerTitle,
 .account-app .cl-formFieldLabel, .team-app .cl-formFieldLabel { color: var(--ink); }
 .account-app .cl-formFieldInput, .team-app .cl-formFieldInput { background: var(--field); color: var(--ink); }
 .account-app .cl-formButtonPrimary, .team-app .cl-formButtonPrimary { background: var(--button); color: var(--button-text); }
-.team-app { scroll-margin-top: 96px; margin: 28px auto 64px; max-width: 1280px; padding: 0 24px; }
-.team-app .wrap { padding: 36px 0; }
-.team-app .topbar { max-width: none; padding: 12px 0; }
-.team-app .brand { color: var(--ink); }
-.team-app .shell { max-width: none; }
-.team-app .side { background: var(--paper); top: 96px; height: calc(100vh - 112px); }
-.team-app .navitem[aria-current="page"] { color: var(--accent); }
-.team-app input, .team-app select { background: var(--field); color: var(--ink); }
-.team-app .viewhead h1 { font-size: 32px; }
-.team-app .actions--sticky { background: var(--surface); }
-.team-app .content { min-width: 0; }
-.team-app .panel { overflow-x: auto; }
-.team-app .hide { display: none !important; }
 .utility-form button:disabled, .business-form button:disabled { cursor: wait; opacity: .6; }
 .utility-note[role="alert"], .form-error { color: var(--danger, #d46161); }
 @media (max-width: 760px) {
-  .team-app { padding: 0 16px; }
-  .team-app .side { height: auto; top: 0; }
-  .team-app .topbar { flex-wrap: wrap; gap: 16px; }
   .account-app .utility-panel { padding: 24px 18px; }
 }
 /* Marketing heading rules must not inflate the real Clerk components. */

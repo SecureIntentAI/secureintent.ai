@@ -37,12 +37,12 @@ const path = require('node:path');
     await expect(page.locator('#console')).toBeVisible();
     await expect(page.locator('#shadow-nav')).toBeVisible();
     const userNav = page.locator('[data-view="people"]');
-    await expect(userNav).toContainText('USER');
+    await expect(userNav).toContainText('Users');
     await userNav.click();
     await expect(page.locator('#people')).toContainText('Not yet connected');
     await expect(page.locator('#people')).toContainText('Invited');
     await expect(page.locator('#invite-role option')).toHaveCount(1);
-    console.log('PASS: email mismatch, activation, USER navigation, member-only invites and truthful connection status');
+    console.log('PASS: email mismatch, activation, Users navigation, member-only invites and truthful connection status');
 
     await page.locator('#shadow-nav').click();
     await expect(page.locator('#dashboard-shell')).toBeVisible();

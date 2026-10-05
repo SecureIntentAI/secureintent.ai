@@ -7,10 +7,20 @@
  async function unlockWithClerk(){
   const startScope=scope(),token=await window.Clerk?.session?.getToken();
   if(!token)throw new Error('Sign in with your registered admin account first.');
-  const response=await window.SI.fetch(window.SI.config.apiBase+'/v1/business-access/unlock/clerk',{
-   method:'POST',headers:{Authorization:'Bearer '+token},
-   cache:'no-store',signal:AbortSignal.timeout(20000)
-  });
+  let response;
+  try {
+   response=await window.SI.fetch(window.SI.config.apiBase+'/v1/business-access/unlock/clerk',{
+    method:'POST',headers:{Authorization:'Bearer '+token},
+    cache:'no-store',signal:AbortSignal.timeout(20000)
+   });
+  } catch(cause) {
+   // The browser's own wording ("Failed to fetch") says nothing a person can act on.
+   const error=new Error(cause?.name==='TimeoutError'
+    ?'SecureIntent took too long to answer. Your sign-in is fine — try again in a moment.'
+    :"We couldn't reach SecureIntent to confirm your admin access. Check your connection, then try again.");
+   error.code='network';
+   throw error;
+  }
   const data=await response.json().catch(()=>({}));
   if(startScope!==scope())throw new Error('Your account changed. Please sign in again.');
   if(!response.ok){

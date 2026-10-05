@@ -1,566 +1,939 @@
-/* Functional controls retained from main (3612483), scoped to the V2 app. */
+/* Business console and its sign-in gate. Functional controls retained from
+   main (3612483); every id and class the handlers in team.js rely on is kept.
 
-      .team-app * { box-sizing: border-box; }
-      /* A class with `display` beats the UA rule for [hidden], which silently
-         un-hides anything we style as flex. Make the attribute win. */
-      .team-app [hidden] { display: none !important; }
-      .team-app a { color: var(--cyan); }
-      /* Shared header — keep this identical to account.html. */
-      .team-app .topbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        width: 100%;
-        max-width: 1120px;
-        margin: 0 auto;
-        padding: 22px 28px;
-      }
-      .team-app .brand {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        color: #fff;
-        text-decoration: none;
-      }
-      .team-app .brand-word {
-        font-family: var(--sans);
-        font-size: 20px;
-        font-weight: 700;
-        letter-spacing: -0.02em;
-      }
-      .team-app .brand-word .accent { color: var(--cyan); }
-      .team-app .topnav {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .team-app .navlink {
-        padding: 8px 13px;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        background: rgba(255, 255, 255, 0.04);
-        color: var(--text);
-        font: 600 12.5px/1 var(--sans);
-        text-decoration: none;
-        cursor: pointer;
-      }
-      .team-app .navlink:hover {
-        border-color: rgba(114, 255, 255, 0.4);
-        color: var(--cyan);
-      }
-      .team-app .navlink--signout {
-        color: var(--danger);
-        border-color: rgba(255, 107, 107, 0.25);
-        background: rgba(255, 107, 107, 0.08);
-      }
-      .team-app .navlink--signout:hover {
-        color: var(--danger);
-        border-color: rgba(255, 107, 107, 0.5);
-      }
-      /* Small screens: brand + three nav controls overflow a 390px phone. Wrap
-         the row and tighten the chrome instead of letting the page scroll
-         sideways. Keep this identical in the sibling page. */
-      @media (max-width: 460px) {
-        .team-app .topbar {
-          flex-wrap: wrap;
-          gap: 10px;
-          padding: 16px 16px;
-        }
-        .team-app .topnav {
-          width: 100%;
-          justify-content: flex-start;
-          gap: 6px;
-        }
-        .team-app .navlink {
-          padding: 7px 10px;
-          font-size: 12px;
-        }
-        .team-app .brand-word {
-          font-size: 18px;
-        }
-      }
+   The look follows the SecureIntent desktop app: a near-black navy base, flat
+   panels with a hairline border, cyan for the one primary action and for the
+   place you are, and colour reserved for state — green delivered, amber
+   waiting, red failed. Both themes come from the tokens below; nothing further
+   down names a colour directly unless it is one of those states. */
 
-      .team-app .wrap { max-width: 1080px; margin: 0 auto; padding: 26px 22px 60px; }
-      .team-app h1 { font-family: var(--mono); font-size: 21px; margin: 0 0 4px; letter-spacing: -0.02em; }
-      .team-app .sub { color: var(--muted); font-size: 13.5px; margin: 0 0 22px; }
+.business-console,
+.team-app {
+  --c-bg: #0a0d13;
+  --c-side: #0c1017;
+  --c-panel: #10151e;
+  --c-panel-2: #151b26;
+  --c-field: #0b1018;
+  --c-line: #1f2733;
+  --c-line-strong: #2e3a4b;
+  --c-text: #f1f5f9;
+  --c-body: #c4cdd9;
+  --c-muted: #8f9bac;
+  --c-accent: #72ffff;
+  --c-accent-soft: rgba(114, 255, 255, 0.09);
+  --c-accent-line: rgba(114, 255, 255, 0.34);
+  --c-primary: #72ffff;
+  --c-primary-hover: #a6ffff;
+  --c-primary-ink: #052656;
+  --c-ok: #34d399;
+  --c-ok-soft: rgba(52, 211, 153, 0.11);
+  --c-ok-line: rgba(52, 211, 153, 0.36);
+  --c-warn: #fbbf24;
+  --c-warn-soft: rgba(251, 191, 36, 0.1);
+  --c-warn-line: rgba(251, 191, 36, 0.38);
+  --c-danger: #ff7b7b;
+  --c-danger-soft: rgba(255, 107, 107, 0.1);
+  --c-danger-line: rgba(255, 107, 107, 0.42);
+  --c-hover: rgba(255, 255, 255, 0.045);
+  --c-shadow: 0 24px 60px -28px rgba(0, 0, 0, 0.85);
+  --c-ring: rgba(114, 255, 255, 0.6);
+  /* Icons for alerts and pop-ups, painted in the tone of the message. */
+  --ico-alert: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7.5v5.5M12 16.5h.01'/%3E%3C/svg%3E");
+  --ico-ok: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='m8 12.5 2.7 2.7L16 9.5'/%3E%3C/svg%3E");
+  --ico-info: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 11v5.5M12 7.5h.01'/%3E%3C/svg%3E");
+}
+:root[data-theme="light"] .business-console,
+:root[data-theme="light"] .team-app {
+  --c-bg: #f4f7f9;
+  --c-side: #ffffff;
+  --c-panel: #ffffff;
+  --c-panel-2: #f5f8fa;
+  --c-field: #ffffff;
+  --c-line: #dde6eb;
+  --c-line-strong: #c3d0d8;
+  --c-text: #0f2534;
+  --c-body: #344c5b;
+  --c-muted: #586e7d;
+  --c-accent: #0e7480;
+  --c-accent-soft: #e3f3f5;
+  --c-accent-line: #9fd3d9;
+  --c-primary: #12384d;
+  --c-primary-hover: #1d4d67;
+  --c-primary-ink: #ffffff;
+  --c-ok: #0f7a5a;
+  --c-ok-soft: #e4f5ee;
+  --c-ok-line: #a6dcc8;
+  --c-warn: #8a5a0c;
+  --c-warn-soft: #fdf3dc;
+  --c-warn-line: #ecd193;
+  --c-danger: #b4372f;
+  --c-danger-soft: #fdecea;
+  --c-danger-line: #f0b5af;
+  --c-hover: rgba(15, 37, 52, 0.05);
+  --c-shadow: 0 20px 48px -30px rgba(15, 37, 52, 0.35);
+  --c-ring: rgba(14, 116, 128, 0.55);
+}
 
-      /* ---- Console shell -------------------------------------------------
-         The console is four jobs, not one page: read the numbers, manage
-         people, write the policy, route the alerts. A sidebar makes each one
-         somewhere you can be, instead of a stop on a two-metre scroll — and
-         each nav item carries the state of the thing behind it, so the seat
-         count and a webhook that has started failing are visible from
-         wherever you happen to be standing. */
-      .team-app .shell { display: grid; grid-template-columns: 240px minmax(0, 1fr); align-items: start; }
-      .team-app .side {
-        position: sticky;
-        top: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-        height: 100vh;
-        padding: 22px 14px;
-        border-right: 1px solid var(--border);
-        background: rgba(255, 255, 255, 0.015);
-      }
-      .team-app .side .brand { padding: 0 8px; }
-      .team-app .side .nav { display: flex; flex-direction: column; gap: 2px; }
-      .team-app .navitem {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        width: 100%;
-        padding: 9px 11px;
-        border: 1px solid transparent;
-        border-radius: 10px;
-        background: none;
-        color: var(--muted);
-        font: 600 13px/1 var(--sans);
-        text-align: left;
-        text-decoration: none;
-        cursor: pointer;
-      }
-      .team-app .navitem:hover:not([aria-disabled="true"]) { color: var(--text); background: rgba(255, 255, 255, 0.04); }
-      .team-app .navitem[aria-current="page"] {
-        color: var(--text);
-        background: rgba(114, 255, 255, 0.08);
-        border-color: rgba(114, 255, 255, 0.26);
-      }
-      .team-app .navitem[aria-current="page"] svg { color: var(--cyan); }
-      .team-app .navitem[aria-disabled="true"] { opacity: 0.42; cursor: not-allowed; }
-      .team-app .navitem svg { flex: none; color: var(--faint); }
-      .team-app .navitem .label { flex: 1; }
-      /* The live state each item carries: a seat count, or a dot for the
-         health of the thing behind it. Both are set from real data or hidden
-         — never a placeholder. */
-      .team-app .navitem .badge { font: 600 11px/1 var(--mono); color: var(--faint); }
-      .team-app .navitem[aria-current="page"] .badge { color: var(--muted); }
-      .team-app .navitem .sdot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
-      .team-app .navitem .sdot[hidden] { display: none; }
-      /* Scoped to .navitem to match the specificity of the rule above — as
-         bare classes these lost to it and every dot stayed grey. */
-      .team-app .navitem .sdot--ok { background: var(--ok); }
-      .team-app .navitem .sdot--bad { background: var(--danger); }
-      .team-app .navitem .sdot--dirty { background: #fbbf24; }
-      .team-app .side .foot { margin-top: auto; display: flex; flex-direction: column; gap: 10px; padding: 0 4px; }
-      .team-app .side .who { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
-      .team-app .side .who strong { display: block; color: var(--text); font-size: 13.5px; }
-      .team-app .side .links { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-      .team-app .side .links .navlink { text-align: center; }
-      .team-app .side .links .navlink--signout { grid-column: 1 / -1; }
-      .team-app .side .links .navlink { padding: 6px 10px; font-size: 12px; }
+.business-console { background: var(--c-bg); }
 
-      .team-app .content { min-width: 0; padding: 0 30px 70px; max-width: 1060px; }
-      /* One header per view: what this page is, one line on what it does, and
-         the controls that belong to it. */
-      .team-app .viewhead {
-        display: flex;
-        align-items: flex-end;
-        justify-content: space-between;
-        gap: 14px;
-        flex-wrap: wrap;
-        padding: 28px 0 16px;
-        margin-bottom: 22px;
-        border-bottom: 1px solid var(--border);
-      }
-      .team-app .viewhead h1 { font-size: 19px; margin: 0 0 6px; }
-      .team-app .viewhead .sub { margin: 0; max-width: 70ch; }
-      .team-app .view[hidden] { display: none; }
-      .team-app .view > .viewhead + section.block { margin-top: 0; }
+.team-app {
+  /* The names the retained markup and scripts already use. */
+  --base: var(--c-bg);
+  --panel: var(--c-panel);
+  --panel2: var(--c-field);
+  --cyan: var(--c-accent);
+  --navy: var(--c-primary-ink);
+  --text: var(--c-text);
+  --muted: var(--c-muted);
+  --faint: var(--c-muted);
+  --border: var(--c-line);
+  --danger: var(--c-danger);
+  --ok: var(--c-ok);
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --sans: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
-      @media (max-width: 880px) {
-        .team-app .shell { grid-template-columns: minmax(0, 1fr); }
-        .team-app .side {
-          position: static;
-          height: auto;
-          gap: 14px;
-          padding: 16px 16px 0;
-          border-right: 0;
-          border-bottom: 1px solid var(--border);
-        }
-        /* A row of tabs that scrolls sideways beats a hamburger here: four
-           destinations, and their badges are worth seeing at a glance. */
-        .team-app .side .nav {
-          flex-direction: row;
-          gap: 6px;
-          overflow-x: auto;
-          padding-bottom: 14px;
-          scrollbar-width: none;
-        }
-        .team-app .side .nav::-webkit-scrollbar { display: none; }
-        .team-app .navitem { width: auto; flex: none; white-space: nowrap; }
-        /* Brand, then who you are, then where you can go — the sidebar's
-           own order, stacked. The footer's margin-top:auto would otherwise
-           strand it at the bottom of a column with no spare height. */
-        .team-app .side .brand { order: 0; }
-        .team-app .side .foot { order: 1; margin-top: 0; gap: 8px; padding: 0; }
-        .team-app .side .nav { order: 2; }
-        .team-app .side .links { display: flex; flex-wrap: wrap; }
-        .team-app .side .links .navlink--signout { grid-column: auto; }
-        .team-app .content { padding: 0 16px 60px; }
-        .team-app .view-shadow { width: 100%; }
-        .team-app .viewhead { padding-top: 20px; }
-      }
-      /* On a phone the four tabs only fit without their icons — and four
-         destinations in view beat three and a half plus a scroll. */
-      @media (max-width: 470px) {
-        .team-app .navitem { padding: 9px 10px; gap: 7px; }
-        .team-app .navitem svg { display: none; }
-      }
+  width: 100%;
+  min-width: 0;
+  max-width: 1280px;
+  margin: 28px auto 64px;
+  padding: 0 24px;
+  scroll-margin-top: 96px;
+  color: var(--c-text);
+  font: 400 14px/1.5 var(--sans);
 
-      .team-app .btn {
-        border: 1px solid var(--border);
-        background: rgba(255, 255, 255, 0.04);
-        color: var(--text);
-        border-radius: 10px;
-        padding: 8px 13px;
-        font: 600 12.5px/1 var(--sans);
-        cursor: pointer;
-      }
-      .team-app .btn:hover { border-color: rgba(114, 255, 255, 0.4); color: var(--cyan); }
-      .team-app .btn.primary {
-        background: linear-gradient(180deg, #9bffff, var(--cyan));
-        color: var(--navy);
-        border: 0;
-      }
-      /* The install link is a button to the eye; the anchor colour rule above
-         would otherwise repaint the primary one cyan-on-cyan. */
-      .team-app a.btn { display: inline-block; text-decoration: none; }
-      .team-app .btn.danger {
-        color: var(--danger);
-        border-color: rgba(255, 107, 107, 0.35);
-        background: rgba(255, 107, 107, 0.08);
-      }
-      .team-app .btn.danger:hover { color: var(--danger); border-color: rgba(255, 107, 107, 0.6); }
-      .team-app .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-      /* Labels that only a screen reader needs — the placeholder carries the
-         same words for everyone else, and a placeholder is not a label. */
-      .team-app .vh {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        padding: 0;
-        margin: -1px;
-        overflow: hidden;
-        clip: rect(0 0 0 0);
-        clip-path: inset(50%);
-        white-space: nowrap;
-        border: 0;
-      }
-      .team-app input, .team-app select, .team-app textarea {
-        background: var(--panel2);
-        border: 1px solid var(--border);
-        color: var(--text);
-        border-radius: 10px;
-        padding: 9px 11px;
-        font: 400 13px/1.2 var(--sans);
-      }
-      .team-app input:focus-visible, .team-app select:focus-visible, .team-app textarea:focus-visible, .team-app .btn:focus-visible {
-        outline: 2px solid rgba(114, 255, 255, 0.55);
-        outline-offset: 2px;
-      }
-      /* The generic input padding above turns a checkbox into a fat grey square,
-         so policy toggles get their own switch. Must stay after that rule. */
-      .team-app input[type="checkbox"] {
-        appearance: none;
-        -webkit-appearance: none;
-        flex: none;
-        position: relative;
-        width: 38px;
-        height: 22px;
-        margin: 2px 0 0;
-        padding: 0;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.07);
-        cursor: pointer;
-        transition: background 0.15s, border-color 0.15s;
-      }
-      .team-app input[type="checkbox"]::after {
-        content: "";
-        position: absolute;
-        top: 2px;
-        left: 2px;
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        background: var(--faint);
-        transition: transform 0.15s, background 0.15s;
-      }
-      .team-app input[type="checkbox"]:checked {
-        background: rgba(114, 255, 255, 0.22);
-        border-color: rgba(114, 255, 255, 0.5);
-      }
-      .team-app input[type="checkbox"]:checked::after {
-        transform: translateX(16px);
-        background: var(--cyan);
-      }
-      .team-app input:disabled, .team-app select:disabled, .team-app textarea:disabled { opacity: 0.45; cursor: not-allowed; }
+  * { box-sizing: border-box; }
+  /* A class with `display` beats the UA rule for [hidden], which silently
+     un-hides anything we style as flex. Make the attribute win. */
+  [hidden] { display: none !important; }
+  .hide { display: none !important; }
+  a { color: var(--c-accent); text-underline-offset: 3px; }
+  a:hover { text-decoration: underline; }
+  p { color: var(--c-body); font-size: 14px; line-height: 1.6; }
+  strong { color: var(--c-text); font-weight: 600; }
+  small { font-size: 12.5px; color: var(--c-muted); }
+  svg { flex: none; }
+  h1, h2, h3 { color: var(--c-text); text-wrap: balance; }
+  h1 {
+    font: 700 26px/1.2 var(--sans);
+    letter-spacing: -0.025em;
+    margin: 0 0 6px;
+  }
+  h3 { font: 600 15px/1.4 var(--sans); letter-spacing: -0.01em; margin: 0 0 6px; }
+  .sub { color: var(--c-muted); font-size: 14px; line-height: 1.55; margin: 0 0 22px; }
+  code {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--c-accent);
+    word-break: break-all;
+  }
+  :focus-visible { outline: 2px solid var(--c-ring); outline-offset: 2px; }
+  /* Labels that only a screen reader needs. */
+  .vh {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
 
-      .team-app .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
-      .team-app .card {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 15px 17px;
-      }
-      .team-app .card .k { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
-      .team-app .card .v { font-size: 25px; font-weight: 700; margin-top: 6px; letter-spacing: -0.02em; }
-      .team-app .card .v small { font-size: 13px; color: var(--muted); font-weight: 500; }
+  /* ---- Gate header — keep the structure identical to account.html. ------ */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+    padding: 12px 0;
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--c-text);
+    text-decoration: none;
+  }
+  .brand:hover { text-decoration: none; }
+  .brand-word { font: 700 19px/1 var(--sans); letter-spacing: -0.02em; }
+  .brand-word .accent { color: var(--c-accent); }
+  .topnav { display: flex; align-items: center; gap: 8px; }
+  .navlink {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 0 13px;
+    border: 1px solid var(--c-line-strong);
+    border-radius: 9px;
+    background: transparent;
+    color: var(--c-text);
+    font: 600 13px/1 var(--sans);
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .navlink:hover { background: var(--c-hover); border-color: var(--c-accent-line); text-decoration: none; }
+  .navlink--signout { color: var(--c-danger); border-color: var(--c-danger-line); }
+  .navlink--signout:hover { background: var(--c-danger-soft); border-color: var(--c-danger); }
 
-      .team-app section.block { margin-top: 22px; }
-      .team-app .block h2 {
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.07em;
-        color: var(--muted);
-        margin: 0 0 11px;
-      }
-      .team-app .panel {
-        background: var(--panel);
-        border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 16px 18px;
-      }
-      .team-app .row { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
-      .team-app .row .lbl { width: 150px; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .team-app .row .track { flex: 1; height: 8px; background: rgba(255, 255, 255, 0.06); border-radius: 6px; overflow: hidden; }
-      .team-app .row .fill { height: 100%; background: var(--cyan); border-radius: 6px; }
-      .team-app .row .n { width: 52px; text-align: right; font-size: 12.5px; color: var(--muted); }
-      .team-app .chart { display: flex; align-items: flex-end; gap: 4px; height: 160px; border-bottom: 1px solid var(--border); }
-      .team-app .chart .bar { flex: 1; min-width: 4px; background: linear-gradient(180deg, var(--cyan), rgba(114,255,255,.2)); border-radius: 3px 3px 0 0; min-height: 2px; }
-      .team-app .rollout-track { display: flex; overflow: hidden; height: 14px; border-radius: 999px; background: var(--border); margin: 12px 0; }
-      .team-app .rollout-segment { display: block; height: 100%; }
-      .team-app .rollout-confirmed { background: #33c795; }
-      .team-app .rollout-downloaded { background: #6fdbe8; }
-      .team-app .rollout-pending { background: #e6b960; }
-      .team-app .rollout-offline { background: #7d8796; }
-      .team-app .team-refresh-notice {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin-bottom: 16px;
-        padding: 12px 14px;
-        border: 1px solid rgba(230, 185, 96, .45);
-        border-radius: 10px;
-        color: var(--text);
-        background: rgba(230, 185, 96, .1);
-        font-size: 13px;
-      }
-      .team-app .team-refresh-notice[hidden] { display: none; }
-      /* Which day each end of the chart is. Without them the bars are a shape
-         with no scale, and the hover title is no use on a phone. */
-      .team-app .axis {
-        display: flex;
-        justify-content: space-between;
-        gap: 10px;
-        margin-top: 9px;
-        font: 500 11px/1 var(--mono);
-        color: var(--faint);
-      }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 36px 0 60px; }
 
-      .team-app table { width: 100%; border-collapse: collapse; }
-      .team-app th, .team-app td { text-align: left; padding: 10px 8px; font-size: 13px; border-bottom: 1px solid var(--border); }
-      .team-app th { color: var(--faint); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
-      .team-app tr:last-child td { border-bottom: 0; }
-      .team-app .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; border: 1px solid var(--border); color: var(--muted); }
-      .team-app .tag.admin { color: var(--cyan); border-color: rgba(114, 255, 255, 0.35); }
-      .team-app .tag.pending { color: #fbbf24; border-color: rgba(251, 191, 36, 0.35); }
-      .team-app .empty { color: var(--faint); font-size: 13px; padding: 10px 0; }
-      .team-app .note { color: var(--faint); font-size: 12px; line-height: 1.55; margin-top: 12px; }
-      .team-app .err { color: var(--danger); font-size: 13px; }
-      .team-app code { font-family: var(--mono); font-size: 12px; color: var(--cyan); word-break: break-all; }
+  /* ---- Buttons ----------------------------------------------------------
+     Three weights and no more: primary (the one thing this panel is for),
+     default, and danger. All are 36px tall so a row of them lines up with the
+     inputs beside it. */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 36px;
+    padding: 0 14px;
+    border: 1px solid var(--c-line-strong);
+    border-radius: 9px;
+    background: var(--c-panel-2);
+    color: var(--c-text);
+    font: 600 13.5px/1 var(--sans);
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .btn:hover:not(:disabled) { border-color: var(--c-accent-line); background: var(--c-hover); text-decoration: none; }
+  .btn:active:not(:disabled) { transform: translateY(1px); }
+  .btn.primary {
+    border-color: transparent;
+    background: var(--c-primary);
+    color: var(--c-primary-ink);
+  }
+  .btn.primary:hover:not(:disabled) { border-color: transparent; background: var(--c-primary-hover); }
+  .btn.danger { color: var(--c-danger); border-color: var(--c-danger-line); background: var(--c-danger-soft); }
+  .btn.danger:hover:not(:disabled) { border-color: var(--c-danger); background: var(--c-danger-soft); }
+  .btn.btn--lg { min-height: 44px; padding: 0 20px; font-size: 14.5px; border-radius: 11px; }
+  .btn.btn--sm { min-height: 30px; padding: 0 10px; font-size: 12.5px; border-radius: 8px; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn[aria-busy="true"] { cursor: progress; }
+  .btn[aria-busy="true"]::before {
+    content: "";
+    width: 13px;
+    height: 13px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: console-spin 0.7s linear infinite;
+  }
 
-      /* Section header that carries controls (range picker, export). */
-      .team-app .blockhead {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin: 0 0 11px;
-      }
-      .team-app .blockhead h2 { margin: 0; }
-      .team-app .headctl { display: flex; align-items: center; gap: 8px; }
-      .team-app .headctl select { padding: 6px 9px; font-size: 12.5px; }
-      .team-app .ctl-lbl {
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: var(--faint);
-      }
+  /* ---- Form controls ---------------------------------------------------- */
+  input, select, textarea {
+    min-height: 36px;
+    padding: 8px 11px;
+    border: 1px solid var(--c-line-strong);
+    border-radius: 9px;
+    background: var(--c-field);
+    color: var(--c-text);
+    font: 400 14px/1.35 var(--sans);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input::placeholder, textarea::placeholder { color: var(--c-muted); opacity: 0.8; }
+  input:hover:not(:disabled), select:hover:not(:disabled), textarea:hover:not(:disabled) { border-color: var(--c-muted); }
+  input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 0;
+    border-color: var(--c-accent);
+    box-shadow: 0 0 0 3px var(--c-accent-soft);
+  }
+  input:disabled, select:disabled, textarea:disabled { opacity: 0.5; cursor: not-allowed; }
+  /* A visible label over its control. A placeholder is not a label: it goes
+     the moment someone types, and it is too faint to read as one anyway. */
+  .fgroup { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .fgroup--grow { flex: 1 1 320px; }
+  .fgroup > label, .flbl { font: 600 12.5px/1.3 var(--sans); color: var(--c-body); }
+  /* Policy toggles are switches. Must stay after the generic input rule. */
+  input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    flex: none;
+    position: relative;
+    width: 40px;
+    min-height: 0;
+    height: 22px;
+    margin: 2px 0 0;
+    padding: 0;
+    border-radius: 999px;
+    background: var(--c-line);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  input[type="checkbox"]::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--c-muted);
+    transition: transform 0.15s, background 0.15s;
+  }
+  input[type="checkbox"]:checked { background: var(--c-accent-soft); border-color: var(--c-accent); box-shadow: none; }
+  input[type="checkbox"]:checked::after { transform: translateX(18px); background: var(--c-accent); }
+  input[type="checkbox"]:focus-visible { outline: 2px solid var(--c-ring); outline-offset: 2px; box-shadow: none; }
 
-      /* Settings forms: label + control rows, action bars, inline status. */
-      .team-app .field { display: flex; align-items: center; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
-      .team-app .flbl { width: 150px; font-size: 13px; color: var(--muted); }
-      .team-app .field input, .team-app .field select { flex: 1; min-width: 240px; }
-      .team-app .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
-      /* Policy runs past a screenful, and every edit on it is pending until
-         this is pressed. It follows the page rather than waiting at the end. */
-      .team-app .actions--sticky {
-        position: sticky;
-        bottom: 0;
-        margin: 14px -18px -16px;
-        padding: 13px 18px;
-        border-top: 1px solid var(--border);
-        border-radius: 0 0 14px 14px;
-        background: rgba(10, 14, 26, 0.94);
-        backdrop-filter: blur(6px);
-      }
-      .team-app .status { font-size: 12.5px; color: var(--muted); }
-      .team-app .status.ok { color: var(--ok); }
-      .team-app .status.err { color: var(--danger); }
-      .team-app .opt { display: flex; align-items: flex-start; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--border); }
-      .team-app .opt:last-of-type { border-bottom: 0; }
-      .team-app .opt strong { font-size: 13.5px; }
-      .team-app .opt p { margin: 5px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.6; max-width: 72ch; }
-      .team-app .opt label { cursor: pointer; }
-      /* The one control on this page that can make the extension catch LESS.
-         Boxed, tinted, and it turns red once it is armed — nobody should flip
-         this while skimming the pattern list it sits under. */
-      .team-app .opt.opt--danger {
-        margin-top: 15px;
-        padding: 13px 15px;
-        border: 1px solid rgba(255, 107, 107, 0.3);
-        border-radius: 12px;
-        background: rgba(255, 107, 107, 0.05);
-      }
-      .team-app .opt.opt--danger.armed {
-        border-color: rgba(255, 107, 107, 0.65);
-        background: rgba(255, 107, 107, 0.11);
-      }
-      .team-app .opt.opt--danger.armed strong { color: var(--danger); }
-      .team-app #pol-replace:checked {
-        background: rgba(255, 107, 107, 0.25);
-        border-color: rgba(255, 107, 107, 0.55);
-      }
-      .team-app #pol-replace:checked::after { background: var(--danger); }
-      .team-app .opt--danger .warn {
-        margin-top: 10px;
-        padding: 8px 11px;
-        border-left: 2px solid var(--danger);
-        border-radius: 0 8px 8px 0;
-        background: rgba(255, 107, 107, 0.09);
-        color: var(--text);
-        font-size: 12.5px;
-        line-height: 1.55;
-        max-width: 72ch;
-      }
+  /* ---- Console shell ----------------------------------------------------
+     The console is separate jobs, not one page: read the numbers, manage
+     users, write the policy, route the alerts. A sidebar makes each one
+     somewhere you can be, and each item carries the state of the thing
+     behind it, so the seat count and a webhook that has started failing are
+     visible from wherever you happen to be standing. */
+  .shell { display: grid; grid-template-columns: 252px minmax(0, 1fr); align-items: start; }
+  .side {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    height: 100vh;
+    padding: 20px 12px 16px;
+    border-right: 1px solid var(--c-line);
+    background: var(--c-side);
+  }
+  .side .brand { padding: 4px 10px; }
+  .side .nav { display: flex; flex-direction: column; gap: 3px; }
+  .navitem {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: none;
+    color: var(--c-body);
+    font: 500 14px/1 var(--sans);
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .navitem:hover { text-decoration: none; }
+  .navitem:hover:not([aria-disabled="true"]) { color: var(--c-text); background: var(--c-hover); }
+  .navitem svg { color: var(--c-muted); }
+  .navitem[aria-current="page"] { color: var(--c-accent); background: var(--c-accent-soft); font-weight: 600; }
+  .navitem[aria-current="page"] svg { color: var(--c-accent); }
+  /* Where you are, as the desktop app marks it: a bar on the leading edge. */
+  .navitem[aria-current="page"]::before {
+    content: "";
+    position: absolute;
+    left: -12px;
+    top: 9px;
+    bottom: 9px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--c-accent);
+  }
+  .navitem[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
+  .navitem .label { flex: 1; }
+  /* The live state each item carries: a seat count, or a dot for the health
+     of the thing behind it. Both come from real data or stay hidden. */
+  .navitem .badge {
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: var(--c-hover);
+    color: var(--c-muted);
+    font: 600 11.5px/1 var(--mono);
+  }
+  .navitem .badge:empty { display: none; }
+  .navitem[aria-current="page"] .badge { color: var(--c-accent); }
+  .navitem .sdot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--c-muted); }
+  .navitem .sdot[hidden] { display: none; }
+  /* Scoped to .navitem to match the specificity of the rule above. */
+  .navitem .sdot--ok { background: #34d399; }
+  .navitem .sdot--bad { background: var(--danger); }
+  .navitem .sdot--dirty { background: #fbbf24; }
 
-      /* "Are my alerts actually arriving?" Delivery is fire-and-forget, so a
-         webhook that has started refusing everything looks exactly like a quiet
-         week unless this line says otherwise. */
-      .team-app .health {
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-        margin: 12px 0 2px;
-        padding: 11px 13px;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        background: rgba(255, 255, 255, 0.03);
-      }
-      .team-app .health .dot {
-        flex: none;
-        width: 8px;
-        height: 8px;
-        margin-top: 5px;
-        border-radius: 50%;
-        background: var(--faint);
-      }
-      .team-app .health .line { font-size: 13px; line-height: 1.5; }
-      .team-app .health .sub { margin: 5px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.55; max-width: 72ch; }
-      /* The exact timestamp is in the title; hint that there is one to hover. */
-      .team-app .health .ago { border-bottom: 1px dotted var(--faint); cursor: help; }
-      .team-app .health--ok .dot { background: var(--ok); }
-      .team-app .health--bad { border-color: rgba(255, 107, 107, 0.35); background: rgba(255, 107, 107, 0.06); }
-      .team-app .health--bad .dot { background: var(--danger); }
-      .team-app .health--bad .line { color: var(--danger); }
-      .team-app .subsec { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
-      .team-app .subsec h3 { font-size: 13.5px; margin: 0 0 5px; }
-      .team-app .subsec > p { margin: 0 0 12px; color: var(--muted); font-size: 12.5px; line-height: 1.6; max-width: 72ch; }
-      .team-app .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-      .team-app .chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 5px 7px 5px 11px;
-        border: 1px solid var(--border);
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.03);
-        font: 500 12.5px/1 var(--mono);
-      }
-      .team-app .chip button {
-        border: 0;
-        background: none;
-        color: var(--faint);
-        font-size: 15px;
-        line-height: 1;
-        padding: 0 3px;
-        cursor: pointer;
-      }
-      .team-app .chip button:hover { color: var(--danger); }
-      /* A field that grows to fill a 1000px panel reads as a mistake — cap
-         each one near the length of what actually goes in it. */
-      .team-app #pat-label { min-width: 170px; max-width: 280px; }
-      .team-app #pat-regex { flex: 2; min-width: 240px; max-width: 440px; font-family: var(--mono); }
-      .team-app #site-input { max-width: 420px; }
-      .team-app #invite-email { max-width: 460px; min-width: 240px; min-height: 62px; resize: vertical; flex: 1; }
-      .team-app #invite-progress { min-height: 18px; margin: 2px 0 8px; overflow-wrap: anywhere; }
-      .team-app #invite-results:not([hidden]) { margin: 10px 0 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 13px; }
-      .team-app #invite-results ul { margin: 8px 0 0; padding-left: 20px; }
-      .team-app #invite-results li { margin-top: 4px; overflow-wrap: anywhere; }
-      .team-app #alert-webhook { max-width: 460px; }
-      .team-app #alert-min { max-width: 460px; }
-      .team-app #pat-type { flex: none; }
-      .team-app .hide { display: none !important; }
-      .team-app .invite { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-      .team-app .invite input { flex: 1; min-width: 220px; }
-      .team-app .invite input[type="number"] { flex: none; width: 96px; min-width: 0; }
-      .team-app .err:empty { display: none; }
-      .team-app #pending {
-        display: block;
-        padding: 15px 18px;
-        margin-bottom: 18px;
-        border: 1px solid rgba(251, 191, 36, 0.35);
-        border-radius: 14px;
-        background: rgba(251, 191, 36, 0.06);
-      }
-      .team-app #pending p { margin: 5px 0 0; color: var(--muted); font-size: 13px; max-width: 62ch; }
-      /* An abandoned checkout leaves the team created but unpaid, and this panel
-         is all the buyer can see — so the way to pay has to live inside it. */
-      .team-app #pending .buyform {
-        margin-top: 14px;
-        padding-top: 13px;
-        border-top: 1px solid rgba(251, 191, 36, 0.25);
-      }
-      .team-app #pending .invite { margin-bottom: 0; }
-      /* Two steps before anything irreversible: the second button names the
-         person and says what removal costs them. */
-      .team-app .confirm { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-      .team-app .confirm .q { font-size: 12.5px; color: var(--muted); }
-      .team-app #seats-edit { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
-      .team-app #seats-edit input { width: 96px; }
-      .team-app #member-actions { margin-top: 20px; }
-      .team-app #member-actions h3 { font-size: 13.5px; margin: 0 0 8px; }
-      .team-app #member-actions .panel p { color: var(--muted); font-size: 12.5px; line-height: 1.6; margin: 0 0 10px; }
-      .team-app #member-actions .panel p:last-child { margin-bottom: 0; }
-      .team-app #gate { max-width: 460px; margin: 60px auto; text-align: center; }
+  .side .foot { margin-top: auto; display: flex; flex-direction: column; gap: 12px; }
+  .side .who {
+    margin: 0;
+    padding: 12px;
+    border: 1px solid var(--c-line);
+    border-radius: 12px;
+    background: var(--c-panel);
+    color: var(--c-muted);
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .side .who strong { display: block; margin-bottom: 2px; color: var(--c-text); font-size: 14px; }
+  .side .who span { display: block; }
+  .side .links { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .side .links .navlink--signout { grid-column: 1 / -1; }
+  .theme-pick {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px;
+    padding: 3px;
+    border: 1px solid var(--c-line);
+    border-radius: 10px;
+    background: var(--c-panel);
+  }
+  .theme-pick button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 30px;
+    border: 0;
+    border-radius: 7px;
+    background: none;
+    color: var(--c-muted);
+    font: 600 12.5px/1 var(--sans);
+    cursor: pointer;
+  }
+  .theme-pick button:hover { color: var(--c-text); }
+  .theme-pick button[aria-pressed="true"] { background: var(--c-accent-soft); color: var(--c-accent); }
 
-/* The Business console is an application from its first paint. */
+  .content { min-width: 0; padding: 0 36px 72px; }
+  .view { max-width: 1180px; margin: 0 auto; }
+  .view.view-shadow { max-width: none; }
+  .view[hidden] { display: none; }
+  /* One header per view: what this page is, one line on what it does, and
+     the controls that belong to it. */
+  .viewhead {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 32px 0 20px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--c-line);
+  }
+  .viewhead h1 { margin: 0 0 6px; }
+  .viewhead .sub { margin: 0; max-width: 68ch; }
+  .headctl { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .ctl-lbl { font: 600 12.5px/1 var(--sans); color: var(--c-muted); }
+  /* "Updated 01:14:24" — a fact about the data, not a notice to act on. */
+  .liveline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: -6px 0 16px;
+    color: var(--c-muted);
+    font-size: 12.5px;
+  }
+  .liveline::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--c-ok); }
+
+  /* ---- Panels and stat cards ------------------------------------------- */
+  .panel {
+    /* Positioned, so a screen-reader-only label inside a wide table is
+       clipped with the table instead of widening the page on a phone. */
+    position: relative;
+    padding: 20px;
+    border: 1px solid var(--c-line);
+    border-radius: 14px;
+    background: var(--c-panel);
+    overflow-x: auto;
+  }
+  .panel + .panel { margin-top: 16px; }
+  .panel--flush { padding: 0; }
+  .panelhead { margin-bottom: 16px; }
+  .panelhead h2 { margin: 0 0 4px; font: 600 16px/1.3 var(--sans); letter-spacing: -0.01em; }
+  .panelhead p { margin: 0; color: var(--c-muted); font-size: 13.5px; max-width: 72ch; }
+  .panelhead--row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--c-line);
+  }
+  .panelhead--row h2 { margin: 0; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+  .card {
+    position: relative;
+    padding: 18px 20px;
+    border: 1px solid var(--c-line);
+    border-radius: 14px;
+    background: var(--c-panel);
+  }
+  .card .ico {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--c-accent-soft);
+    color: var(--c-accent);
+  }
+  .card .k {
+    padding-right: 40px;
+    color: var(--c-muted);
+    font: 500 11.5px/1.4 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .card .v { margin-top: 14px; font: 600 30px/1 var(--mono); letter-spacing: -0.03em; color: var(--c-text); }
+  .card .v small { font-size: 14px; font-weight: 500; letter-spacing: 0; color: var(--c-muted); }
+  section.block { margin-top: 24px; }
+  .block h2 { margin: 0 0 10px; font: 600 15px/1.3 var(--sans); letter-spacing: -0.01em; }
+  .block.trio { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .blockhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 0 0 11px; }
+  .blockhead h2 { margin: 0; }
+
+  .row { display: flex; align-items: center; gap: 12px; margin: 10px 0; }
+  .row .lbl { width: 150px; font-size: 13.5px; color: var(--c-body); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .track { flex: 1; height: 8px; border-radius: 6px; background: var(--c-line); overflow: hidden; }
+  .row .fill { height: 100%; border-radius: 6px; background: var(--c-accent); }
+  .row .n { width: 52px; text-align: right; color: var(--c-text); font: 500 13px/1 var(--mono); }
+  .chart { display: flex; align-items: flex-end; gap: 4px; height: 160px; border-bottom: 1px solid var(--c-line); }
+  .chart .bar { flex: 1; min-width: 4px; min-height: 2px; border-radius: 3px 3px 0 0; background: var(--c-accent); opacity: 0.85; }
+  .chart .bar:hover { opacity: 1; }
+  /* Which day each end of the chart is. Without them the bars are a shape
+     with no scale, and the hover title is no use on a phone. */
+  .axis { display: flex; justify-content: space-between; gap: 10px; margin-top: 10px; color: var(--c-muted); font: 500 12px/1 var(--mono); }
+  .rollout-track { display: flex; overflow: hidden; height: 12px; margin: 12px 0; border-radius: 999px; background: var(--c-line); }
+  .rollout-segment { display: block; height: 100%; }
+  .rollout-confirmed { background: #33c795; }
+  .rollout-downloaded { background: #6fdbe8; }
+  .rollout-pending { background: #e6b960; }
+  .rollout-offline { background: #7d8796; }
+
+  /* ---- Tables ----------------------------------------------------------- */
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 14px 12px; border-bottom: 1px solid var(--c-line); text-align: left; vertical-align: middle; font-size: 14px; color: var(--c-body); }
+  th {
+    padding-block: 11px;
+    color: var(--c-muted);
+    font: 500 11.5px/1.3 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  tr:last-child td { border-bottom: 0; }
+  .roster th:first-child, .roster td:first-child { padding-left: 20px; }
+  .roster th:last-child, .roster td:last-child { padding-right: 20px; text-align: right; }
+  .roster tbody tr:hover td { background: var(--c-hover); }
+  .roster thead th { background: var(--c-panel-2); }
+  /* The name column keeps its width when a confirmation opens beside it. */
+  .roster td:first-child { min-width: 270px; }
+  .roster .conn small { white-space: nowrap; }
+  /* Who: initials, then the name over the address it signs in with. */
+  .person { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .avatar {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--c-accent-soft);
+    color: var(--c-accent);
+    font: 600 12.5px/1 var(--sans);
+    letter-spacing: 0.02em;
+  }
+  .avatar--pending { border: 1px dashed var(--c-line-strong); background: none; color: var(--c-muted); }
+  .person .name { display: block; color: var(--c-text); font-weight: 600; font-size: 14px; }
+  .person .mail { display: block; color: var(--c-muted); font-size: 13px; overflow-wrap: anywhere; }
+  .conn { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+  .conn small { display: block; line-height: 1.45; }
+  .conn details { font-size: 12.5px; color: var(--c-muted); }
+  .conn summary { cursor: pointer; color: var(--c-accent); font-weight: 600; }
+  .conn details > div { margin-top: 8px; padding: 10px 12px; border: 1px solid var(--c-line); border-radius: 9px; background: var(--c-panel-2); line-height: 1.55; }
+  .rowactions { display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+
+  /* A state, said twice: once in words and once in colour. Never colour
+     alone — the dot is decoration for those who can see it. */
+  .pill, .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border: 1px solid var(--c-line-strong);
+    border-radius: 999px;
+    color: var(--c-body);
+    font: 600 12px/1.2 var(--sans);
+    white-space: nowrap;
+  }
+  .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .pill--ok { color: var(--c-ok); border-color: var(--c-ok-line); background: var(--c-ok-soft); }
+  .pill--warn, .tag.pending { color: var(--c-warn); border-color: var(--c-warn-line); background: var(--c-warn-soft); }
+  .pill--idle { color: var(--c-muted); }
+  .tag.admin { color: var(--c-accent); border-color: var(--c-accent-line); background: var(--c-accent-soft); }
+
+  .empty { padding: 18px 0; color: var(--c-muted); font-size: 13.5px; }
+  td.empty { padding: 28px 20px; text-align: center; }
+  .note { margin-top: 12px; color: var(--c-muted); font-size: 13px; line-height: 1.6; }
+
+  /* ---- Messages ---------------------------------------------------------
+     Two kinds, and they must not look alike. A status line is quiet text: it
+     reports progress or a saved state and asks nothing of you. An alert is a
+     boxed, tinted block with an icon: something went wrong or needs you.
+     `.err` paragraphs are alerts wherever they appear, and stay out of the
+     layout while empty. */
+  .status { color: var(--c-muted); font-size: 13px; line-height: 1.5; }
+  .status:empty { display: none; }
+  .status.ok { color: var(--c-ok); font-weight: 600; }
+  .err, .alert, .status.err {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 12px 0 0;
+    padding: 11px 14px;
+    border: 1px solid var(--c-danger-line);
+    border-radius: 10px;
+    background: var(--c-danger-soft);
+    color: var(--c-text);
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.5;
+    text-align: left;
+  }
+  /* Plain error lines read in the danger colour; the richer .alert keeps
+     body text neutral because it carries a title and a list. */
+  .err, .status.err { color: var(--c-danger); }
+  .err:empty { display: none; }
+  .err::before, .status.err::before, .alert::before {
+    content: "";
+    flex: none;
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+    background: var(--c-danger);
+    -webkit-mask: var(--ico-alert) center / contain no-repeat;
+    mask: var(--ico-alert) center / contain no-repeat;
+  }
+  .alert > div { flex: 1; min-width: 0; }
+  .alert .alert-title { display: block; color: var(--c-text); font-weight: 600; font-size: 14px; }
+  .alert p { margin: 3px 0 0; color: var(--c-body); font-size: 13.5px; }
+  .alert ul { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+  .alert li {
+    padding: 9px 12px;
+    border: 1px solid var(--c-line);
+    border-radius: 8px;
+    background: var(--c-panel);
+    color: var(--c-body);
+    font-size: 13.5px;
+    overflow-wrap: anywhere;
+  }
+  .alert li b { display: block; color: var(--c-text); font: 600 13px/1.4 var(--mono); }
+  .alert--warn { border-color: var(--c-warn-line); background: var(--c-warn-soft); }
+  .alert--warn::before { background: var(--c-warn); }
+  .alert--ok { border-color: var(--c-ok-line); background: var(--c-ok-soft); }
+  .alert--ok::before { background: var(--c-ok); -webkit-mask-image: var(--ico-ok); mask-image: var(--ico-ok); }
+  .alert--info { border-color: var(--c-accent-line); background: var(--c-accent-soft); }
+  .alert--info::before { background: var(--c-accent); -webkit-mask-image: var(--ico-info); mask-image: var(--ico-info); }
+
+  /* Still talking to the server, but on stale data. */
+  .team-refresh-notice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 20px auto 0;
+    max-width: 1180px;
+    padding: 12px 16px;
+    border: 1px solid var(--c-warn-line);
+    border-radius: 12px;
+    background: var(--c-warn-soft);
+    color: var(--c-body);
+    font-size: 13.5px;
+  }
+
+  /* Pop-ups, top right: the result of something you just did. They repeat
+     what the page says beside the control, so missing one loses nothing. */
+  .toasts {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(400px, calc(100vw - 36px));
+    pointer-events: none;
+  }
+  .toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 14px 14px 16px;
+    border: 1px solid var(--c-line-strong);
+    border-left: 3px solid var(--toast-tone, var(--c-accent));
+    border-radius: 12px;
+    background: var(--c-panel);
+    box-shadow: var(--c-shadow);
+    animation: console-toast-in 0.22s ease-out;
+  }
+  .toast::before {
+    content: "";
+    flex: none;
+    width: 20px;
+    height: 20px;
+    background: var(--toast-tone, var(--c-accent));
+    -webkit-mask: var(--toast-ico, var(--ico-info)) center / contain no-repeat;
+    mask: var(--toast-ico, var(--ico-info)) center / contain no-repeat;
+  }
+  .toast--error { --toast-tone: var(--c-danger); --toast-ico: var(--ico-alert); }
+  .toast--warn { --toast-tone: var(--c-warn); --toast-ico: var(--ico-alert); }
+  .toast--ok { --toast-tone: var(--c-ok); --toast-ico: var(--ico-ok); }
+  .toast .toast-body { flex: 1; min-width: 0; }
+  .toast .toast-title { display: block; color: var(--c-text); font: 600 14px/1.35 var(--sans); }
+  .toast p { margin: 3px 0 0; color: var(--c-body); font-size: 13.5px; line-height: 1.5; overflow-wrap: anywhere; }
+  .toast .toast-close {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    margin: -3px -3px 0 0;
+    border: 0;
+    border-radius: 7px;
+    background: none;
+    color: var(--c-muted);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .toast .toast-close:hover { background: var(--c-hover); color: var(--c-text); }
+
+  /* ---- Settings forms --------------------------------------------------- */
+  .field { display: flex; align-items: center; gap: 12px; margin: 14px 0; flex-wrap: wrap; }
+  .flbl { width: 150px; }
+  .field input, .field select { flex: 1; min-width: 240px; }
+  .actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  .actions .status.err { margin: 0; }
+  /* Policy runs past a screenful, and every edit on it is pending until
+     this is pressed. It follows the page rather than waiting at the end. */
+  .actions--sticky {
+    position: sticky;
+    bottom: 0;
+    margin: 16px -20px -20px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--c-line);
+    border-radius: 0 0 14px 14px;
+    background: var(--c-panel);
+  }
+  .opt { display: flex; align-items: flex-start; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--c-line); }
+  .opt:first-child { padding-top: 0; }
+  .opt:last-of-type { border-bottom: 0; }
+  .opt strong { font-size: 14.5px; }
+  .opt p { margin: 5px 0 0; color: var(--c-muted); font-size: 13.5px; line-height: 1.6; max-width: 72ch; }
+  .opt p strong { font-size: inherit; }
+  .opt label { cursor: pointer; }
+  /* The one control on this page that can make the extension catch LESS.
+     Boxed, tinted, and it turns red once it is armed — nobody should flip
+     this while skimming the pattern list it sits under. */
+  .opt.opt--danger {
+    margin-top: 16px;
+    padding: 16px;
+    border: 1px solid var(--c-danger-line);
+    border-radius: 12px;
+    background: var(--c-danger-soft);
+  }
+  .opt.opt--danger.armed { border-color: var(--c-danger); }
+  .opt.opt--danger.armed label strong { color: var(--c-danger); }
+  #pol-replace:checked { background: var(--c-danger-soft); border-color: var(--c-danger); }
+  #pol-replace:checked::after { background: var(--c-danger); }
+  .opt--danger .warn {
+    margin-top: 10px;
+    padding: 9px 12px;
+    border-left: 3px solid var(--c-danger);
+    border-radius: 0 8px 8px 0;
+    background: var(--c-panel);
+    color: var(--c-text);
+  }
+
+  /* "Are my alerts actually arriving?" Delivery is fire-and-forget, so a
+     webhook that has started refusing everything looks exactly like a quiet
+     week unless this line says otherwise. */
+  .health {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 14px 0 4px;
+    padding: 12px 14px;
+    border: 1px solid var(--c-line);
+    border-radius: 12px;
+    background: var(--c-panel-2);
+  }
+  .health .dot { flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: var(--c-muted); }
+  .health .line { font-size: 14px; line-height: 1.5; color: var(--c-text); }
+  .health .sub { margin: 4px 0 0; font-size: 13px; max-width: 72ch; }
+  /* The exact timestamp is in the title; hint that there is one to hover. */
+  .health .ago { border-bottom: 1px dotted var(--c-muted); cursor: help; }
+  .health--ok { border-color: var(--c-ok-line); background: var(--c-ok-soft); }
+  .health--ok .dot { background: var(--c-ok); }
+  .health--bad { border-color: var(--c-danger-line); background: var(--c-danger-soft); }
+  .health--bad .dot { background: var(--c-danger); }
+  .health--bad .line { color: var(--c-danger); font-weight: 600; }
+  .subsec { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--c-line); }
+  .subsec > p { margin: 0 0 14px; color: var(--c-muted); font-size: 13.5px; line-height: 1.6; max-width: 72ch; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 6px 5px 12px;
+    border: 1px solid var(--c-line-strong);
+    border-radius: 999px;
+    background: var(--c-panel-2);
+    color: var(--c-text);
+    font: 500 13px/1 var(--mono);
+  }
+  .chip button {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: var(--c-muted);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .chip button:hover { background: var(--c-danger-soft); color: var(--c-danger); }
+
+  /* A field that grows to fill a 1000px panel reads as a mistake — cap
+     each one near the length of what actually goes in it. */
+  #pat-label { min-width: 170px; max-width: 280px; }
+  #pat-regex { flex: 2; min-width: 240px; max-width: 440px; font-family: var(--mono); }
+  #site-input { max-width: 420px; }
+  #alert-webhook, #alert-min { max-width: 460px; }
+  #pat-type { flex: none; }
+  .invite { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .invite input { flex: 1; min-width: 220px; }
+  .invite input[type="number"] { flex: none; width: 96px; min-width: 0; }
+  /* Labelled controls on one baseline, the button level with the inputs. */
+  .invite--form { align-items: flex-end; gap: 12px; margin-bottom: 0; }
+  .invite--form .fgroup:not(.fgroup--grow) { flex: 0 0 150px; }
+  #invite-email { width: 100%; min-height: 64px; resize: vertical; }
+  #invite-progress { margin: 12px 0 0; overflow-wrap: anywhere; }
+  #invite-hint { margin: 12px 0 0; }
+
+  #pending {
+    display: block;
+    max-width: 1180px;
+    margin: 20px auto 0;
+    padding: 18px 20px;
+    border: 1px solid var(--c-warn-line);
+    border-radius: 14px;
+    background: var(--c-warn-soft);
+  }
+  #pending p { margin: 5px 0 0; max-width: 62ch; }
+  /* An abandoned checkout leaves the team created but unpaid, and this panel
+     is all the buyer can see — so the way to pay has to live inside it. */
+  #pending .buyform { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--c-warn-line); }
+  #pending .invite { margin-bottom: 0; }
+  /* Two steps before anything irreversible: the second button names the
+     person and says what removal costs them. */
+  .confirm { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; width: 280px; margin-left: auto; }
+  .confirm .q { flex-basis: 100%; color: var(--c-text); font-size: 13px; line-height: 1.45; text-align: right; }
+  #seats-edit { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+  #seats-edit input { width: 96px; }
+
+  /* ---- The gate: sign-in, verification, or why you can't come in. ------- */
+  #gate {
+    max-width: 480px;
+    margin: 48px auto;
+    padding: 36px 32px;
+    border: 1px solid var(--c-line);
+    border-radius: 18px;
+    background: var(--c-panel);
+    box-shadow: var(--c-shadow);
+    text-align: center;
+  }
+  #gate h1 { font-size: 23px; margin: 0 0 8px; }
+  #gate .sub { margin: 0 0 20px; }
+  #gate .sub:empty { display: none; }
+  #gate .invite { justify-content: center; }
+  #gate-retry { margin-top: 4px; }
+  #clerk-auth:not(:empty) { margin-top: 8px; }
+  .gate-cta { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+  #gate .gate-cta + .status { margin: 14px 0 0; }
+  #member-actions { margin-top: 20px; }
+  #member-actions .panel { margin-top: 18px; background: var(--c-panel-2); text-align: left; }
+  #member-actions .panel p { margin: 0 0 10px; color: var(--c-muted); font-size: 13.5px; }
+  #member-actions .panel p:last-child { margin-bottom: 0; }
+
+  .cl-card { background: var(--c-panel); color: var(--c-text); }
+}
+
+/* ---- Small screens ---------------------------------------------------- */
+@media (max-width: 880px) {
+  .team-app {
+    .shell { grid-template-columns: minmax(0, 1fr); }
+    .side {
+      position: static;
+      height: auto;
+      gap: 12px;
+      padding: 14px 16px 0;
+      border-right: 0;
+      border-bottom: 1px solid var(--c-line);
+    }
+    /* A row of tabs that scrolls sideways beats a hamburger here: five
+       destinations, and their badges are worth seeing at a glance. */
+    .side .nav { flex-direction: row; gap: 6px; overflow-x: auto; padding-bottom: 12px; scrollbar-width: none; }
+    .side .nav::-webkit-scrollbar { display: none; }
+    .navitem { width: auto; flex: none; white-space: nowrap; }
+    .navitem[aria-current="page"]::before { left: 12px; right: 12px; top: auto; bottom: -1px; width: auto; height: 3px; border-radius: 3px 3px 0 0; }
+    /* Brand, then who you are, then where you can go — the sidebar's own
+       order, stacked. */
+    .side .brand { order: 0; }
+    .side .foot { order: 1; margin-top: 0; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .side .who { flex: 1 1 100%; padding: 10px 12px; }
+    .side .nav { order: 2; }
+    .side .links { display: flex; flex-wrap: wrap; }
+    .theme-pick { flex: 0 0 150px; }
+    .content { padding: 0 16px 60px; }
+    .view-shadow { width: 100%; }
+    .viewhead { padding-top: 22px; }
+    .roster th:first-child, .roster td:first-child { padding-left: 14px; }
+    .roster th:last-child, .roster td:last-child { padding-right: 14px; }
+    .roster { min-width: 620px; }
+  }
+}
+@media (max-width: 760px) {
+  .team-app { padding: 0 16px; }
+  .team-app .topbar { flex-wrap: wrap; }
+  .team-app #gate { padding: 28px 20px; margin: 24px auto; }
+}
+/* On a phone the tabs only fit without their icons. */
+@media (max-width: 470px) {
+  .team-app {
+    .navitem { padding: 0 10px; gap: 7px; }
+    .navitem svg { display: none; }
+    .topnav { width: 100%; justify-content: flex-start; gap: 6px; }
+    .brand-word { font-size: 18px; }
+    .invite--form .fgroup:not(.fgroup--grow) { flex: 1 1 100%; }
+    .invite--form .btn { width: 100%; }
+    .toasts { top: 10px; right: 10px; width: calc(100vw - 20px); }
+  }
+}
+
+/* ---- The Business console is an application from its first paint. ------ */
 .business-console > .site-header, .business-console > footer { display: none; }
 .business-console #team-workspace { padding-top: 24px; min-height: 100vh; }
-.business-console .team-app .content { max-width: none; }
 .business-console .team-app .view-shadow { width: 100%; min-width: 0; }
 .business-console #shadow-root { display: block; min-height: 420px; }
-.business-console .team-app .shadow-viewhead { padding-bottom: 24px; }
 
 /* Keep the application frame stationary as views and live data change height.
    Scope this to the authorized console so sign-in can still scroll naturally. */
 .business-console:has(#console:not(.hide)) { overflow: hidden; }
 .business-console:has(#console:not(.hide)) #team-workspace {
-  margin: 0 auto; padding: 0; min-height: 0;
+  max-width: none; margin: 0; padding: 0; min-height: 0;
   height: 100vh; height: 100dvh;
 }
 .business-console .team-app #console {
@@ -574,6 +947,7 @@
   min-height: 0; height: 100%; overflow-y: auto;
   overscroll-behavior: contain; overflow-anchor: none;
   scrollbar-gutter: stable; scroll-behavior: auto;
+  scrollbar-color: var(--c-line-strong) transparent;
 }
 @media (max-width: 880px) {
   .business-console .team-app #console { grid-template-rows: auto minmax(0, 1fr); }
@@ -581,9 +955,13 @@
 }
 
 .business-console #gate:has(#clerk-auth:empty):has(#gate-sub:empty)::after {
-  content: ''; display: block; height: 80px; margin: 24px auto;
-  border-radius: 12px; background: linear-gradient(90deg, transparent, rgba(114,255,255,.08), transparent);
+  content: ''; display: block; height: 80px; margin: 24px auto 0;
+  border-radius: 12px; background: linear-gradient(90deg, transparent, var(--c-accent-soft), transparent);
   background-size: 200% 100%; animation: console-loading 1.5s ease-in-out infinite;
 }
 @keyframes console-loading { to { background-position: -200% 0; } }
-@media (prefers-reduced-motion: reduce) { .business-console #gate::after { animation: none!important; } }
+@keyframes console-spin { to { transform: rotate(360deg); } }
+@keyframes console-toast-in { from { opacity: 0; transform: translateY(-8px); } }
+@media (prefers-reduced-motion: reduce) {
+  .business-console #gate::after, .team-app .toast, .team-app .btn::before { animation: none !important; }
+}
