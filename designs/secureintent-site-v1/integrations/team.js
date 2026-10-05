@@ -81,6 +81,7 @@
         });
         const body = await res.json().catch(() => ({}));
         assertScope();
+        if (res.ok && accessHeader) window.SIAdminAccess.touch();
         if (!res.ok) {
           // Carry the code, the status and the rest of the body on the error:
           // explain() needs `minSeats` and `seatsUsed` to say something an admin
@@ -292,41 +293,64 @@
           .join("");
       }
 
-      function chart(points, shownDays) {
-        const el = $("p-chart");
-        const axis = $("chart-axis");
-        if (!points || !points.length) {
-          el.innerHTML = '<div class="empty">No detections in this period</div>';
-          el.removeAttribute("role");
-          el.removeAttribute("aria-label");
-          $("chart-summary").textContent = `No detections in the last ${shownDays} days.`;
-          axis.hidden = true;
+      // The chart redraws itself at the panel's width, so a resize or a rotated
+      // phone gets crisp bars and labels that still fit.
+      let chartSeries = null;
+      let chartWidth = 0;
+      function drawChart() {
+        if (!chartSeries) return;
+        chartWidth = $("p-chart").clientWidth;
+        window.SIOverviewChart.render($("p-chart"), chartSeries, $("chart-tip"));
+      }
+      if (window.ResizeObserver)
+        new ResizeObserver(() => {
+          if (chartSeries && $("p-chart").clientWidth && $("p-chart").clientWidth !== chartWidth) drawChart();
+        }).observe($("p-chart"));
+
+      function chart(m) {
+        const C = window.SIOverviewChart;
+        const s = C.series(m);
+        const st = C.stats(m, s);
+        chartSeries = s;
+        const unit = s.unit;
+        $("chart-stats").hidden = false;
+        $("cs-total").textContent = fmt(st.total);
+        const change = $("cs-change");
+        change.textContent = st.change ? st.change.text : "—";
+        change.className = st.change ? `chg chg-${st.change.dir}` : "";
+        change.title = st.change && st.change.previous !== undefined ? `${fmt(st.change.previous)} in the previous ${s.days} days` : "";
+        $("cs-busiest-k").textContent = `Busiest ${unit}`;
+        $("cs-busiest").textContent = st.busiest ? `${st.busiest.label} · ${fmt(st.busiest.n)}` : "—";
+        $("cs-anyway").textContent = st.total ? `${st.anywayPct}% · ${fmt(st.anyway)}` : "—";
+        $("cs-anyway").className = st.anyway ? "warn" : "";
+
+        const legend = $("chart-legend");
+        legend.replaceChildren();
+        const shown = s.split
+          ? C.GROUPS.filter((g) => g.key !== "other" || s.buckets.some((b) => b.other))
+          : [{ key: "all", label: "Detections" }];
+        for (const g of shown) {
+          const li = document.createElement("li");
+          li.innerHTML = `<span class="sw sw-${g.key}" aria-hidden="true"></span>${esc(g.label)}`;
+          legend.append(li);
+        }
+
+        if (!st.total) {
+          $("p-chart").innerHTML = `<div class="empty">No detections in the last ${s.days} days</div>`;
+          $("chart-tip").hidden = true;
+          chartSeries = null;
+          $("chart-summary").textContent = `No detections in the last ${s.days} days.`;
           return;
         }
-        const max = points.reduce((m, p) => Math.max(m, p.n), 0) || 1;
-        el.innerHTML = points
-          .map(
-            (p) =>
-              `<div class="bar" style="height:${Math.max(2, (p.n / max) * 100)}%" title="${esc(
-                p.day,
-              )}: ${fmt(p.n)}"></div>`,
-          )
-          .join("");
-
-        // Same figures in a sentence: a bar chart of bare divs with hover titles
-        // says nothing to a screen reader, and nothing at all on a touchscreen.
-        const total = points.reduce((t, p) => t + (Number(p.n) || 0), 0);
-        const first = String(points[0].day ?? "");
-        const last = String(points[points.length - 1].day ?? "");
-        const summary =
-          `${fmt(total)} detection${total === 1 ? "" : "s"} across ${points.length} day` +
-          `${points.length === 1 ? "" : "s"}, ${first} to ${last}. Busiest day: ${fmt(max)}.`;
-        $("chart-summary").textContent = summary;
-        el.setAttribute("role", "img");
-        el.setAttribute("aria-label", `Detections per day. ${summary}`);
-        $("axis-start").textContent = first;
-        $("axis-end").textContent = last;
-        axis.hidden = false;
+        drawChart();
+        const first = s.buckets[0];
+        const last = s.buckets[s.buckets.length - 1];
+        $("chart-summary").textContent =
+          `Detections per ${unit}, ${first.label} to ${last.label}: ${fmt(st.total)} in total` +
+          (st.change ? `, ${st.change.text.replace("▲", "up").replace("▼", "down")} on the previous period` : "") +
+          (st.busiest ? `. Busiest ${unit}: ${st.busiest.label} with ${fmt(st.busiest.n)}` : "") +
+          (s.split ? `. Pasted anyway: ${fmt(st.anyway)} (${st.anywayPct}%).` : ".") +
+          " Focus the chart and use the arrow keys to read each bar.";
       }
 
       /**
@@ -355,16 +379,18 @@
           // Just the count: people who triggered a detection in the window. Not
           // "of seats" — someone can hold a seat and never trip a warning.
           $("c-actors").textContent = fmt(m.activeActors);
-          chart(m.byDay, shown);
+          chart({ ...m, days: shown });
           bars($("p-types"), m.byType, TYPE_LABEL);
           bars($("p-sites"), m.bySite);
           bars($("p-actions"), m.byAction, ACTION_LABEL);
           $("export").disabled = false;
+          $("overview-export-pdf").disabled = false;
           status.textContent = `${m.source === 'shadow_events' ? 'AI destinations only · Counts match the Shadow AI event ledger. ' : ''}Updated ${new Date().toLocaleTimeString()}`;
         } catch (error) {
           if (error.name === 'AbortError') return;
           status.textContent = 'Overview data is temporarily unavailable. Retrying automatically.';
           $("export").disabled = true;
+          $("overview-export-pdf").disabled = true;
           if (!lastMetrics) {
             $("c-total").textContent = '—'; $("c-actors").textContent = '—';
           } else status.textContent += ' Showing the last successful update.';
@@ -388,6 +414,10 @@
         const m = lastMetrics;
         const rows = [["section", "key", "label", "detections"]];
         (m.byDay || []).forEach((p) => rows.push(["day", p.day, p.day, p.n]));
+        // The chart's stacked bars, one row per day and outcome.
+        (m.byDayAction || []).forEach((p) =>
+          rows.push(["day_outcome", `${p.day}:${p.key}`, `${p.day} · ${ACTION_LABEL[p.key] || p.key}`, p.n]),
+        );
         (m.byType || []).forEach((r) => rows.push(["type", r.key, TYPE_LABEL[r.key] || r.key, r.n]));
         (m.bySite || []).forEach((r) => rows.push(["destination", r.key, r.key, r.n]));
         (m.byAction || []).forEach((r) =>
@@ -396,6 +426,8 @@
         rows.push(["summary", "total", "All detections", m.total ?? 0]);
         rows.push(["summary", "activeActors", "Users involved", m.activeActors ?? 0]);
         rows.push(["summary", "days", "Days covered", m.days]);
+        if (Number.isFinite(Number(m.previousTotal)))
+          rows.push(["summary", "previousTotal", `Detections in the previous ${m.days} days`, m.previousTotal]);
         // The BOM is what makes Excel read this as UTF-8 rather than Latin-1.
         const body = `${rows.map((r) => r.map(csvCell).join(",")).join("\r\n")}\r\n`;
         const url = URL.createObjectURL(
@@ -408,6 +440,31 @@
         a.click();
         a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 30000);
+      }
+
+      /** The Overview as a printable report: the same figures, drawn by hand. */
+      function exportPdf() {
+        if (!lastMetrics) return;
+        const m = lastMetrics;
+        const C = window.SIOverviewChart;
+        const s = C.series(m);
+        try {
+          window.SIOverviewPdf.download({
+            metrics: m,
+            series: s,
+            stats: C.stats(m, s),
+            organization: currentTeam?.name || $("team-name").textContent || "",
+            seats: currentTeam ? { used: currentTeam.seatsUsed, total: currentTeam.seats } : null,
+            rollout: $("policy-rollout-summary").textContent || "",
+            labels: { types: TYPE_LABEL, actions: ACTION_LABEL },
+            groups: C.GROUPS,
+            generatedAt: new Date(),
+          });
+          notify("ok", "Overview report downloaded");
+        } catch (error) {
+          console.error("[overview-pdf]", error);
+          notify("error", "The PDF report could not be created", "Please try again in a moment.");
+        }
       }
 
       function policyStatusLabel(status) {
@@ -1751,6 +1808,7 @@
         });
 
         $("export").addEventListener("click", exportCsv);
+        $("overview-export-pdf").addEventListener("click", exportPdf);
 
         $("alerts-save").addEventListener("click", () =>
           saveSettings($("alerts-status"), $("alerts-save")),
@@ -1794,8 +1852,8 @@
           if (host.shadowRoot) host.dataset.theme = document.documentElement.dataset.theme === "light" ? "white" : "secureintent";
         }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
-        $("signout").addEventListener("click", () => window.Clerk.signOut());
-        $("signout-side").addEventListener("click", () => window.Clerk.signOut());
+        $("signout").addEventListener("click", () => { window.SIAdminAccess.clear(); window.Clerk.signOut(); });
+        $("signout-side").addEventListener("click", () => { window.SIAdminAccess.clear(); window.Clerk.signOut(); });
 
         $("users-refresh").addEventListener("click", () => refreshUsers({ manual: true }));
         window.setInterval(refreshUsers, 5_000);

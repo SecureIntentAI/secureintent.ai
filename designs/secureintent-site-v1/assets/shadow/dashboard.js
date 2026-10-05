@@ -47,6 +47,7 @@ async function api(path, body, signal) {
     body: JSON.stringify(body), credentials: 'omit', cache: 'no-store', signal,
   });
   const data = await response.json().catch(() => ({}));
+  if (response.ok) window.SIAdminAccess?.touch?.();
   if (!response.ok) {
     if(data.error==='admin_reauthentication_required') {
       window.SIAdminAccess?.clear();
