@@ -103,6 +103,9 @@
 .bp-notice-icon svg { width: 28px; height: 28px; }
 .bp-notice-icon.is-warn { background: color-mix(in srgb, #b7791f 14%, transparent); color: #b7791f; }
 .business-onboarding .utility-links { display: flex; justify-content: center; margin-top: 12px; }
+.bp-alt { display: grid; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--business-border); }
+.bp-alt p { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 4px 8px; margin: 0; color: var(--business-muted); font-size: 14px; line-height: 1.5; text-align: center; }
+.bp-alt a.text-action { padding: 0; font-weight: 600; }
 #business-status { text-align: center; }
 @media (max-width: 560px) {
   .bp-steps li { font-size: 11px; padding: 7px; }
