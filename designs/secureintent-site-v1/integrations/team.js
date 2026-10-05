@@ -1955,7 +1955,7 @@
             title: adminVerification ? 'Verify your admin account with Clerk' : signUpMode ? "Create your account" : "Sign in to manage your team",
             sub: signUpMode
               ? "Use the business email address named in your organization invitation."
-              : adminVerification ? 'Use the registered organisation account. Clerk handles password recovery and any additional verification.' : '',
+              : adminVerification ? 'Use your registered organisation email, then sign in with your password or an email code. Google and other sign-in options can\'t open the admin console.' : '',
             pitch: !adminVerification,
           });
           $("signout").hidden = true;
