@@ -237,6 +237,8 @@
         font-size: 12.5px;
         text-decoration: none;
       }
+      .account-app button.joined-cta { border: 0; cursor: pointer; font-family: inherit; }
+      .account-app button.joined-cta:disabled { opacity: .6; cursor: wait; }
       .account-app .overlap {
         display: flex;
         align-items: center;

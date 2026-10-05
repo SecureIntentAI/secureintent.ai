@@ -88,11 +88,25 @@ const CFG = SI.config;
         inviteToken = "";
         sessionStorage.removeItem(inviteStorageKey);
       }
-      const fromInvitation = invitationParams.get("joined") === "1" || !!inviteToken;
+      let fromInvitation = invitationParams.get("joined") === "1" || !!inviteToken;
       let invitedOrg = /^org_[A-Za-z0-9_]+$/.test(invitationParams.get("org") || "")
         ? invitationParams.get("org") : null;
       let inviteError = "";
       let selectedInviteOrg = "";
+      // An invitation found for this verified email when the link token was
+      // lost (sign-up finished in another tab or device). Offered, never auto-joined.
+      let pendingOffer = null;
+      const pendingChecked = new Set();
+      const INVITE_ERRORS = {
+        invitation_email_mismatch: "Sign in with the exact work email named in your invitation.",
+        invitation_unavailable: "This invitation has expired or was revoked. Ask your organisation administrator for a new one.",
+        unauthenticated: "Your sign-in could not be confirmed yet. Refresh this page and retry.",
+        authentication_unavailable: "Clerk could not confirm your session just now. Refresh this page and retry.",
+        already_member: "This account already belongs to a Business workspace. Contact your administrator.",
+        team_busy: "Your organisation is busy right now. Wait a moment and try again.",
+      };
+      const inviteErrorText = (code) => INVITE_ERRORS[code] ||
+        "We couldn't confirm the invitation. Retry the account check or contact your administrator.";
       let policyNoticeBusy = false;
       let policyNoticeKey = "";
 
@@ -148,8 +162,18 @@ const CFG = SI.config;
         if (!fromInvitation) return;
         const banner = $("joined");
         const install = $("joined-install");
+        const accept = $("joined-accept");
         banner.hidden = false;
         install.hidden = true;
+        accept.hidden = true;
+        if (pendingOffer) {
+          $("joined-title").textContent = `You're invited to join ${pendingOffer.companyName}`;
+          $("joined-sub").textContent = inviteError ||
+            "Join to get Business protection from your organisation. Its administrator will see that you joined and whether your extension is connected.";
+          accept.textContent = `Join ${pendingOffer.companyName}`;
+          accept.hidden = false;
+          return;
+        }
         if (unavailable) {
           $("joined-title").textContent = "We couldn't confirm your invitation yet";
           $("joined-sub").textContent = "Retry your account check before installing the extension.";
@@ -416,6 +440,56 @@ const CFG = SI.config;
           if (window.Clerk.user) void loadPlan();
         }, delay);
       }
+      // Best effort: a failed lookup simply shows the normal account page.
+      async function findPendingInvitation() {
+        try {
+          const signInToken = await window.Clerk.session.getToken();
+          if (!signInToken) return;
+          const res = await SI.fetch(`${CFG.apiBase}/v1/business-member/pending`, {
+            headers: { Authorization: `Bearer ${signInToken}` }, cache: "no-store",
+          });
+          if (!res.ok) return;
+          const data = await res.json().catch(() => ({}));
+          const offer = Array.isArray(data.invitations) ? data.invitations[0] : null;
+          if (offer && /^[a-f0-9-]{36}$/.test(offer.invitationId) && typeof offer.companyName === "string") {
+            pendingOffer = { invitationId: offer.invitationId, orgId: offer.orgId, companyName: offer.companyName };
+            fromInvitation = true;
+          }
+        } catch {
+          // Never block the account page on this check.
+        }
+      }
+
+      async function acceptPendingInvitation() {
+        if (!pendingOffer) return;
+        const button = $("joined-accept");
+        button.disabled = true;
+        inviteError = "";
+        try {
+          const signInToken = await window.Clerk.session.getToken();
+          if (!signInToken) throw new Error("Clerk session token unavailable");
+          const res = await SI.fetch(`${CFG.apiBase}/v1/business-member/accept`, {
+            method: "POST", headers: { Authorization: `Bearer ${signInToken}`, "content-type": "application/json" },
+            body: JSON.stringify({ invitationId: pendingOffer.invitationId }), cache: "no-store",
+          });
+          const outcome = await res.json().catch(() => ({}));
+          if (res.ok) {
+            invitedOrg = outcome.orgId || pendingOffer.orgId;
+            pendingOffer = null;
+            await loadPlan();
+            return;
+          }
+          if (outcome.error === "invitation_unavailable" || outcome.error === "already_member") pendingOffer = null;
+          inviteError = inviteErrorText(outcome.error);
+        } catch {
+          inviteError = "We couldn't reach SecureIntent to join just now. Check your connection and try again.";
+        } finally {
+          button.disabled = false;
+        }
+        renderInvitation(null);
+      }
+      $("joined-accept").addEventListener("click", acceptPendingInvitation);
+
       async function loadPlan() {
         if (planInFlight) return;
         planInFlight = true;
@@ -437,6 +511,9 @@ const CFG = SI.config;
             const outcome = await accepted.json().catch(() => ({}));
             if (accepted.ok) {
               invitedOrg = outcome.orgId;
+              // Joined: nothing left to look up. A failed token still falls
+              // through to the email lookup, which finds a resent invitation.
+              if (userId) pendingChecked.add(userId);
               inviteToken = "";
               sessionStorage.removeItem(inviteStorageKey);
               inviteError = "";
@@ -450,18 +527,12 @@ const CFG = SI.config;
                 inviteToken = "";
                 sessionStorage.removeItem(inviteStorageKey);
               }
-              inviteError = outcome.error === "invitation_email_mismatch"
-                ? "Sign in with the exact work email named in your invitation."
-                : outcome.error === "invitation_unavailable"
-                  ? "This invitation has expired or was revoked. Ask your organisation administrator for a new one."
-                  : outcome.error === "unauthenticated"
-                    ? "Your sign-in could not be confirmed yet. Refresh this page and retry."
-                    : outcome.error === "authentication_unavailable"
-                      ? "Clerk could not confirm your session just now. Refresh this page and retry."
-                      : outcome.error === "already_member"
-                        ? "This account already belongs to a Business workspace. Contact your administrator."
-                  : "We couldn't confirm the invitation. Retry the account check or contact your administrator.";
+              inviteError = inviteErrorText(outcome.error);
             }
+          }
+          if (!inviteToken && userId && !pendingChecked.has(userId)) {
+            pendingChecked.add(userId);
+            await findPendingInvitation();
           }
           // A recipient with several organisations may not have the invited
           // one selected in Clerk. Switching is safe: Clerk checks membership.
