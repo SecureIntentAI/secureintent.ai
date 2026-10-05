@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8"><script src="integrations/config.js"></script><script src="integrations/runtime.js"></script><script>(function(){try{document.documentElement.dataset.theme=localStorage.getItem('si_site_theme')==='dark'?'dark':'light';}catch(_){}})();</script>
   <meta name="theme-color" content="#050608" id="theme-color"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><title>Activate Business · SecureIntent</title><base href="/designs/secureintent-site-v1/">
-  <link rel="icon" href="../../favicon-32x32.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="how-it-works.css"><link rel="stylesheet" href="site-pages.css"><script src="how-it-works.js?v=20260915-menu-cleanup" defer></script><script src="integrations/business-promo.js?v=20261005-onboarding-v2" defer></script>
-<link rel="stylesheet" href="integrations/app.css"><script src="../../install-links.js" defer></script><script src="integrations/site.js" defer></script><link rel="stylesheet" href="business-onboarding.css?v=20261005-onboarding-v2"></head>
+  <link rel="icon" href="../../favicon-32x32.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="how-it-works.css"><link rel="stylesheet" href="site-pages.css"><script src="how-it-works.js?v=20260915-menu-cleanup" defer></script><script src="integrations/business-promo.js?v=20261005-activation-paths" defer></script>
+<link rel="stylesheet" href="integrations/app.css"><script src="../../install-links.js" defer></script><script src="integrations/site.js" defer></script><link rel="stylesheet" href="business-onboarding.css?v=20261005-activation-paths"></head>
 <body class="business-onboarding">
   <a class="skip" href="#main">Skip to content</a>
   <header class="site-header"><div class="container header-inner"><a href="index.html" class="brand"><svg class="business-brand-mark" viewBox="0 0 44 48" fill="none" aria-hidden="true"><path d="M26 6 7 42" stroke="#0a5166" stroke-width="6" stroke-linecap="round"/><path d="m38 22-10 20" stroke="#14a6a5" stroke-width="6" stroke-linecap="round"/></svg><span>SecureIntent<span class="brand-suffix">.ai</span></span></a><div class="header-actions"><div class="theme-switch" role="group" aria-label="Colour theme"><button class="theme-option" type="button" data-set-theme="dark" aria-pressed="true">Dark</button><button class="theme-option" type="button" data-set-theme="light" aria-pressed="false">Light</button></div></div></div></header>
@@ -64,7 +64,7 @@
       <h1 id="bp-blocked-title"></h1>
       <p class="lede" id="bp-blocked-text"></p>
       <a class="button bp-primary" id="bp-blocked-action" href="mailto:info@secureintent.ai?subject=Business%20invitation">Contact SecureIntent <span aria-hidden="true">→</span></a>
-      <p class="utility-note" id="bp-blocked-note" hidden></p>
+      <div class="bp-alt" id="bp-blocked-alt" hidden></div>
     </div>
 
     <p id="business-status" class="utility-note" role="status" aria-live="polite"></p>

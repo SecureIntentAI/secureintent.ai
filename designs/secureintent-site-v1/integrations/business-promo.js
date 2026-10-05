@@ -11,6 +11,7 @@
   const VIEWS = ['bp-loading', 'bp-welcome', 'bp-auth', 'bp-confirm', 'bp-mismatch', 'bp-done', 'bp-blocked'];
   const validToken = (t) => typeof t === 'string' && /^[a-f0-9]{64}$/.test(t);
   let token = '';
+  let tokenFromLink = false;  // clicked just now, versus remembered from an earlier visit
   let invite = null;          // what /inspect or /pending returned
   let byEmail = false;        // activating without the link token (lost link)
   let busy = false;
@@ -39,7 +40,8 @@
   try {
     const fromLink = new URLSearchParams(location.hash.slice(1)).get('invite') || '';
     if (validToken(fromLink)) remember(fromLink);
-    token = validToken(fromLink) ? fromLink : recall();
+    tokenFromLink = validToken(fromLink);
+    token = tokenFromLink ? fromLink : recall();
     // Keep the token out of history, bookmarks and shared screenshots.
     if (location.hash) history.replaceState(null, '', location.pathname + location.search);
   } catch { /* the token in memory still works */ }
@@ -117,23 +119,24 @@
     unmountAuth();
     final = kind !== 'nolink';
     const domain = invite ? invite.email.split('@')[1] : '';
+    const at = domain ? ` for @${domain}` : '';
     const cards = {
       registered: ['building', false, 'Already registered', 'Your organisation is', 'already registered.',
-        `${x.companyName || 'Your organisation'} already uses SecureIntent Business${domain ? ` for @${domain}` : ''}. Ask your workspace administrator${x.adminHint ? ` (${x.adminHint})` : ''} to invite you as a member.`],
+        `${x.companyName || 'Your organisation'} already uses SecureIntent Business${at}. To join, ask your workspace administrator${x.adminHint ? ` (${x.adminHint})` : ''} to invite you as a member.`],
       suspended: ['pause', true, 'Workspace suspended', "Your organisation's workspace", 'is suspended.',
-        `${x.companyName || 'A previous workspace'}${domain ? ` for @${domain}` : ''} is suspended. Contact SecureIntent to restore or remove it, then open this link again.`],
-      unavailable: ['clock', true, 'Invitation unavailable', 'This invitation is', 'no longer valid.',
-        'It may have expired, been replaced by a newer link, or been revoked. Ask SecureIntent for a new invitation.'],
+        `${x.companyName ? `${x.companyName}'s` : 'Your organisation\'s'} SecureIntent workspace${at} is suspended, so a new one can't be activated yet. Contact SecureIntent to restore or remove it, then open your invitation link again.`],
+      unavailable: ['clock', true, 'Invitation unavailable', 'This invitation link is', 'no longer valid.',
+        'It has expired, been replaced by a newer link, or been revoked. Ask SecureIntent for a new invitation.'],
       used: ['user', true, 'Invitation in use', 'This invitation is', 'already in use.',
-        'Another account has already started activating this workspace. If that was not you, contact SecureIntent.'],
-      already_member: ['user', true, 'Account already in use', 'This account already', 'belongs to a workspace.',
-        'A person can belong to one SecureIntent Business workspace. Sign in with a different account, or contact SecureIntent.'],
+        'A different SecureIntent account has already started activating this workspace. If that was you with an earlier account, ask SecureIntent to release the invitation, then sign in again.'],
+      already_member: ['user', true, 'Account already in a workspace', 'This account already', 'belongs to a workspace.',
+        'Each person can belong to one SecureIntent Business workspace, and this account already does. Sign in with a different account, or contact SecureIntent.'],
       activated: ['check', false, 'Workspace active', 'This workspace is', 'already active.',
-        `${invite ? invite.companyName : 'Your organisation'}'s workspace is set up. Open the Business console to manage it.`],
+        `${invite ? invite.companyName : 'Your organisation'}'s workspace is set up. Sign in to the Business console to manage it and invite your team.`],
       nolink: ['link', false, 'Business activation', 'Open your', 'invitation link.',
-        'Use the activation link SecureIntent sent to your work email. Already started signing up? Sign in to continue.'],
+        "To activate a workspace, open the link in the invitation email from SecureIntent. Already signed up? Sign in and we'll find your invitation."],
       notfound: ['link', true, 'No invitation found', 'No invitation for', 'this account.',
-        `We couldn't find a pending invitation for ${x.email || 'this account'}. Open the link from your invitation email, or contact SecureIntent.`],
+        `There's no pending Business invitation for ${x.email || 'this account'}. Check that you're signed in with the invited email, or open the link in your invitation email.`],
     };
     const [icon, warn, eyebrow, first, accent, text] = cards[kind];
     const iconBox = $('bp-blocked-icon');
@@ -149,9 +152,43 @@
     else if (kind === 'nolink') { action.textContent = 'Sign in to continue →'; action.href = '#'; blockedAction = () => openAuth('signin'); }
     else if (kind === 'already_member' || kind === 'notfound') { action.textContent = 'Use a different account →'; action.href = '#'; blockedAction = switchAccount; }
     else { action.textContent = 'Contact SecureIntent →'; action.href = 'mailto:info@secureintent.ai?subject=Business%20invitation'; }
+    alternatives(kind);
     show('bp-blocked');
   }
   $('bp-blocked-action').addEventListener('click', (e) => { if (blockedAction) { e.preventDefault(); blockedAction(); } });
+
+  // Secondary routes under a card, so no screen is a dead end.
+  const CONSOLE = ['Already activated your workspace?', 'Open the Business console', 'console'];
+  const NEWER = ['Received a newer invitation?', 'Sign in to continue', 'signin'];
+  const ALTERNATIVES = {
+    unavailable: [CONSOLE, NEWER],
+    used: [['Is this your workspace?', 'Open the Business console', 'console'], NEWER],
+    registered: [['Are you its administrator?', 'Open the Business console', 'console']],
+    already_member: [['Is this your workspace?', 'Open the Business console', 'console']],
+    nolink: [CONSOLE],
+    notfound: [CONSOLE],
+  };
+  function alternatives(kind) {
+    const box = $('bp-blocked-alt');
+    const signedIn = !!window.Clerk?.user;
+    const rows = (ALTERNATIVES[kind] || []).map(([question, label, target]) => {
+      // Already signed in: "sign in" means "with another account".
+      if (target === 'signin' && signedIn) [question, label, target] = ['Signed in with the wrong account?', 'Use a different account', 'switch'];
+      const p = document.createElement('p');
+      const link = document.createElement('a');
+      link.className = 'text-action';
+      link.textContent = `${label} →`;
+      if (target === 'console') link.href = SI.page('team.html');
+      else {
+        link.href = '#';
+        link.addEventListener('click', (e) => { e.preventDefault(); if (target === 'switch') switchAccount(); else openAuth('signin'); });
+      }
+      p.append(document.createTextNode(question), link);
+      return p;
+    });
+    box.replaceChildren(...rows);
+    box.hidden = rows.length === 0;
+  }
 
   // ---------- Clerk sign-up / sign-in inside the card ----------
   function unmountAuth() {
@@ -161,6 +198,7 @@
     mounted = '';
   }
   function openAuth(mode) {
+    final = false;
     show('bp-auth');
     const signin = mode === 'signin';
     $('bp-tab-signup').setAttribute('aria-selected', String(!signin));
@@ -265,12 +303,15 @@
     if (token) {
       try { invite = await call('POST', '/v1/business-promo/inspect', { token }); }
       catch (error) {
-        if (error.code === 'invitation_unavailable' || error.code === 'invalid_invitation') { forget(); token = ''; invite = null; blocked('unavailable'); }
-        else { status(error.message, true); }
-        await window.Clerk.load();
-        return;
+        if (error.code === 'invitation_unavailable' || error.code === 'invalid_invitation') {
+          forget(); token = ''; invite = null;
+          // Only a link clicked just now deserves the "no longer valid" card. A
+          // code remembered from an earlier visit must not block a plain visit
+          // or a sign-in: continue as if no link was opened.
+          if (tokenFromLink) { blocked('unavailable'); await window.Clerk.load(); window.Clerk.addListener(() => route()); return; }
+        } else { status(error.message, true); await window.Clerk.load(); return; }
       }
-      fill();
+      if (invite) fill();
     }
     await window.Clerk.load();
     window.Clerk.addListener(() => route());
