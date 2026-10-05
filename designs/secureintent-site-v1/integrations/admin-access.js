@@ -44,7 +44,7 @@
   const data=await response.json().catch(()=>({}));
   if(startScope!==scope())throw new Error('Your account changed. Please sign in again.');
   if(!response.ok){
-   const messages={clerk_verification_required:'Sign in again with Clerk to verify this admin session.',password_verification_required:'Use your Clerk password to verify admin access. Other sign-in methods do not meet the admin password requirement.',forbidden:'This account is not the registered workspace administrator.',business_promo_required:'This account does not have an active Business workspace.'};
+   const messages={clerk_verification_required:'Sign in again with Clerk to verify this admin session.',password_verification_required:'To open the admin console, sign in with your password or an email code sent to your work email. Google and other sign-in options can\'t open it.',forbidden:'This account is not the registered workspace administrator.',business_promo_required:'This account does not have an active Business workspace.'};
    const error=new Error(messages[data.error]||'Clerk verification could not be completed. Please retry.');
    error.code=data.error;
    throw error;
