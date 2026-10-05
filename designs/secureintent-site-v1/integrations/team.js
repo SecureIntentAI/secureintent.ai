@@ -104,6 +104,10 @@
       // to DEFAULT_ERROR rather than putting `invalid_seats` on screen.
       // ---------------------------------------------------------------------
       const DEFAULT_ERROR = `Something went wrong — try again, or email ${BILLING_EMAIL}.`;
+      // fetch() rejects with a TypeError whose message is the browser's own
+      // ("Failed to fetch", "NetworkError when attempting…"). Never show that.
+      const NETWORK_ERROR = "We couldn't reach SecureIntent. Check your connection and try again.";
+      const TIMEOUT_ERROR = "That took too long to answer. Try again in a moment.";
       const BELOW_MIN_SEATS =
         "A team starts at three seats — for fewer, Developer Pro on your account page is the cheaper plan.";
       const ABOVE_MAX_SEATS = `${MAX_SEATS} seats is the most you can buy here — email ${BILLING_EMAIL} for anything larger.`;
@@ -165,6 +169,8 @@
       function explain(err, ctx = {}) {
         const code = err && err.code;
         const data = (err && err.data) || {};
+        if (err instanceof TypeError || code === "network") return NETWORK_ERROR;
+        if (err && err.name === "TimeoutError") return TIMEOUT_ERROR;
         if (code === "invalid_seats") {
           return seatsRangeError(Math.floor(Number(ctx.seats))) || BELOW_MIN_SEATS;
         }
@@ -206,6 +212,46 @@
       /** Keep a price line in step with the seat box it sits under. */
       function updatePrice(input, out, tail = "") {
         out.textContent = priceLine(input.value, tail);
+      }
+
+      /**
+       * A pop-up for the result of something the admin just did. It repeats
+       * what the page says beside the control rather than replacing it, so a
+       * missed one loses nothing. Failures stay until dismissed; the rest
+       * leave on their own.
+       */
+      function notify(kind, title, message = "") {
+        const host = $("toasts");
+        if (!host) return;
+        const toast = document.createElement("div");
+        toast.className = `toast toast--${kind}`;
+        toast.setAttribute("role", kind === "error" ? "alert" : "status");
+        const body = document.createElement("div");
+        body.className = "toast-body";
+        const head = document.createElement("span");
+        head.className = "toast-title";
+        head.textContent = title;
+        body.append(head);
+        if (message) {
+          const text = document.createElement("p");
+          text.textContent = message;
+          body.append(text);
+        }
+        const close = document.createElement("button");
+        close.type = "button";
+        close.className = "toast-close";
+        close.setAttribute("aria-label", "Dismiss");
+        close.textContent = "×";
+        close.addEventListener("click", () => toast.remove());
+        toast.append(body, close);
+        // The same notice twice in a row is one notice.
+        [...host.children].find((el) => el.textContent === toast.textContent)?.remove();
+        host.append(toast);
+        while (host.children.length > 4) host.firstElementChild.remove();
+        // Failures linger longer, but not forever: the stack sits over the
+        // view's header actions (Export CSV, Refresh), and the inline message
+        // beside the control still carries the error after this goes.
+        setTimeout(() => toast.remove(), kind === "error" ? 15000 : 6000);
       }
 
       // One inline line of feedback per form. Success and failure look
@@ -419,14 +465,32 @@
         const expanded=new Set(Array.from($("people").querySelectorAll("details[open][data-policy-user]"),el=>el.dataset.policyUser));
         const isAdmin = team.role === "org:admin";
         $("invite-row").classList.toggle("hide", !isAdmin);
+        const initials = (text) =>
+          String(text || "?").split(/[\s@._-]+/).filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join("") || "?";
+        const person = (name, email, pending = false) =>
+          `<div class="person"><span class="avatar${pending ? " avatar--pending" : ""}" aria-hidden="true">${esc(
+            initials(name || email),
+          )}</span><div>${name ? `<span class="name">${esc(name)}</span>` : ""}<span class="${
+            name ? "mail" : "name"
+          }">${esc(email || "")}</span></div></div>`;
         const rows = [
           ...(team.members || []).map((m) => {
             const who = m.name || m.email || "this person";
-            return `<tr><td>${esc(m.name || "—")}</td><td>${esc(m.email || "")}</td><td><span class="tag ${
-              m.role === "org:admin" ? "admin" : ""
-            }">${m.role === "org:admin" ? "Admin" : "Member"}</span></td><td>${esc(m.connection?.status === "recently_connected" ? "Recently connected" : m.connection?.status === "inactive" ? "Inactive" : m.role === "org:admin" ? "Not yet connected" : "Joined · not yet connected")}${m.connection?.lastSeenAt ? `<br><small>Last check-in: ${esc(new Date(m.connection.lastSeenAt).toLocaleString())}</small>` : ""}${m.connection?.policyStatus ? `<br><small>${policyStatusLabel(m.connection.policyStatus)}</small>` : ""}${devicePolicyDetails(m.connection,m.userId,expanded)}</td><td>${
-              isAdmin && m.role !== "org:admin"
-                ? `<button class="btn" type="button" data-remove="${esc(
+            const admin = m.role === "org:admin";
+            const status = m.connection?.status;
+            const [tone, label] =
+              status === "recently_connected" ? ["ok", "Recently connected"]
+              : status === "inactive" ? ["idle", "Inactive"]
+              : ["idle", admin ? "Not yet connected" : "Joined · not yet connected"];
+            return `<tr><td>${person(m.name, m.email)}</td><td><span class="tag ${admin ? "admin" : ""}">${
+              admin ? "Admin" : "Member"
+            }</span></td><td><div class="conn"><span class="pill pill--${tone}">${label}</span>${
+              m.connection?.lastSeenAt ? `<small>Last check-in: ${esc(new Date(m.connection.lastSeenAt).toLocaleString())}</small>` : ""
+            }${m.connection?.policyStatus ? `<small>${policyStatusLabel(m.connection.policyStatus)}</small>` : ""}${devicePolicyDetails(
+              m.connection, m.userId, expanded,
+            )}</div></td><td>${
+              isAdmin && !admin
+                ? `<button class="btn btn--sm" type="button" data-remove="${esc(
                     m.userId,
                   )}" data-who="${esc(who)}" aria-label="Remove ${esc(who)}">Remove</button>`
                 : ""
@@ -434,17 +498,17 @@
           }),
           ...(team.invitations || []).map(
             (i) =>
-              `<tr><td>—</td><td>${esc(i.email)}</td><td><span class="tag pending">Member</span></td><td>Invited · awaiting acceptance<br><small>Email delivery not confirmed</small></td><td>${
+              `<tr><td>${person("", i.email, true)}</td><td><span class="tag">Member</span></td><td><div class="conn"><span class="pill pill--warn">Invited · awaiting acceptance</span><small>Email delivery not confirmed</small></div></td><td>${
                 isAdmin
-                  ? `<button class="btn" type="button" data-resend="${esc(i.email)}">Resend</button> <button class="btn" type="button" data-revoke="${esc(i.id)}" data-who="${esc(
+                  ? `<span class="rowactions"><button class="btn btn--sm" type="button" data-resend="${esc(i.email)}">Resend</button><button class="btn btn--sm" type="button" data-revoke="${esc(i.id)}" data-who="${esc(
                       i.email,
-                    )}" aria-label="Revoke the invitation for ${esc(i.email)}">Revoke</button>`
+                    )}" aria-label="Revoke the invitation for ${esc(i.email)}">Revoke</button></span>`
                   : ""
               }</td></tr>`,
           ),
         ];
-        for (const invitation of team.pendingInvitations || []) rows.push(`<tr><td>—</td><td>${esc(invitation.email)}</td><td>Member</td><td>Invitation awaiting confirmation</td><td><button class="btn" data-cancel-pending="${esc(invitation.email)}">Cancel pending invitation</button></td></tr>`);
-        body.innerHTML = rows.join("") || '<tr><td colspan="5" class="empty">No users yet</td></tr>';
+        for (const invitation of team.pendingInvitations || []) rows.push(`<tr><td>${person("", invitation.email, true)}</td><td><span class="tag">Member</span></td><td><div class="conn"><span class="pill pill--warn">Invitation awaiting confirmation</span></div></td><td><button class="btn btn--sm" type="button" data-cancel-pending="${esc(invitation.email)}">Cancel pending invitation</button></td></tr>`);
+        body.innerHTML = rows.join("") || '<tr><td colspan="4" class="empty">No users yet. Invite someone above to fill a seat.</td></tr>';
         lastPeopleRenderKey = key;
         if (focusKey) {
           const replacement = [...body.querySelectorAll("button")].find((button) => button.dataset[focusKey] === focusValue);
@@ -464,10 +528,10 @@
       function askConfirm(cell, { question, verb, attr, value, who }) {
         cell.innerHTML =
           `<div class="confirm"><span class="q">${esc(question)}</span>` +
-          `<button class="btn danger" type="button" data-${attr}="${esc(
+          `<button class="btn btn--sm danger" type="button" data-${attr}="${esc(
             value,
           )}" data-who="${esc(who)}" data-confirmed="1">${esc(verb)}</button>` +
-          '<button class="btn" type="button" data-cancel="1">Keep</button></div>';
+          '<button class="btn btn--sm" type="button" data-cancel="1">Keep</button></div>';
       }
 
       // Paddle's transaction status is the difference between "we're waiting on
@@ -1040,6 +1104,8 @@
         if (viewChanged && currentView) viewScroll.set(currentView, contentPane.scrollTop);
         currentView = want;
         if (viewChanged) {
+          // A notice belongs to the view whose action raised it.
+          $("toasts")?.replaceChildren();
           VIEWS.forEach((v) => {
             $(`view-${v}`).hidden = v !== want;
             const item = document.querySelector(`.navitem[data-view="${v}"]`);
@@ -1162,19 +1228,28 @@
       }
 
       let clerkVerificationStarting=false;
-      function showAdminClerkGate({automatic=true,reason=''}={}) {
+      function showAdminClerkGate({automatic=true,reason='',retry=false}={}) {
         seatsLive=false;
         window.SIAdminAccess.clear();
         currentTeam=null;lastMetrics=null;
-        showGate({title:'Verify your admin account with Clerk',sub:'Sign in again with your registered organisation account to open the Business dashboard.'});
+        // `retry`: Clerk signed them in and only our own check failed to
+        // answer. Signing in a second time would not help; asking again might.
+        showGate(retry
+          ? {title:"We couldn't confirm your admin access",sub:'You are signed in, but the check that opens the Business dashboard did not finish.'}
+          : {title:'Verify your admin account with Clerk',sub:'Sign in again with your registered organisation account to open the Business dashboard.'});
         const host=$('clerk-auth');host.replaceChildren();
-        host.innerHTML='<button class="button" id="admin-clerk-verify" type="button">Continue with Clerk →</button><p id="admin-clerk-status" class="err" role="status" aria-live="polite"></p>';
-        $('admin-clerk-status').textContent=reason;
+        host.innerHTML='<div class="gate-cta">'+(retry?'<button class="btn primary btn--lg" id="admin-clerk-retry" type="button">Try again</button>':'')+
+          `<button class="btn ${retry?'':'primary '}btn--lg" id="admin-clerk-verify" type="button">${retry?'Sign in again':'Continue with Clerk'}</button></div>`+
+          '<p id="admin-clerk-status" class="status" role="status" aria-live="polite"></p>';
+        // Progress is a quiet line; a failure is an alert. Never the same look.
+        const say=(text,failed=false)=>{const el=$('admin-clerk-status');if(!el)return;el.textContent=text;el.className=failed?'err':'status';};
+        say(reason,Boolean(reason));
         const begin=async()=>{
           if(clerkVerificationStarting)return;
           clerkVerificationStarting=true;
           $('admin-clerk-verify').disabled=true;
-          $('admin-clerk-status').textContent='Opening Clerk sign-in…';
+          $('admin-clerk-verify').setAttribute('aria-busy','true');
+          say('Opening Clerk sign-in…');
           try {
             sessionStorage.setItem('si_admin_clerk_pending','1');
             if(/^#\/(overview|people|policy|alerts|shadow)$/.test(location.hash)) sessionStorage.setItem('si_admin_return_view',location.hash);
@@ -1186,9 +1261,16 @@
           } catch {
             clerkVerificationStarting=false;
             $('admin-clerk-verify').disabled=false;
-            $('admin-clerk-status').textContent='Could not open Clerk sign-in. Please retry.';
+            $('admin-clerk-verify').removeAttribute('aria-busy');
+            say('Clerk sign-in did not open. Check your connection and try again.',true);
           }
         };
+        $('admin-clerk-retry')?.addEventListener('click',()=>{
+          $('admin-clerk-retry').disabled=true;
+          $('admin-clerk-retry').setAttribute('aria-busy','true');
+          say('Checking your admin access…');
+          void render(true);
+        });
         $('admin-clerk-verify').addEventListener('click',begin);
         if(automatic)void begin();
       }
@@ -1377,9 +1459,21 @@
         $("team-err").textContent = "";
         try {
           await fn();
+          if (ctx.done) notify("ok", ctx.done);
+        } catch (e) {
+          if (e.name === "AbortError") return;
+          // The button is in the roster; the error line is up in the invite
+          // panel. Pop it up as well so it is seen where the click happened.
+          $("team-err").textContent = explain(e, ctx);
+          notify("error", ctx.failed || "That didn't go through", explain(e, ctx));
+          lastPeopleRenderKey = null;
+          renderPeople(currentTeam);
+          return;
+        }
+        try {
           await loadTeam();
         } catch (e) {
-          $("team-err").textContent = explain(e, ctx);
+          handleTeamReadError(e);
         }
       }
 
@@ -1394,19 +1488,23 @@
         $("invite-results").hidden = true;
         if (!emails.length) {
           $("team-err").textContent = "Enter at least one email address.";
+          input.focus();
           return;
         }
         if (invalid.length) {
-          $("team-err").textContent = `Check these email addresses before sending: ${invalid.join(", ")}`;
+          $("team-err").textContent = `${invalid.length === 1 ? "This doesn't look like an email address" : "These don't look like email addresses"}: ${invalid.join(", ")}. Fix or remove ${invalid.length === 1 ? "it" : "them"}, then send again.`;
+          input.focus();
           return;
         }
         if (emails.length > 149) {
           $("team-err").textContent = "Enter no more than 149 different addresses at once.";
+          input.focus();
           return;
         }
 
         invitesBusy = true;
         setPaywalled(seatsLive);
+        $("invite").setAttribute("aria-busy", "true");
         let requested = 0;
         let alreadyInvited = 0;
         let alreadyMember = 0;
@@ -1418,7 +1516,7 @@
           // contending with its organisation-wide seat lock.
           for (let i = 0; i < emails.length; i++) {
             const email = emails[i];
-            $("invite-progress").textContent = `Processing ${i + 1} of ${emails.length}: ${email}`;
+            $("invite-progress").textContent = emails.length === 1 ? `Inviting ${email}…` : `Inviting ${i + 1} of ${emails.length}: ${email}…`;
             try {
               const result = await api("/v1/team/invite", {
                 method: "POST",
@@ -1443,20 +1541,48 @@
           }
           const remaining = [...failed.map(({ email }) => email), ...emails.slice(next)];
           input.value = remaining.join("\n");
-          const summary = `${requested} requested · ${alreadyInvited} pending · ${alreadyMember} already members · ${entries.length - emails.length} duplicates · ${failed.length} failed · ${emails.length - next} left`;
-          $("invite-progress").textContent = summary;
+          // Only what actually happened: six counters, five of them zero, is
+          // a puzzle rather than an answer.
+          const count = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+          const left = emails.length - next;
+          const duplicates = entries.length - emails.length;
+          const parts = [
+            requested && count(requested, "invitation sent", "invitations sent"),
+            alreadyInvited && count(alreadyInvited, "was already invited", "were already invited"),
+            alreadyMember && count(alreadyMember, "is already a member", "are already members"),
+            duplicates && count(duplicates, "duplicate skipped", "duplicates skipped"),
+            failed.length && count(failed.length, "couldn't be sent", "couldn't be sent"),
+            left && count(left, "not attempted", "not attempted"),
+          ].filter(Boolean);
+          $("invite-progress").textContent = failed.length ? "" : `${parts.join(" · ")}.`;
+          $("invite-progress").className = !failed.length && requested ? "status ok" : "status";
           const results = $("invite-results");
-          results.innerHTML = failed.length
-            ? `<strong>Addresses needing attention (kept in the box):</strong><ul>${failed.map(({ email, reason }) => `<li>${esc(email)}: ${esc(reason)}</li>`).join("")}</ul>`
-            : "";
+          if (failed.length) {
+            const title = count(failed.length, "invitation couldn't be sent", "invitations couldn't be sent");
+            const kept = remaining.length === 1 ? "The address is still in the box" : "These addresses are still in the box";
+            results.className = "alert";
+            results.innerHTML =
+              `<div><span class="alert-title">${esc(title)}</span>` +
+              `<p>${esc(kept)} so you can correct ${remaining.length === 1 ? "it" : "them"} and send again.${
+                left ? ` ${esc(count(left, "address was", "addresses were"))} not attempted.` : ""
+              }${parts.length > 1 ? ` Otherwise: ${esc(parts.filter((part) => !part.includes("couldn't") && !part.includes("not attempted")).join(" · ") || "nothing sent")}.` : ""}</p>` +
+              `<ul>${failed.map(({ email, reason }) => `<li><b>${esc(email)}</b>${esc(reason)}</li>`).join("")}</ul></div>`;
+            notify("error", title, failed.length === 1 ? `${failed[0].email}: ${failed[0].reason}` : "The reason for each one is listed under the invite box.");
+            input.focus();
+          } else {
+            results.innerHTML = "";
+            if (requested) notify("ok", count(requested, "invitation sent", "invitations sent"), "Each person gets an email with a link to join.");
+            else notify("info", "Nothing new to send", `${parts.join(" · ")}.`);
+          }
           results.hidden = !failed.length;
           try {
             await loadTeam();
           } catch (err) {
-            $("team-err").textContent = `Invitations were processed, but the user list could not refresh: ${explain(err)}`;
+            $("team-err").textContent = `The invitations were processed, but the user list didn't refresh. ${explain(err)}`;
           }
         } finally {
           invitesBusy = false;
+          $("invite").removeAttribute("aria-busy");
           setPaywalled(seatsLive);
         }
       }
@@ -1553,8 +1679,8 @@
         $("people").addEventListener("click", (e) => {
           const btn = e.target.closest?.("button");
           if (!btn) return;
-          if (btn.dataset.resend) { btn.disabled=true; act(()=>api("/v1/team/invite/resend",{method:"POST",body:JSON.stringify({email:btn.dataset.resend})})); return; }
-          if (btn.dataset.cancelPending) { btn.disabled=true; act(()=>api("/v1/team/invite/cancel-pending",{method:"POST",body:JSON.stringify({email:btn.dataset.cancelPending})})); return; }
+          if (btn.dataset.resend) { btn.disabled=true; btn.setAttribute("aria-busy","true"); act(()=>api("/v1/team/invite/resend",{method:"POST",body:JSON.stringify({email:btn.dataset.resend})}),{done:`Invitation resent to ${btn.dataset.resend}`,failed:"The invitation wasn't resent"}); return; }
+          if (btn.dataset.cancelPending) { btn.disabled=true; btn.setAttribute("aria-busy","true"); act(()=>api("/v1/team/invite/cancel-pending",{method:"POST",body:JSON.stringify({email:btn.dataset.cancelPending})}),{done:"Pending invitation cancelled",failed:"The invitation wasn't cancelled"}); return; }
           const { remove, revoke, who, confirmed, cancel } = btn.dataset;
           if (cancel) {
             renderPeople(currentTeam);
@@ -1574,12 +1700,15 @@
             });
             return;
           }
+          btn.disabled = true;
+          btn.setAttribute("aria-busy", "true");
           if (remove) {
             act(() =>
               api("/v1/team/member/remove", {
                 method: "POST",
                 body: JSON.stringify({ userId: remove }),
               }),
+              { done: `${who} was removed and their seat is free`, failed: `${who} wasn't removed` },
             );
           } else {
             act(() =>
@@ -1587,6 +1716,7 @@
                 method: "POST",
                 body: JSON.stringify({ invitationId: revoke }),
               }),
+              { done: `Invitation for ${who} revoked`, failed: "The invitation wasn't revoked" },
             );
           }
         });
@@ -1658,6 +1788,11 @@
             "ok",
           );
         });
+
+        new MutationObserver(() => {
+          const host = $("shadow-root");
+          if (host.shadowRoot) host.dataset.theme = document.documentElement.dataset.theme === "light" ? "white" : "secureintent";
+        }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
         $("signout").addEventListener("click", () => window.Clerk.signOut());
         $("signout-side").addEventListener("click", () => window.Clerk.signOut());
@@ -1822,7 +1957,7 @@
                 try { sessionStorage.removeItem('si_admin_clerk_pending'); } catch {}
                 history.replaceState(null,'',SI.page('team.html')+(location.hash||'#/overview'));
               } else {
-                showAdminClerkGate({automatic:false,reason:error.message});
+                showAdminClerkGate({automatic:false,reason:error.message,retry:error.code==='network'});
                 return;
               }
             }
