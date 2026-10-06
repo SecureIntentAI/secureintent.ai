@@ -156,7 +156,7 @@
     s.buckets.forEach((b, i) => {
       const last = i === s.buckets.length - 1;
       if ((i % every && !last) || (last && i % every && i % every < every / 2)) return;
-      const label = s.weekly ? b.label.split(" - ")[0].split(" – ")[0] : b.label;
+      const label = s.weekly ? b.label.split(" to ")[0] : b.label;
       text(label, LEFT + padL + i * slot + slot / 2, y + chartH + 13, 7, C.muted, false, "center");
     });
     y += chartH + 32;
@@ -213,7 +213,7 @@
     return pages;
   }
 
-  function encode(pages) {
+  function encode(pages, footer = "Overview report | Aggregate counts only: no person, prompt, pasted text or secret value") {
     const objects = [];
     objects[1] = "<< /Type /Catalog /Pages 2 0 R >>";
     objects[2] = `<< /Type /Pages /Kids [${pages.map((_, i) => `${5 + i * 2} 0 R`).join(" ")}] /Count ${pages.length} >>`;
@@ -222,7 +222,7 @@
     pages.forEach((cmds, i) => {
       const pageId = 5 + i * 2;
       cmds.push(`0.7 w ${rgb(C.line)} RG ${LEFT} 36 m ${RIGHT} 36 l S`);
-      cmds.push(`${rgb(C.faint)} rg BT /F1 7 Tf 1 0 0 1 ${LEFT} 22 Tm (SecureIntent Business | Overview report | Aggregate counts only: no person, prompt, pasted text or secret value) Tj ET`);
+      cmds.push(`${rgb(C.faint)} rg BT /F1 7 Tf 1 0 0 1 ${LEFT} 22 Tm (SecureIntent Business | ${escapePdf(footer)}) Tj ET`);
       cmds.push(`${rgb(C.faint)} rg BT /F1 7 Tf 1 0 0 1 ${RIGHT - 52} 22 Tm (Page ${i + 1} of ${pages.length}) Tj ET`);
       const stream = `${cmds.join("\n")}\n`;
       objects[pageId] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_W} ${PAGE_H}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${pageId + 1} 0 R >>`;
@@ -256,5 +256,7 @@
     setTimeout(() => URL.revokeObjectURL(url), 30000);
   }
 
-  window.SIOverviewPdf = { build, download };
+  // Shared with the member report (team.js): the same page geometry and fonts.
+  const kit = { PAGE_W, PAGE_H, LEFT, RIGHT, BOTTOM, WIDTH, C, plain, escapePdf, rgb, textWidth, clip, count, when, encode };
+  window.SIOverviewPdf = { build, download, kit };
 })();

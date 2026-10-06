@@ -26,7 +26,7 @@ document.querySelectorAll("[data-support-form]").forEach((form) => {
     const data = new FormData(form);
     const topic = form.querySelector('select').selectedOptions[0].textContent;
     const body = `Name: ${data.get('name')}\nReply email: ${data.get('email')}\n\n${data.get('message')}`;
-    const url = 'mailto:info@secureintent.ai?subject=' + encodeURIComponent('SecureIntent — ' + topic) + '&body=' + encodeURIComponent(body);
+    const url = 'mailto:info@secureintent.ai?subject=' + encodeURIComponent('SecureIntent: ' + topic) + '&body=' + encodeURIComponent(body);
     window.location.href = url;
     status.textContent = 'Review the draft in your email app and press Send. If no app opened, email info@secureintent.ai directly.';
     status.classList.add("visible");

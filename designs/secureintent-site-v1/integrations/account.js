@@ -220,7 +220,9 @@ const CFG = SI.config;
       const HELP_SVG =
         '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M9.6 9.4a2.4 2.4 0 0 1 4.6.9c0 1.6-2.2 1.9-2.2 3.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="12" cy="17" r="0.9" fill="currentColor"/></svg>';
 
-      const ICON = { locked: LOCK_SVG };
+      const SOON_SVG =
+        '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+      const ICON = { locked: LOCK_SVG, soon: SOON_SVG };
 
       const NOTES = {
         detection: "Scans every paste on-device and warns before secrets reach the page.",
@@ -229,7 +231,7 @@ const CFG = SI.config;
         ghost: "Strip secrets, IPs and emails from large logs before you paste them.",
         session_lock: "PIN-lock high-risk cloud consoles after inactivity or tab-away.",
         team_policy: "Push shared detection rules and settings across your whole team.",
-        team_alerts: "Notify your security team when a teammate is caught pasting a secret.",
+        team_alerts: "Coming with the SecureIntent desktop app: notify your security team when a teammate pastes a secret.",
       };
 
       function featureRows(plan) {
@@ -241,9 +243,9 @@ const CFG = SI.config;
           isFree
             ? { key, label, state: "locked", detail: "Pro" }
             : { key, label, state: "active", detail: "Active" };
-        // Team Policy Sync and Security-Team Alerts are shipped, so a Business Pro
-        // account has them now — not "Soon". Lower tiers see them locked, the same
-        // way the Pro toolkit reads on Free.
+        // Team Policy Sync is shipped, so a Business Pro account has it now. Lower
+        // tiers see it locked, the same way the Pro toolkit reads on Free.
+        // Security-Team Alerts arrive with the desktop app: "Coming soon" for all.
         const team = (key, label) =>
           plan === "business_pro"
             ? { key, label, state: "active", detail: "Active" }
@@ -255,7 +257,7 @@ const CFG = SI.config;
           toolkit("ghost", "Ghost Log Sanitiser"),
           toolkit("session_lock", "Session Lock"),
           team("team_policy", "Team Policy Sync"),
-          team("team_alerts", "Security-Team Alerts"),
+          { key: "team_alerts", label: "Security-Team Alerts", state: "soon", detail: "Coming soon" },
         ];
       }
 
@@ -323,7 +325,7 @@ const CFG = SI.config;
         $("overlap-title").textContent = "Your team already covers you";
         $("overlap-body").textContent = ends
           ? `You're also paying for Developer Pro yourself. Cancel it and it keeps working until ${ends}, then your team seat takes over.`
-          : "You're also paying for Developer Pro yourself. Cancel it and you keep it until the period you've paid for ends — your team seat takes over from there.";
+          : "You're also paying for Developer Pro yourself. Cancel it and you keep it until the period you've paid for ends. Your team seat takes over from there.";
       }
 
       async function cancelPersonal() {
@@ -374,8 +376,10 @@ const CFG = SI.config;
           return;
         }
         $("team-name").textContent = team.name || "Your team";
+        const n = Number(team.seats);
+        const seats = n > 0 ? `${n.toLocaleString()} ${n === 1 ? "seat" : "seats"} · ` : "";
         $("team-sub").textContent = isAdmin
-          ? "Business Pro · manage seats and policies in your dashboard"
+          ? `${seats}Business Pro · you manage this organisation`
           : "Developer Pro · provided by your organization";
         cta.textContent = "Manage team";
         cta.classList.toggle("hide", !isAdmin);
@@ -578,7 +582,10 @@ const CFG = SI.config;
           $("manage").hidden = isFree || isLifetime || isTeamSeat || isBusinessEmail;
           $("lifetime-badge").hidden = !isLifetime;
           if (isTeamSeat) {
-            $("plan-sub").textContent = "Provided by your team";
+            const org = data?.entitlement?.org;
+            $("plan-sub").textContent = ["org:admin", "admin"].includes(org?.role)
+              ? `Administrator of ${org?.name || "your organisation"}`
+              : "Provided by your team";
             $("plan-sub").hidden = false;
           } else if (isBusinessEmail) {
             const domain = data?.entitlement?.businessDomain;
@@ -683,7 +690,259 @@ const CFG = SI.config;
         if (ptxn && window.Paddle) window.Paddle.Checkout.open({ transactionId: ptxn });
       }
 
-      // Which Clerk component is currently mounted ('in' | 'signin' | 'signup').
+      // ---------------------------------------------------------------------
+      // One-code team join (no Clerk screens). Invitation link -> name ->
+      // Continue with Google, or one emailed code -> signed in with a one-time
+      // ticket from our API, the seat already accepted. Owning the invited inbox
+      // is what the code proves; the backend re-checks everything.
+      const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+      const join = { step: "loading", company: "", email: "", error: "", firstName: "", lastName: "", password: "", busy: false, resendAt: 0, timer: null };
+      const JOIN_ERRORS = {
+        invitation_expired: "This invitation has expired. Ask your administrator to send a new one.",
+        invitation_unavailable: "This invitation is no longer valid. Ask your administrator to send a new one.",
+        invitation_already_accepted: "You've already joined with this invitation. Sign in to continue.",
+        name_required: "Enter your first name.",
+        password_short: "Choose a password of at least 8 characters.",
+        too_soon: "A code was just sent. You can ask for another in a moment.",
+        too_many: "Too many codes were sent. Wait an hour, then try again.",
+        invalid_code: "That code isn't right. Check the email and try again.",
+        too_many_attempts: "Too many wrong codes. Ask for a new code.",
+        code_expired: "That code has expired or was already used. Ask for a new code.",
+        send_failed: "We couldn't send the email just now. Try again in a minute.",
+        recipient_denied: "This address can't receive codes in this environment.",
+        already_member: "This email already belongs to another SecureIntent team. Contact your administrator.",
+        team_busy: "Your team is busy right now. Wait a moment and try again.",
+        google_unavailable: "Google sign-in isn't available right now. Use Email me a code instead.",
+      };
+      const joinError = (code) => JOIN_ERRORS[code] || "Something went wrong. Try again in a moment.";
+      async function joinApi(step, extra = {}) {
+        const res = await SI.fetch(`${CFG.apiBase}/v1/business-member/join/${step}`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ inviteToken, ...extra }),
+          cache: "no-store",
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw Object.assign(new Error(data.error || "unavailable"), { code: data.error, retryAfter: data.retryAfter });
+        return data;
+      }
+      function joinResendLeft() {
+        return Math.max(0, Math.ceil((join.resendAt - Date.now()) / 1000));
+      }
+      function renderJoin() {
+        const box = $("clerk-auth");
+        box.classList.add("is-join");
+        const err = join.error ? `<p class="join-error" role="alert">${esc(join.error)}</p>` : "";
+        const signInLink = `<p class="utility-note join-alt">Already have a SecureIntent account? <a href="account.html?mode=signin" data-join-signin>Sign in</a></p>`;
+        if (join.step === "loading") {
+          $("auth-title").textContent = "Your invitation";
+          $("auth-sub").textContent = "Checking your invitation…";
+          box.innerHTML = "";
+          return;
+        }
+        if (join.step === "blocked") {
+          $("auth-title").textContent = "Your invitation";
+          $("auth-sub").textContent = "";
+          box.innerHTML = `${err}<a class="button join-wide" href="account.html?mode=signin" data-join-signin>Sign in</a>`;
+          return;
+        }
+        $("auth-title").textContent = `Join ${join.company}`;
+        if (join.step === "details") {
+          $("auth-sub").textContent = "You've been invited to SecureIntent Business. Confirm your details to activate your seat.";
+          box.innerHTML = `<form class="utility-form join-form" data-join-form="details" novalidate>
+            <label for="join-email">Work email</label>
+            <input id="join-email" type="email" value="${esc(join.email)}" readonly aria-readonly="true">
+            <div class="join-names">
+              <div><label for="join-first">First name</label><input id="join-first" autocomplete="given-name" maxlength="60" required value="${esc(join.firstName)}"></div>
+              <div><label for="join-last">Last name</label><input id="join-last" autocomplete="family-name" maxlength="60" value="${esc(join.lastName)}"></div>
+            </div>
+            ${err}
+            <button class="button secondary join-wide join-google" type="button" data-join-google ${join.busy ? "disabled" : ""}>
+              <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+              Continue with Google
+            </button>
+            <div class="join-or" aria-hidden="true"><span>or join with email</span></div>
+            <label for="join-password">Create a password</label>
+            <div class="join-password">
+              <input id="join-password" type="password" autocomplete="new-password" minlength="8" maxlength="72" placeholder="At least 8 characters">
+              <button class="text-action" type="button" data-join-reveal aria-controls="join-password" aria-pressed="false">Show</button>
+            </div>
+            <button class="button join-wide" type="submit" ${join.busy ? "disabled" : ""}>${join.busy ? "Sending…" : "Email me a code"}</button>
+            <p class="utility-note">Next time, sign in with ${esc(join.email)} and this password, or with Google if your Google account uses this email. We email one code now to confirm the address.</p>
+          </form>${signInLink}`;
+          if ($("join-password")) $("join-password").value = join.password;
+          return;
+        }
+        if (join.step === "code") {
+          const left = joinResendLeft();
+          $("auth-sub").textContent = `We emailed a 6-digit code to ${join.email}. Enter it to activate your seat.`;
+          box.innerHTML = `<form class="utility-form join-form" data-join-form="code" novalidate>
+            <label for="join-code">Verification code</label>
+            <input id="join-code" class="join-code" inputmode="numeric" autocomplete="one-time-code" pattern="\\d{6}" maxlength="6" placeholder="••••••" required>
+            ${err}
+            <button class="button join-wide" type="submit" ${join.busy ? "disabled" : ""}>${join.busy ? "Checking…" : "Verify and join"}</button>
+            <div class="join-actions">
+              <button class="text-action" type="button" data-join-resend ${left || join.busy ? "disabled" : ""}>${left ? `Resend code in ${left}s` : "Resend code"}</button>
+              <button class="text-action" type="button" data-join-back>Change details</button>
+            </div>
+          </form>`;
+          return;
+        }
+        if (join.step === "signing-in") {
+          $("auth-sub").textContent = "Code confirmed. Signing you in and activating your seat…";
+          box.innerHTML = `${err}`;
+        }
+      }
+      function joinTick() {
+        clearInterval(join.timer);
+        join.timer = setInterval(() => {
+          if (join.step !== "code") return clearInterval(join.timer);
+          const btn = document.querySelector("[data-join-resend]");
+          if (!btn) return;
+          const left = joinResendLeft();
+          btn.textContent = left ? `Resend code in ${left}s` : "Resend code";
+          btn.disabled = !!left || join.busy;
+          if (!left) clearInterval(join.timer);
+        }, 1000);
+      }
+      async function startJoin() {
+        mounted = "join";
+        join.step = "loading";
+        renderJoin();
+        try {
+          const info = await joinApi("inspect");
+          join.company = info.companyName || "your team";
+          join.email = info.email || "";
+          join.step = "details";
+          join.error = "";
+        } catch (e) {
+          join.step = "blocked";
+          join.error = joinError(e.code);
+          if (e.code !== "invitation_already_accepted") {
+            // A dead link should not keep steering this browser into the join card.
+            sessionStorage.removeItem(inviteStorageKey);
+          }
+        }
+        renderJoin();
+      }
+      async function sendJoinCode() {
+        join.firstName = ($("join-first")?.value ?? join.firstName).trim();
+        join.lastName = ($("join-last")?.value ?? join.lastName).trim();
+        if ($("join-password")) join.password = $("join-password").value;
+        if (!join.firstName) { join.error = joinError("name_required"); renderJoin(); $("join-first")?.focus(); return; }
+        if (join.password.length < 8) { join.error = joinError("password_short"); renderJoin(); $("join-password")?.focus(); return; }
+        join.busy = true; join.error = ""; renderJoin();
+        try {
+          const res = await joinApi("start", { firstName: join.firstName, lastName: join.lastName });
+          join.step = "code";
+          join.resendAt = Date.now() + (Number(res.retryAfter) || 30) * 1000;
+        } catch (e) {
+          join.error = joinError(e.code);
+          if (e.code === "too_soon") { join.step = "code"; join.resendAt = Date.now() + (Number(e.retryAfter) || 30) * 1000; join.error = ""; }
+        } finally {
+          join.busy = false;
+          renderJoin();
+          if (join.step === "code") { $("join-code")?.focus(); joinTick(); }
+        }
+      }
+      async function verifyJoinCode() {
+        const code = ($("join-code")?.value || "").replace(/\D/g, "");
+        if (code.length !== 6) { join.error = "Enter the 6-digit code from the email."; renderJoin(); $("join-code")?.focus(); return; }
+        join.busy = true; join.error = ""; renderJoin();
+        try {
+          const res = await joinApi("verify", { code });
+          join.step = "signing-in";
+          renderJoin();
+          const attempt = await window.Clerk.client.signIn.create({ strategy: "ticket", ticket: res.ticket });
+          if (attempt.status !== "complete") throw Object.assign(new Error("ticket"), { code: "unavailable" });
+          await window.Clerk.setActive({ session: attempt.createdSessionId });
+          // Clerk's listener now renders the signed-in account with the joined team.
+          void saveJoinPassword();
+        } catch (e) {
+          join.busy = false;
+          if (join.step === "signing-in") {
+            // The seat is accepted; only the automatic sign-in failed.
+            join.step = "blocked";
+            join.error = "Your seat is active, but we couldn't sign you in automatically. Sign in with your work email to continue.";
+          } else {
+            join.error = joinError(e.code);
+          }
+          renderJoin();
+          if (join.step === "code") $("join-code")?.focus();
+          return;
+        }
+        join.busy = false;
+      }
+      /**
+       * The password goes from this browser straight to Clerk, never to our API.
+       * An account that already has a password keeps it. A refusal (too weak,
+       * found in a breach) leaves the member signed in with a way to fix it.
+       */
+      async function saveJoinPassword() {
+        const password = join.password;
+        join.password = "";
+        const user = window.Clerk.user;
+        if (!password || !user) return;
+        let note = "";
+        if (user.passwordEnabled) {
+          note = "This email already had a SecureIntent password, so we kept it. Use that password to sign in next time.";
+        } else {
+          try {
+            await user.updatePassword({ newPassword: password });
+          } catch (e) {
+            const reason = e?.errors?.[0]?.longMessage || e?.errors?.[0]?.message || "";
+            note = `You're in, but your password wasn't saved${reason ? `: ${reason}` : "."} Set one under Security in your profile below.`;
+          }
+        }
+        if (!note) return;
+        const box = document.createElement("p");
+        box.className = "join-password-note";
+        box.setAttribute("role", "status");
+        box.textContent = note;
+        $("account")?.prepend(box);
+      }
+      async function joinWithGoogle() {
+        join.busy = true; join.error = ""; renderJoin();
+        try {
+          // Back on this page, the invitation is still in this tab and the
+          // signed-in account accepts it (the Google email must match).
+          await window.Clerk.client.signIn.authenticateWithRedirect({
+            strategy: "oauth_google",
+            redirectUrl: SI.authReturn("account.html?sso-callback=1"),
+            redirectUrlComplete: SI.authReturn("account.html"),
+          });
+        } catch {
+          join.busy = false;
+          join.error = joinError("google_unavailable");
+          renderJoin();
+        }
+      }
+      document.addEventListener("submit", (event) => {
+        const form = event.target.closest?.("[data-join-form]");
+        if (!form) return;
+        event.preventDefault();
+        if (join.busy) return;
+        if (form.dataset.joinForm === "details") void sendJoinCode();
+        else void verifyJoinCode();
+      });
+      document.addEventListener("click", (event) => {
+        const reveal = event.target.closest?.("[data-join-reveal]");
+        if (reveal) {
+          const input = $("join-password");
+          const show = input.type === "password";
+          input.type = show ? "text" : "password";
+          reveal.textContent = show ? "Hide" : "Show";
+          reveal.setAttribute("aria-pressed", String(show));
+          return;
+        }
+        const el = event.target.closest?.("[data-join-google],[data-join-resend],[data-join-back]");
+        if (!el || join.busy) return;
+        if (el.hasAttribute("data-join-google")) void joinWithGoogle();
+        else if (el.hasAttribute("data-join-resend")) void sendJoinCode();
+        else if (el.hasAttribute("data-join-back")) { join.step = "details"; join.error = ""; renderJoin(); $("join-password")?.focus(); }
+      });
+
+      // Which Clerk component is currently mounted ('in' | 'signin' | 'signup' | 'join').
       // Clerk.addListener fires render() on every state change (incl. mid-flow,
       // e.g. the email-verification step). Re-mounting each time would tear down
       // the in-progress flow, so we mount a given state ONCE and skip if unchanged.
@@ -733,10 +992,17 @@ const CFG = SI.config;
           $("clerk-profile").replaceChildren();
           profileUser = null;
         }
+        // An invitation link gets our one-code join card, not Clerk's forms,
+        // unless the person chose "Sign in" with an existing account.
+        if (inviteToken && authParams.get("mode") !== "signin") {
+          if (mounted !== "join") void startJoin();
+          return;
+        }
         const want = signUpMode ? "signup" : "signin";
         if (mounted === want) return; // already showing it — don't disturb the flow
         mounted = want;
         $("clerk-auth").replaceChildren();
+        $("clerk-auth").classList.remove("is-join");
         const common = {
           appearance: SI.appearance(),
           afterSignInUrl: SI.authReturn("account.html"),
@@ -794,6 +1060,17 @@ const CFG = SI.config;
             if (!document.hidden && window.Clerk.user) void loadPolicyNotice();
           });
           setInterval(() => { if (!document.hidden && window.Clerk.user) void loadPolicyNotice(); }, 60000);
+          // Returning from "Continue with Google" on the join card.
+          if (new URLSearchParams(location.search).has("sso-callback")) {
+            try {
+              await window.Clerk.handleRedirectCallback({
+                signInForceRedirectUrl: SI.authReturn("account.html"),
+                signUpForceRedirectUrl: SI.authReturn("account.html"),
+              });
+            } catch (e) {
+              console.error("[account] Google sign-in did not complete", e?.message || e);
+            }
+          }
           render();
           window.Clerk.addListener(render);
         } catch (e) {

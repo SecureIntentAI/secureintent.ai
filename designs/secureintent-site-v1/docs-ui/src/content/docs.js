@@ -278,7 +278,7 @@ export const docs = [
       {
         id: "when-to-restore",
         title: "When restoration makes sense",
-        body: `<p>An AI tool can work with an anonymized example, but you may need the original value when adapting the result locally. Restoration is for that return step—not for sending the secret back to an external service or conversation.</p>`,
+        body: `<p>An AI tool can work with an anonymized example, but you may need the original value when adapting the result locally. Restoration is for that return step, not for sending the secret back to an external service or conversation.</p>`,
       },
       {
         id: "the-flow",
@@ -335,7 +335,7 @@ export const docs = [
     group: "Security",
     icon: "code",
     description:
-      "Know which product you are evaluating, and what the website can—and cannot—demonstrate.",
+      "Know which product you are evaluating, and what the website can (and cannot) demonstrate.",
     sections: [
       {
         id: "separate-products",
@@ -396,7 +396,7 @@ export const docs = [
       {
         id: "no-detection",
         title: "A value was not detected",
-        body: `<p>First, confirm you are testing the installed product—not the website’s fixed sample demo. Check the extension is enabled, the browser and destination are supported, and the relevant permissions are available.</p><p>A value may not match a supported pattern. Review the content manually and remove the secret before sharing. See ${link("concepts/detection", "Secret detection")} for limitations.</p>`,
+        body: `<p>First, confirm you are testing the installed product, not the website’s fixed sample demo. Check the extension is enabled, the browser and destination are supported, and the relevant permissions are available.</p><p>A value may not match a supported pattern. Review the content manually and remove the secret before sharing. See ${link("concepts/detection", "Secret detection")} for limitations.</p>`,
       },
       {
         id: "false-positive",
@@ -435,7 +435,7 @@ export const docs = [
       {
         id: "team-availability",
         title: "Team feature availability",
-        body: `<p>Business Pro includes team policies and security alerts. Team administrators manage seats, invitations, rules and alert settings in the team console.</p>`,
+        body: `<p>Business Pro includes team policies. Security alerts are coming with the SecureIntent desktop app; the team console shows a preview of them. Team administrators manage seats, invitations and rules in the team console.</p>`,
       },
       {
         id: "local-preview",
@@ -456,7 +456,7 @@ export const docs = [
       {
         id: "available-starting-point",
         title: "The starting point",
-        body: `<p>The browser extension and the core detect–anonymize workflow are the focus of this website. The interactive example and source product video show that workflow without installing the product.</p>`,
+        body: `<p>The browser extension and the core detect and anonymize workflow are the focus of this website. The interactive example and source product video show that workflow without installing the product.</p>`,
       },
       {
         id: "in-progress",

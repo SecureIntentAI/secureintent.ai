@@ -33,6 +33,7 @@
         cancelled: "Cancelled the paste",
         paste_anonymously: "Pasted anonymised",
         paste_anyway: "Pasted anyway",
+        sanitised: "Sanitised & pasted",
       };
       const TYPE_LABEL = {
         "high-entropy": "Credential-like string",
@@ -104,14 +105,14 @@
       // that says what happened and what to do next; an unmapped code falls back
       // to DEFAULT_ERROR rather than putting `invalid_seats` on screen.
       // ---------------------------------------------------------------------
-      const DEFAULT_ERROR = `Something went wrong — try again, or email ${BILLING_EMAIL}.`;
+      const DEFAULT_ERROR = `Something went wrong. Try again, or email ${BILLING_EMAIL}.`;
       // fetch() rejects with a TypeError whose message is the browser's own
       // ("Failed to fetch", "NetworkError when attempting…"). Never show that.
       const NETWORK_ERROR = "We couldn't reach SecureIntent. Check your connection and try again.";
       const TIMEOUT_ERROR = "That took too long to answer. Try again in a moment.";
       const BELOW_MIN_SEATS =
-        "A team starts at three seats — for fewer, Developer Pro on your account page is the cheaper plan.";
-      const ABOVE_MAX_SEATS = `${MAX_SEATS} seats is the most you can buy here — email ${BILLING_EMAIL} for anything larger.`;
+        "A team starts at three seats. For fewer, Developer Pro on your account page is the cheaper plan.";
+      const ABOVE_MAX_SEATS = `${MAX_SEATS} seats is the most you can buy here. Email ${BILLING_EMAIL} for anything larger.`;
       const ERROR_TEXT = {
         business_promo_required: "This console requires an activated Business invitation from SecureIntent.",
         member_role_required: "Invitations are for member seats. Only the organization owner administers this workspace.",
@@ -135,20 +136,20 @@
         no_team_grant:
           "This account's plan doesn't include team seats. If you redeemed a Business promo code, sign in with that email.",
         comp_team:
-          "Your team is already included with your plan — there's nothing to buy. Reload the page to manage it.",
+          "Your team is already included with your plan, so there's nothing to buy. Reload the page to manage it.",
         comp_team_fixed_seats:
           `Your seats come with your plan, so there's no subscription to change. Email ${BILLING_EMAIL} and we'll raise your seat count.`,
-        "checkout failed": `Couldn't open the payment form. Nothing has been charged — try again, or email ${BILLING_EMAIL}.`,
+        "checkout failed": `Couldn't open the payment form. Nothing has been charged. Try again, or email ${BILLING_EMAIL}.`,
         "reconcile failed":
           "Couldn't reach our payment provider just now. Press Check again in a moment.",
-        "seat update failed": `Couldn't change your seat count. Nothing has been charged — try again, or email ${BILLING_EMAIL}.`,
+        "seat update failed": `Couldn't change your seat count. Nothing has been charged. Try again, or email ${BILLING_EMAIL}.`,
         "invite failed": `The invitation didn't go out. Try again in a moment, or email ${BILLING_EMAIL}.`,
         "revoke failed": "Couldn't revoke that invitation. Try again in a moment.",
         "remove failed": "Couldn't remove that person. Try again in a moment.",
         "team billing not configured": `Team billing is unavailable right now. Email ${BILLING_EMAIL} and we'll sort it out.`,
         "auth not configured": `Team billing is unavailable right now. Email ${BILLING_EMAIL} and we'll sort it out.`,
         invalid_webhook:
-          "That webhook URL isn't one we can post to — it has to be a public https:// address.",
+          "That webhook URL isn't one we can post to: it has to be a public https:// address.",
         invalid_alert_min_type: "Pick one of the listed alert thresholds.",
         "save failed": `Couldn't save your changes. Try again, or email ${BILLING_EMAIL}.`,
         no_webhook: "There's no saved webhook to test yet. Add one and save it first.",
@@ -179,8 +180,8 @@
           const n = Number(data.seatsUsed);
           if (!Number.isFinite(n) || n < 1) return "Remove people before reducing seats.";
           return n === 1
-            ? "1 person is using a seat — remove them first."
-            : `${n} people are using seats — remove some first.`;
+            ? "1 person is using a seat. Remove them first."
+            : `${n} people are using seats. Remove some first.`;
         }
         if (code === "seat_limit_reached") {
           const n = Number(data.seats);
@@ -193,7 +194,7 @@
           // It is the whole diagnosis, so put it in the sentence.
           const n = Math.floor(Number(data.status));
           return Number.isFinite(n) && n >= 100
-            ? `The test didn't reach your webhook — it answered ${n}. Check the URL is still accepting posts.`
+            ? `The test didn't reach your webhook: it answered ${n}. Check the URL is still accepting posts.`
             : ERROR_TEXT.delivery_failed;
         }
         // typeof, not `in`: a code of "constructor" must not reach a prototype.
@@ -346,7 +347,7 @@
         const first = s.buckets[0];
         const last = s.buckets[s.buckets.length - 1];
         $("chart-summary").textContent =
-          `Detections per ${unit}, ${first.label} to ${last.label}: ${fmt(st.total)} in total` +
+          `Detections per ${unit}, ${first.label.split(" to ")[0]} to ${last.label.split(" to ").pop()}: ${fmt(st.total)} in total` +
           (st.change ? `, ${st.change.text.replace("▲", "up").replace("▼", "down")} on the previous period` : "") +
           (st.busiest ? `. Busiest ${unit}: ${st.busiest.label} with ${fmt(st.busiest.n)}` : "") +
           (s.split ? `. Pasted anyway: ${fmt(st.anyway)} (${st.anywayPct}%).` : ".") +
@@ -468,42 +469,111 @@
       }
 
       function policyStatusLabel(status) {
-        return ({guards_confirmed:"Active page guards confirmed",downloaded:"Downloaded · awaiting active pages",
-          disabled:"Protection disabled",failed:"Policy could not be applied",offline:"Offline · update on reconnect",
-          pending:"Policy confirmation pending"})[status] || "Policy confirmation pending";
+        return ({guards_confirmed:"Up to date · confirmed on open pages",applied:"Up to date",downloaded:"Up to date",
+          disabled:"Protection disabled",failed:"Policy could not be applied",offline:"Offline · updates when it reconnects",
+          pending:"Updating to the latest revision"})[status] || "Updating to the latest revision";
+      }
+      // Policy rollout card: one plain answer (is the team protected?), the
+      // numbers as chips, and the people an admin may need to contact. The
+      // server owns the per-device rule (lib/policyRollout).
+      const ROLLOUT_STATE = {
+        attention: { order: 0, icon: "⚠", tone: "danger" },
+        updating: { order: 1, icon: "↻", tone: "warn" },
+        offline: { order: 2, icon: "○", tone: "muted" },
+      };
+      const shortName = (m) => (m?.email ? String(m.email).split("@")[0] : "") || m?.name || "A team member";
+      const msIso = (ms) => (Number(ms) > 0 ? new Date(Number(ms)).toISOString() : null);
+      function rolloutHeadline(r, current, active, savedAt) {
+        if (!current) return { tone: "neutral", text: "No team policy has been published yet." };
+        if (!r.devices) return { tone: "neutral", text: "No extension has checked in yet." };
+        if (r.attention) return { tone: "danger",
+          text: `${r.attention} ${r.attention === 1 ? "device has" : "devices have"} protection off or a failed update.` };
+        if (!active) return { tone: "muted", text: "No device has checked in during the last 10 minutes." };
+        if (r.updating) {
+          const fresh = Number(savedAt) > Date.now() - 10 * 60_000;
+          return { tone: "warn", text: fresh
+            ? `Rolling out revision ${current}: ${r.applied} of ${active} active devices have it.`
+            : `${r.applied} of ${active} active devices have the latest policy.` };
+        }
+        return { tone: "ok", text: active === 1
+          ? "The active device is protected with the latest policy."
+          : `All ${active} active devices are protected with the latest policy.` };
       }
       function renderPolicyRollout(team) {
-        const devices = (team.members || []).flatMap(member => member.connection?.devices || []);
         const current = Number(team.policyVersion) || 0;
-        const confirmed = devices.filter(d => d.appliedPolicyVersion === current && d.policyStatus === "guards_confirmed").length;
-        const downloaded = devices.filter(d => d.appliedPolicyVersion === current && d.policyStatus === "downloaded").length;
-        const offline = devices.filter(d => d.policyStatus === "offline").length;
-        const pending = devices.length - confirmed - downloaded - offline;
-        const summary = current
-          ? `Revision ${current} · ${confirmed} active, ${downloaded} downloaded, ${pending} pending, ${offline} offline`
-          : "No team policy has been published yet.";
-        $("policy-rollout-summary").textContent = summary;
+        const r = { devices: 0, applied: 0, updating: 0, attention: 0, offline: 0, pageGuardsConfirmed: 0,
+          ...(team.policyRollout || {}) };
+        const active = Math.max(0, r.devices - r.offline);
+        const head = rolloutHeadline(r, current, active, r.savedAt);
+        $("policy-rollout-card").dataset.tone = head.tone;
+        if ($("policy-rollout-summary").textContent !== head.text) $("policy-rollout-summary").textContent = head.text;
+
+        const members = team.members || [];
+        const saver = members.find((m) => m.userId && m.userId === r.savedBy);
+        const savedRel = relTime(msIso(r.savedAt));
+        $("policy-rollout-meta").textContent = current
+          ? `Revision ${current}${savedRel ? ` · saved ${saver ? `by ${shortName(saver)} ` : ""}${savedRel}` : ""}`
+          : "";
+
+        const pct = active ? Math.round((r.applied / active) * 100) : 0;
+        $("policy-rollout-percent").textContent = current && active ? `${pct}%` : "";
         const track = $("policy-rollout-track");
         track.replaceChildren();
-        track.setAttribute("aria-label", summary);
-        if (devices.length) {
-          for (const [kind,count] of [["confirmed",confirmed],["downloaded",downloaded],["pending",pending],["offline",offline]]) {
-            if (!count) continue;
-            const bar = document.createElement("span");
-            bar.className = `rollout-segment rollout-${kind}`;
-            bar.style.width = `${count / devices.length * 100}%`;
-            bar.title = `${count} ${kind}`;
-            track.appendChild(bar);
+        track.setAttribute("aria-label", current && active ? `${pct}% of active devices have revision ${current}` : head.text);
+        if (current && active) {
+          const fill = document.createElement("span");
+          fill.className = "rollout-fill";
+          fill.style.width = `${pct}%`;
+          track.appendChild(fill);
+        }
+
+        const chips = $("policy-rollout-chips");
+        chips.replaceChildren();
+        if (current && r.devices) {
+          for (const [tone, icon, count, label] of [["ok", "✓", r.applied, "Up to date"], ["warn", "↻", r.updating, "Updating"],
+            ["danger", "⚠", r.attention, "Needs attention"], ["muted", "○", r.offline, "Offline"]]) {
+            const li = document.createElement("li");
+            li.className = `rollout-chip tone-${tone}${count ? "" : " is-zero"}`;
+            li.innerHTML = `<span aria-hidden="true">${icon}</span>${esc(label)} <b>${fmt(count)}</b>`;
+            chips.appendChild(li);
           }
         }
-        $("policy-rollout-detail").textContent = devices.length
-          ? `${devices.length} reported device${devices.length === 1 ? "" : "s"}. Active means a device confirmed page guards; downloaded means it saved the revision but has not confirmed active pages.`
-          : "No extension has checked in yet. Users without a connected device are shown in Users.";
+
+        // Admin-only view (this console): name the people behind the devices.
+        const people = members.flatMap((m) => (m.connection?.devices || [])
+          .filter((d) => ROLLOUT_STATE[d.rollout])
+          .map((d) => ({ m, d, ...ROLLOUT_STATE[d.rollout] })))
+          .sort((a, b) => a.order - b.order || b.d.lastSeenAt - a.d.lastSeenAt);
+        const list = $("policy-rollout-people");
+        list.replaceChildren();
+        const shown = people.slice(0, 5);
+        for (const { m, d, icon, tone } of shown) {
+          const why = d.rollout === "attention"
+            ? (d.policyStatus === "disabled" ? "protection turned off" : "policy could not be applied")
+            : d.rollout === "updating"
+              ? `still on revision ${d.appliedPolicyVersion}`
+              : `last seen ${relTime(msIso(d.lastSeenAt)) || "a while ago"}`;
+          const li = document.createElement("li");
+          li.className = `rollout-person tone-${tone}`;
+          li.innerHTML = `<span class="rollout-person-icon" aria-hidden="true">${icon}</span><span class="rollout-person-name">${esc(shortName(m))}</span><span class="rollout-person-why">${esc(why)}</span><span class="rollout-person-ver">v${esc(d.extensionVersion)}</span>`;
+          list.appendChild(li);
+        }
+        if (people.length > shown.length) {
+          const li = document.createElement("li");
+          li.className = "rollout-more";
+          li.textContent = `and ${people.length - shown.length} more`;
+          list.appendChild(li);
+        }
+        $("policy-rollout-attention").hidden = !shown.length || !current;
+
+        $("policy-rollout-detail").textContent = r.devices
+          ? `${r.devices} device${r.devices === 1 ? "" : "s"} seen in the last 30 days. Offline means no check-in for 10 minutes.`
+          : "Users without a connected device are listed in Users.";
       }
       function devicePolicyDetails(connection, userId, expanded) {
         if (!connection?.devices?.length) return "";
-        return `<details data-policy-user="${esc(userId)}" ${expanded.has(userId) ? "open" : ""}><summary>${connection.devices.length} device(s)</summary>${connection.devices.map((d,i)=>
-          `<div>Device ${i+1} · v${esc(d.extensionVersion)}<br>${esc(policyStatusLabel(d.policyStatus))} · revision ${esc(d.appliedPolicyVersion)}<br><small>${esc(d.confirmedGuards)} guards responded · ${esc(d.expectedPages)} web pages checked</small></div>`).join("")}</details>`;
+        return `<details data-policy-user="${esc(userId)}" ${expanded.has(userId) ? "open" : ""}><summary>${connection.devices.length} ${connection.devices.length === 1 ? "device" : "devices"}</summary>${connection.devices.map((d,i)=>
+          `<div>Device ${i+1} · v${esc(d.extensionVersion)}<br>${esc(policyStatusLabel(d.rollout === "applied" && d.policyStatus !== "guards_confirmed" ? "applied" : d.policyStatus))} · revision ${esc(d.appliedPolicyVersion)}<br><small>${esc(d.confirmedGuards)} guards responded · ${esc(d.expectedPages)} web pages checked</small></div>`).join("")}</details>`;
       }
       function renderPeople(team) {
         if (!team) return;
@@ -525,11 +595,12 @@
         const initials = (text) =>
           String(text || "?").split(/[\s@._-]+/).filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join("") || "?";
         const person = (name, email, pending = false) =>
-          `<div class="person"><span class="avatar${pending ? " avatar--pending" : ""}" aria-hidden="true">${esc(
+          // Spans only: this sits inside the report button, which allows phrasing content.
+          `<span class="person"><span class="avatar${pending ? " avatar--pending" : ""}" aria-hidden="true">${esc(
             initials(name || email),
-          )}</span><div>${name ? `<span class="name">${esc(name)}</span>` : ""}<span class="${
+          )}</span><span class="person-lines">${name ? `<span class="name">${esc(name)}</span>` : ""}<span class="${
             name ? "mail" : "name"
-          }">${esc(email || "")}</span></div></div>`;
+          }">${esc(email || "")}</span></span></span>`;
         const rows = [
           ...(team.members || []).map((m) => {
             const who = m.name || m.email || "this person";
@@ -539,10 +610,13 @@
               status === "recently_connected" ? ["ok", "Recently connected"]
               : status === "inactive" ? ["idle", "Inactive"]
               : ["idle", admin ? "Not yet connected" : "Joined · not yet connected"];
-            return `<tr><td>${person(m.name, m.email)}</td><td><span class="tag ${admin ? "admin" : ""}">${
+            const cell = isAdmin && m.userId
+              ? `<button class="person-open" type="button" data-report="${esc(m.userId)}" aria-label="Open the member report for ${esc(who)}">${person(m.name, m.email)}<span class="person-open-hint">View report ›</span></button>`
+              : person(m.name, m.email);
+            return `<tr><td>${cell}</td><td><span class="tag ${admin ? "admin" : ""}">${
               admin ? "Admin" : "Member"
             }</span></td><td><div class="conn"><span class="pill pill--${tone}">${label}</span>${
-              m.connection?.lastSeenAt ? `<small>Last check-in: ${esc(new Date(m.connection.lastSeenAt).toLocaleString())}</small>` : ""
+              m.connection?.lastSeenAt ? `<small title="${esc(new Date(m.connection.lastSeenAt).toLocaleString())}">Last check-in ${esc(relTime(new Date(m.connection.lastSeenAt).toISOString()) || new Date(m.connection.lastSeenAt).toLocaleString())}</small>` : ""
             }${m.connection?.policyStatus ? `<small>${policyStatusLabel(m.connection.policyStatus)}</small>` : ""}${devicePolicyDetails(
               m.connection, m.userId, expanded,
             )}</div></td><td>${
@@ -596,7 +670,7 @@
       function explainPending(status) {
         const paid = status === "completed" || status === "billed";
         $("pending-title").textContent = paid
-          ? "Payment received — activating your seats."
+          ? "Payment received. Activating your seats."
           : "We haven't seen your payment yet.";
         $("pending-body").innerHTML = paid
           ? 'Your subscription is being set up. Press Check again in a moment; if it still ' +
@@ -675,11 +749,9 @@
       let settingsLoaded = false;
       let savedWebhook = "";
 
+      // The Alerts page is a preview until alerts ship with the desktop app, so
+      // its controls are never enabled (they are disabled in the markup).
       const SETTINGS_CONTROLS = [
-        "alert-webhook",
-        "alert-min",
-        "alerts-save",
-        "alerts-test",
         "pol-block",
         "pol-lock",
         "site-input",
@@ -754,8 +826,30 @@
           },
           policyVersion: Number(s.policyVersion) || 0,
           alertDelivery: normalizeDelivery(s.alertDelivery),
+          // What the extension really runs, as resolved by the server. Absent on
+          // an older API, in which case nothing is claimed.
+          detection: s.detection && typeof s.detection === "object" ? s.detection : null,
         };
       }
+      function detectionText(d) {
+        if (!d) return "";
+        const n = Number(d.teamPatterns) || 0;
+        const team = `${n} team pattern${n === 1 ? "" : "s"} active`;
+        const dropped = Number(d.droppedPatterns) || 0;
+        const droppedText = dropped
+          ? ` ${dropped} pattern${dropped === 1 ? " was" : "s were"} not saved because the extension can't use ${dropped === 1 ? "it" : "them"}.`
+          : "";
+        return d.builtInChecks === "off"
+          ? `${team} · SecureIntent's built-in checks are off for your team (browser extension).${droppedText}`
+          : `${team} · SecureIntent's built-in checks are on.${droppedText}`;
+      }
+      // Hostnames people often type for a service that actually runs elsewhere.
+      const SITE_HINTS = {
+        "claude.com": "claude.ai",
+        "openai.com": "chatgpt.com",
+        "gemini.com": "gemini.google.com",
+        "perplexity.com": "perplexity.ai",
+      };
 
       // ---------------------------------------------------------------------
       // Alert delivery health. Alerts are fire-and-forget by design, so nothing
@@ -799,7 +893,7 @@
         network_error:
           "we couldn't reach it at all. Check the address is right and reachable from the public internet.",
         blocked_url:
-          "that address isn't allowed. Alerts only go to a public https:// address, so nothing was sent — save a different URL.",
+          "that address isn't allowed. Alerts only go to a public https:// address, so nothing was sent. Save a different URL.",
       };
 
       /** A sentence for any reason, including ones this build has never seen. */
@@ -855,7 +949,7 @@
           const what = n > 1 ? `Last ${fmt(n)} alerts failed` : "The last alert failed";
           const ago = agoHtml(d.lastAttemptAt);
           line.innerHTML =
-            `${esc(what)} — ${esc(deliveryReason(d.reason, d.status))}` +
+            `${esc(what)}: ${esc(deliveryReason(d.reason, d.status))}` +
             (ago ? ` Last tried ${ago}.` : "");
         } else {
           // Never attempted. Neutral: a team can go a long time without one.
@@ -868,7 +962,7 @@
         const held = d.suppressedSinceLastAlert;
         if (held > 0) {
           const ev = d.suppressedEvents;
-          const from = ev > 0 ? ` — from ${fmt(ev)} paste${ev === 1 ? "" : "s"}` : "";
+          const from = ev > 0 ? ` from ${fmt(ev)} paste${ev === 1 ? "" : "s"}` : "";
           notes.push(
             `${fmt(held)} detection${held === 1 ? "" : "s"} since the last alert, batched${from}. ` +
               `${throttlePhrase(d.throttleWindowSeconds)}`,
@@ -918,7 +1012,7 @@
                   )}</span></td><td><button class="btn" type="button" data-pattern="${i}">Remove</button></td></tr>`,
               )
               .join("")}</tbody></table>`
-          : '<div class="empty">No custom patterns — only the built-in detectors run.</div>';
+          : '<div class="empty">No custom patterns, so only the built-in detectors run.</div>';
         // The list just changed, so whether "use only these" is a no-op did too.
         syncReplaceWarning();
         syncDirty();
@@ -935,7 +1029,7 @@
         renderSites();
         renderPatterns();
         $("policy-version").textContent = settings.policyVersion
-          ? `Policy version ${settings.policyVersion} saved. Extension application has not yet been confirmed.`
+          ? `Policy version ${settings.policyVersion} saved. ${detectionText(settings.detection)}`.trim()
           : "No organization policy saved yet.";
       }
 
@@ -971,13 +1065,8 @@
        */
       async function saveSettings(statusEl, btn) {
         if (!settingsLoaded) return;
-        const webhook = $("alert-webhook").value.trim();
-        if (webhook && !/^https:\/\/\S+$/i.test(webhook)) {
-          flash(statusEl, "The webhook URL has to start with https:// — alerts are never sent over http.", "err");
-          return;
-        }
-        settings.alertWebhook = webhook;
-        settings.alertMinType = $("alert-min").value;
+        // Policy only. Alerts are a preview until the desktop app ships them, and
+        // the server keeps the stored alert settings when these fields are absent.
         settings.policy.blockInsteadOfWarn = $("pol-block").checked;
         settings.policy.requireSessionLock = $("pol-lock").checked;
         settings.policy.replaceDefaultPatterns = $("pol-replace").checked;
@@ -990,8 +1079,6 @@
           const res = await api("/v1/team/settings", {
             method: "PUT",
             body: JSON.stringify({
-              alertWebhook: settings.alertWebhook,
-              alertMinType: settings.alertMinType,
               policy: settings.policy,
               expectedVersion: settings.policyVersion,
             }),
@@ -1007,9 +1094,51 @@
           }
           renderSettings();
           markSettingsSaved();
-          flash(statusEl, "Saved. Extension application has not yet been confirmed.", "ok");
+          flash(statusEl, "Saved. Devices pick it up within about a minute; Policy rollout on the Overview shows their progress.", "ok");
         } catch (e) {
           flash(statusEl, explain(e, { fallback: ERROR_TEXT["save failed"] }), "err");
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      /**
+       * Alerts page Save: only the two alert fields. They never reach the
+       * extension, so the server needs no policy revision for them, and a Shadow
+       * AI save made meanwhile can no longer reject the webhook (the 409 that
+       * stopped every alert). Unsaved Policy edits stay as they are.
+       */
+      async function saveAlerts(statusEl, btn) {
+        if (!settingsLoaded) return false;
+        const webhook = $("alert-webhook").value.trim();
+        if (webhook && !/^https:\/\/\S+$/i.test(webhook)) {
+          flash(statusEl, "The webhook URL has to start with https://, because alerts are never sent over http.", "err");
+          return false;
+        }
+        btn.disabled = true;
+        flash(statusEl, "Saving…", "");
+        try {
+          const res = await api("/v1/team/settings", {
+            method: "PUT",
+            body: JSON.stringify({ alertWebhook: webhook, alertMinType: $("alert-min").value }),
+          });
+          const back = normalizeSettings(res && res.settings ? res.settings : { ...settings, alertWebhook: webhook, alertMinType: $("alert-min").value });
+          settings.alertWebhook = back.alertWebhook;
+          settings.alertMinType = back.alertMinType;
+          settings.alertDelivery = back.alertDelivery;
+          if (back.policyVersion) settings.policyVersion = back.policyVersion;
+          savedWebhook = settings.alertWebhook;
+          // Only the alert half of the record is saved now.
+          const saved = savedSnapshot ? JSON.parse(savedSnapshot) : {};
+          savedSnapshot = JSON.stringify({ ...JSON.parse(settingsSnapshot()), ...saved,
+            webhook: settings.alertWebhook, min: settings.alertMinType });
+          renderAlertHealth();
+          syncDirty();
+          flash(statusEl, settings.alertWebhook ? "Saved. Alerts will be posted to this webhook." : "Saved. Alerts are off.", "ok");
+          return true;
+        } catch (e) {
+          flash(statusEl, explain(e, { fallback: ERROR_TEXT["save failed"] }), "err");
+          return false;
         } finally {
           btn.disabled = false;
         }
@@ -1019,13 +1148,11 @@
         const st = $("alerts-status");
         const typed = $("alert-webhook").value.trim();
         if (!typed) {
-          flash(st, "Add a webhook URL and save it — there's nowhere to send a test yet.", "err");
+          flash(st, "Add a webhook URL first. There's nowhere to send a test yet.", "err");
           return;
         }
-        if (typed !== savedWebhook) {
-          flash(st, "Save the new URL first — the test posts to the saved one.", "err");
-          return;
-        }
+        // A new URL is saved first, so the test goes where the admin is looking.
+        if (typed !== savedWebhook && !(await saveAlerts(st, $("alerts-test")))) return;
         $("alerts-test").disabled = true;
         flash(st, "Sending…", "");
         try {
@@ -1085,7 +1212,14 @@
         settings.policy.blockedSites.push(host);
         $("site-input").value = "";
         renderSites();
-        flash(st, `Added ${host}. Press Save changes to send it out.`, "ok");
+        const hint = SITE_HINTS[host];
+        flash(
+          st,
+          hint && !settings.policy.blockedSites.includes(hint)
+            ? `Added ${host}. Note: that service's chat runs at ${hint}, which ${host} does not cover. Add ${hint} too if you meant to block it.`
+            : `Added ${host}. Press Save changes to send it out.`,
+          hint ? "err" : "ok",
+        );
       }
 
       function addPattern() {
@@ -1093,7 +1227,7 @@
         const label = $("pat-label").value.trim();
         const regex = $("pat-regex").value.trim();
         if (!label) {
-          flash(st, "Give the pattern a label — that's what your colleague reads in the warning.", "err");
+          flash(st, "Give the pattern a label: that's what your colleague reads in the warning.", "err");
           return;
         }
         if (!regex) {
@@ -1215,27 +1349,9 @@
         el.textContent = `${fmt(team.seatsUsed)}/${fmt(seats)}`;
       }
 
-      /** One dot's three states, written in one place. */
-      function setDot(id, kind) {
-        const el = $(id);
-        if (!el) return;
-        el.className = "sdot" + (kind ? ` sdot--${kind}` : "");
-        el.hidden = !kind;
-        el.title =
-          kind === "ok"
-            ? "Your last alert was delivered"
-            : kind === "bad"
-              ? "Your last alert failed to deliver"
-              : kind === "dirty"
-                ? "Unsaved changes"
-                : "";
-      }
-
       /**
-       * Unsaved work has to be visible from the other three views, or splitting
-       * one long page into four turns "I edited that" into "I thought I saved
-       * it". Both dots light: alerts and policy are one record, so either Save
-       * writes whatever is outstanding on both.
+       * What the Policy page holds that the server does not. Shown as "Unsaved
+       * changes" beside its Save button, and leaving the page with any asks first.
        */
       function settingsSnapshot() {
         if (!settings) return "";
@@ -1255,14 +1371,14 @@
         savedSnapshot = settingsSnapshot();
         syncDirty();
       }
+      // Unsaved edits are named beside the Save button, where they are acted on,
+      // not as a coloured dot in the sidebar (which read like a warning).
+      function hasUnsavedSettings() {
+        return settingsLoaded && settingsSnapshot() !== savedSnapshot;
+      }
       function syncDirty() {
-        const dirty = settingsLoaded && settingsSnapshot() !== savedSnapshot;
-        setDot("nav-policy-dot", dirty ? "dirty" : null);
-        // A failing webhook outranks an unsaved edit on its own item: one is a
-        // reminder, the other is alerts going nowhere.
-        const d = settings && settings.alertDelivery;
-        const health = d && d.known && savedWebhook ? (d.ok === true ? "ok" : d.ok === false ? "bad" : null) : null;
-        setDot("nav-alerts-dot", health || (dirty ? "dirty" : null));
+        const note = $("policy-dirty");
+        if (note) note.hidden = !hasUnsavedSettings();
       }
 
       /**
@@ -1512,6 +1628,169 @@
         finally { rosterBusy=false; }
       }
 
+      // ---------------------------------------------------------------------
+      // Member report (admin): one person's protection and activity in a side
+      // panel, with a PDF of the same. Metadata only, never pasted text.
+      const mr = { userId: null, data: null, controller: null };
+      const REPORT_OUTCOME = { blocked: "Blocked", cancelled: "Cancelled", sanitised: "Sanitised & pasted", warning_bypassed: "Pasted anyway" };
+      const ROLLOUT_LABEL = { applied: "Up to date", updating: "Updating", attention: "Needs attention", offline: "Offline" };
+      const msDate = (ms) => (Number(ms) > 0 ? new Date(Number(ms)) : null);
+      // The PDF can only print Latin text, so it pins an English locale.
+      const shortDate = (ms, locale) => msDate(ms)?.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" }) || "Unknown";
+      const shortTime = (ms, locale) => msDate(ms)?.toLocaleString(locale, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) || "";
+      const agoMs = (ms) => (Number(ms) > 0 ? relTime(new Date(Number(ms)).toISOString()) : null);
+
+      function mrBars(rows, labels = {}, empty = "Nothing in this period.") {
+        const list = (rows || []).filter((r) => Number(r.n) > 0);
+        if (!list.length) return `<p class="mr-empty">${esc(empty)}</p>`;
+        const max = Math.max(...list.map((r) => Number(r.n)));
+        return `<ul class="mr-bars">${list.map((r) => `<li><span class="mr-bar-label">${esc(labels[r.key] || r.key)}</span><span class="mr-bar"><i style="width:${Math.max(4, Math.round((Number(r.n) / max) * 100))}%"></i></span><b>${fmt(r.n)}</b></li>`).join("")}</ul>`;
+      }
+      function mrSpark(byDay, days) {
+        const map = new Map((byDay || []).map((r) => [String(r.day).slice(0, 10), Number(r.n) || 0]));
+        const today = new Date(); today.setUTCHours(0, 0, 0, 0);
+        const values = Array.from({ length: days }, (_, i) => map.get(new Date(today.getTime() - (days - 1 - i) * 86_400_000).toISOString().slice(0, 10)) || 0);
+        const max = Math.max(1, ...values);
+        const w = 100 / values.length;
+        return `<svg class="mr-spark" viewBox="0 0 100 32" preserveAspectRatio="none" role="img" aria-label="Detections per day over the last ${days} days">${values.map((v, i) => `<rect x="${(i * w + w * 0.15).toFixed(2)}" y="${(32 - (v / max) * 30).toFixed(2)}" width="${(w * 0.7).toFixed(2)}" height="${((v / max) * 30).toFixed(2)}" rx="0.6"></rect>`).join("")}</svg>`;
+      }
+      function renderMemberReport() {
+        const d = mr.data;
+        const body = $("mr-body");
+        if (!d) return;
+        const m = d.member;
+        const display = m.name || (m.email ? m.email.split("@")[0] : "Member");
+        $("mr-title").textContent = display;
+        $("mr-avatar").textContent = String(m.name || m.email || "?").split(/[\s@._-]+/).filter(Boolean).slice(0, 2).map((p) => p[0].toUpperCase()).join("") || "?";
+        const role = m.role === "org:admin" ? "Admin" : "Member";
+        $("mr-sub").textContent = [m.email, role, m.seatNumber ? `Seat ${m.seatNumber}` : null].filter(Boolean).join(" · ");
+        const a = d.activity;
+        const byAction = new Map((a?.byAction || []).map((r) => [r.key, Number(r.n) || 0]));
+        const devices = d.devices.length
+          ? `<ul class="mr-devices">${d.devices.map((dev) => `<li class="tone-${esc(dev.rollout)}"><span class="mr-dot" aria-hidden="true"></span><span>v${esc(dev.extensionVersion)}</span><b>${esc(ROLLOUT_LABEL[dev.rollout] || dev.rollout)}${dev.rollout === "applied" || dev.rollout === "updating" ? ` · revision ${esc(dev.appliedPolicyVersion)}` : ""}</b><small>${esc(agoMs(dev.lastSeenAt) ? `checked in ${agoMs(dev.lastSeenAt)}` : "")}</small></li>`).join("")}</ul>`
+          : `<p class="mr-empty">The extension hasn't checked in from this person's browser yet.</p>`;
+        const stats = a
+          ? `<div class="mr-stats"><div><b>${fmt(a.total)}</b><span>detections</span></div><div><b>${fmt((byAction.get("cancelled") || 0) + (byAction.get("blocked") || 0))}</b><span>stopped</span></div><div><b>${fmt((byAction.get("paste_anonymously") || 0) + (byAction.get("sanitised") || 0))}</b><span>anonymised</span></div><div class="${byAction.get("paste_anyway") ? "is-warn" : ""}"><b>${fmt(byAction.get("paste_anyway") || 0)}</b><span>pasted anyway</span></div></div>${mrSpark(a.byDay, d.days)}`
+          : `<p class="mr-empty">Detection activity is unavailable right now. The rest of the report is current.</p>`;
+        const tools = d.aiTools.length
+          ? `<ul class="mr-tools-list">${d.aiTools.map((t) => `<li><span>${esc(t.name)}</span><small>${fmt(t.visits)} visits · ${fmt(t.pastes)} pastes${t.sensitiveEvents ? ` · <em>${fmt(t.sensitiveEvents)} sensitive</em>` : ""}</small></li>`).join("")}</ul>`
+          : `<p class="mr-empty">No AI tool activity in this period.</p>`;
+        const recent = d.recentSensitive.length
+          ? `<ul class="mr-recent">${d.recentSensitive.map((r) => `<li><span>${esc(shortTime(r.timestamp))}</span><span>${esc(r.hostname)}</span><span class="mr-outcome mr-outcome--${esc(r.action)}">${esc(REPORT_OUTCOME[r.action] || r.action)}</span><small>${esc(r.reason)}${r.findingCount ? ` · ${fmt(r.findingCount)} ${r.findingCount === 1 ? "finding" : "findings"}` : ""}</small></li>`).join("")}</ul>`
+          : `<p class="mr-empty">No sensitive pastes into AI tools in this period.</p>`;
+        const removable = currentTeam?.role === "org:admin" && m.role !== "org:admin";
+        body.innerHTML = `
+          <dl class="mr-facts"><div><dt>Joined</dt><dd>${esc(m.joinedAt ? shortDate(m.joinedAt) : "Unknown")}</dd></div><div><dt>Last active</dt><dd>${esc(agoMs(m.lastSeenAt) || "Not yet")}</dd></div><div><dt>Team policy</dt><dd>Revision ${esc(d.policyVersion)}</dd></div></dl>
+          <section class="mr-sec"><h3>Protection</h3>${devices}</section>
+          <section class="mr-sec"><h3>Activity · last ${esc(d.days)} days</h3>${stats}</section>
+          ${a ? `<section class="mr-sec"><h3>What they chose</h3>${mrBars(a.byAction, ACTION_LABEL)}</section>
+          <section class="mr-sec"><h3>What was caught</h3>${mrBars(a.byType, TYPE_LABEL)}</section>
+          <section class="mr-sec"><h3>Where it was going</h3>${mrBars(a.bySite)}</section>` : ""}
+          <section class="mr-sec"><h3>AI tools used</h3>${tools}</section>
+          <section class="mr-sec"><h3>Recent sensitive pastes</h3>${recent}</section>
+          ${removable ? `<section class="mr-sec mr-danger"><div id="mr-remove-zone"><button class="btn btn--sm" type="button" data-mr-remove>Remove from team</button></div></section>` : ""}`;
+        $("mr-pdf").disabled = false;
+      }
+      async function loadMemberReport() {
+        mr.controller?.abort();
+        const controller = new AbortController();
+        mr.controller = controller;
+        $("mr-pdf").disabled = true;
+        $("mr-body").innerHTML = `<p class="mr-empty">Loading report…</p>`;
+        try {
+          const data = await api("/v1/team/member-report", {
+            method: "POST",
+            body: JSON.stringify({ userId: mr.userId, days: Number($("mr-days").value) }),
+            signal: controller.signal,
+          });
+          if (mr.controller !== controller) return;
+          mr.data = data;
+          renderMemberReport();
+        } catch (e) {
+          if (e.name === "AbortError" || mr.controller !== controller) return;
+          $("mr-body").innerHTML = `<p class="mr-error" role="alert">${esc(explain(e, { fallback: "This report couldn't be loaded. Try again." }))}</p>`;
+        }
+      }
+      function openMemberReport(userId) {
+        const member = (currentTeam?.members || []).find((m) => m.userId === userId);
+        mr.userId = userId;
+        mr.data = null;
+        $("mr-days").value = "30";
+        $("mr-title").textContent = member?.name || member?.email || "Member";
+        $("mr-sub").textContent = member?.email || "";
+        $("mr-avatar").textContent = "";
+        const dialog = $("member-report");
+        if (!dialog.open) dialog.showModal();
+        void loadMemberReport();
+      }
+      function memberReportPdf() {
+        const d = mr.data;
+        const kit = window.SIOverviewPdf?.kit;
+        if (!d || !kit) return;
+        const { PAGE_W, PAGE_H, LEFT, RIGHT, BOTTOM, C, rgb, escapePdf, textWidth, clip, count, when, encode } = kit;
+        const pages = [];
+        let page, y;
+        const push = (cmd) => page.push(cmd);
+        const text = (v, x, top, size = 9, color = C.ink, bold = false, align = "left") => {
+          const w = align === "left" ? 0 : textWidth(v, size, bold);
+          push(`${rgb(color)} rg BT /${bold ? "F2" : "F1"} ${size} Tf 1 0 0 1 ${(align === "right" ? x - w : x).toFixed(1)} ${(PAGE_H - top).toFixed(1)} Tm (${escapePdf(v)}) Tj ET`);
+        };
+        const rect = (x, top, w, h, color) => push(`${rgb(color)} rg ${x.toFixed(1)} ${(PAGE_H - top - h).toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)} re f`);
+        const rule = (top) => push(`0.7 w ${rgb(C.line)} RG ${LEFT} ${(PAGE_H - top).toFixed(1)} m ${RIGHT} ${(PAGE_H - top).toFixed(1)} l S`);
+        const m = d.member;
+        const name = m.name || (m.email ? m.email.split("@")[0] : "Member");
+        const begin = () => {
+          page = []; pages.push(page);
+          rect(0, 0, PAGE_W, 78, C.navy);
+          text("SECUREINTENT  /  BUSINESS", LEFT, 31, 9, [0.65, 0.86, 0.91], true);
+          text("Member report", LEFT, 57, 18, C.white, true);
+          text(`Last ${count(d.days)} days`, RIGHT, 34, 9, C.white, true, "right");
+          text(when(new Date()), RIGHT, 53, 8, [0.77, 0.83, 0.9], false, "right");
+          y = 104;
+        };
+        const ensure = (h) => { if (y + h > BOTTOM) begin(); };
+        const section = (title) => { ensure(40); text(title, LEFT, y + 11, 11, C.ink, true); rule(y + 18); y += 30; };
+        const row = (left, right, color = C.ink) => { ensure(16); text(clip(left, 70), LEFT, y + 4, 9, color); if (right !== undefined) text(String(right), RIGHT, y + 4, 9, C.ink, true, "right"); y += 16; };
+        begin();
+        text(clip(name, 60), LEFT, y, 13, C.ink, true); y += 16;
+        text(clip([m.email, m.role === "org:admin" ? "Admin" : "Member", m.seatNumber ? `Seat ${m.seatNumber}` : null].filter(Boolean).join(" | "), 100), LEFT, y, 9, C.muted); y += 14;
+        text(`Organisation: ${clip(currentTeam?.name || "Not available", 60)}   Joined: ${m.joinedAt ? shortDate(m.joinedAt, "en-GB") : "Unknown"}   Team policy revision ${d.policyVersion}`, LEFT, y, 8, C.muted); y += 24;
+        section("Protection");
+        if (!d.devices.length) row("The extension has not checked in from this person's browser yet.", undefined, C.muted);
+        for (const dev of d.devices) row(`Extension v${dev.extensionVersion} | last check-in ${agoMs(dev.lastSeenAt) || "unknown"}`, `${ROLLOUT_LABEL[dev.rollout] || dev.rollout}${dev.rollout === "applied" || dev.rollout === "updating" ? ` (rev ${dev.appliedPolicyVersion})` : ""}`);
+        y += 6;
+        section("Activity");
+        const a = d.activity;
+        if (!a) row("Detection activity was unavailable when this report was generated.", undefined, C.muted);
+        else {
+          row("Detections", count(a.total));
+          for (const r of a.byAction || []) row(`  ${ACTION_LABEL[r.key] || r.key}`, count(r.n));
+          y += 4;
+          section("What was caught");
+          if (!(a.byType || []).length) row("Nothing in this period.", undefined, C.muted);
+          for (const r of a.byType || []) row(TYPE_LABEL[r.key] || r.key, count(r.n));
+          y += 4;
+          section("Where it was going");
+          if (!(a.bySite || []).length) row("Nothing in this period.", undefined, C.muted);
+          for (const r of a.bySite || []) row(r.key, count(r.n));
+        }
+        y += 4;
+        section("AI tools used");
+        if (!d.aiTools.length) row("No AI tool activity in this period.", undefined, C.muted);
+        for (const t of d.aiTools) row(`${t.name} | ${count(t.visits)} visits | ${count(t.pastes)} pastes`, `${count(t.sensitiveEvents)} sensitive`);
+        y += 4;
+        section("Recent sensitive pastes");
+        if (!d.recentSensitive.length) row("No sensitive pastes into AI tools in this period.", undefined, C.muted);
+        for (const r of d.recentSensitive) row(`${shortTime(r.timestamp, "en-GB")} | ${r.hostname} | ${r.reason}`, REPORT_OUTCOME[r.action] || r.action);
+        const blob = encode(pages, "Member report | Metadata only: no prompt, pasted text or secret value | Admin use only");
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `secureintent-member-${String(name).toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${d.days}d-${new Date().toISOString().slice(0, 10)}.pdf`;
+        document.body.append(link); link.click(); link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 30000);
+      }
+
       async function act(fn, ctx = {}) {
         $("team-err").textContent = "";
         try {
@@ -1708,7 +1987,8 @@
 
         $("invite").addEventListener("click", sendInvitations);
         window.addEventListener("beforeunload", (event) => {
-          if (!invitesBusy) return;
+          // Invites in flight, or policy edits that were never saved.
+          if (!invitesBusy && !hasUnsavedSettings()) return;
           event.preventDefault();
           event.returnValue = "";
         });
@@ -1733,10 +2013,33 @@
           }, { seats });
         });
 
+        $("mr-days").addEventListener("change", () => { if (mr.userId) void loadMemberReport(); });
+        $("mr-pdf").addEventListener("click", memberReportPdf);
+        $("member-report").addEventListener("close", () => { mr.controller?.abort(); });
+        $("member-report").addEventListener("click", (e) => {
+          const dialog = $("member-report");
+          if (e.target === dialog) { dialog.close(); return; }
+          const btn = e.target.closest?.("button");
+          if (!btn) return;
+          if (btn.hasAttribute("data-mr-close")) { dialog.close(); return; }
+          const who = mr.data?.member?.name || mr.data?.member?.email || "this person";
+          if (btn.hasAttribute("data-mr-remove")) {
+            $("mr-remove-zone").innerHTML = `<p class="mr-confirm">Remove ${esc(who)} from the team? Their seat is freed and their organisation access ends.</p><button class="btn btn--sm btn--danger" type="button" data-mr-remove-yes>Remove</button> <button class="btn btn--sm" type="button" data-mr-remove-no>Cancel</button>`;
+            return;
+          }
+          if (btn.hasAttribute("data-mr-remove-no")) { renderMemberReport(); return; }
+          if (btn.hasAttribute("data-mr-remove-yes")) {
+            btn.disabled = true;
+            const userId = mr.userId;
+            dialog.close();
+            act(() => api("/v1/team/member/remove", { method: "POST", body: JSON.stringify({ userId }) }), { done: `${who} was removed from the team`, failed: "The member wasn't removed" });
+          }
+        });
         $("people").addEventListener("click", (e) => {
           const btn = e.target.closest?.("button");
           if (!btn) return;
           if (btn.dataset.resend) { btn.disabled=true; btn.setAttribute("aria-busy","true"); act(()=>api("/v1/team/invite/resend",{method:"POST",body:JSON.stringify({email:btn.dataset.resend})}),{done:`Invitation resent to ${btn.dataset.resend}`,failed:"The invitation wasn't resent"}); return; }
+          if (btn.dataset.report) { openMemberReport(btn.dataset.report); return; }
           if (btn.dataset.cancelPending) { btn.disabled=true; btn.setAttribute("aria-busy","true"); act(()=>api("/v1/team/invite/cancel-pending",{method:"POST",body:JSON.stringify({email:btn.dataset.cancelPending})}),{done:"Pending invitation cancelled",failed:"The invitation wasn't cancelled"}); return; }
           const { remove, revoke, who, confirmed, cancel } = btn.dataset;
           if (cancel) {
@@ -1811,9 +2114,15 @@
         $("overview-export-pdf").addEventListener("click", exportPdf);
 
         $("alerts-save").addEventListener("click", () =>
-          saveSettings($("alerts-status"), $("alerts-save")),
+          saveAlerts($("alerts-status"), $("alerts-save")),
         );
         $("alerts-test").addEventListener("click", sendTestAlert);
+        // Shadow AI rule saves move the shared policy revision. Track it, so the
+        // next Policy save is not rejected as stale (409) after a Shadow AI edit.
+        window.addEventListener("si-policy-saved", (event) => {
+          const v = Number(event.detail && event.detail.policyVersion);
+          if (settings && Number.isSafeInteger(v) && v > settings.policyVersion) settings.policyVersion = v;
+        });
         $("policy-save").addEventListener("click", () =>
           saveSettings($("policy-status"), $("policy-save")),
         );

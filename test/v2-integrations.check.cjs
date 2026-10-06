@@ -66,6 +66,10 @@ async function context(browser, options = {}) {
       if (path === '/v1/team/metrics') return route.fulfill({json: metrics});
       if (path === '/v1/usage') return route.fulfill({json: {remaining:8, limit:10}});
       if (path === '/v1/promo') return route.fulfill({json: {enabled:true}});
+      // Signed-in account page looks for invitations by verified email (live since 5 Oct).
+      if (path === '/v1/business-member/pending') return route.fulfill({json: {invitations:[]}});
+      // Team seats see their organisation's policy status on the account page.
+      if (path === '/v1/business/connection/policy-status') return route.fulfill({json: {orgId:'org_fixture',orgName:'Fixture Co',version:0,status:'not_connected',controls:null}});
       if (path === '/v1/promo/start') return route.fulfill({json: {ok:true, newUser:true}});
       if (path === '/v1/promo/verify' || path === '/submit' || path === '/v1/uninstall/feedback' || path === '/v1/attribution' || path === '/v1/team/invite' || path === '/v1/team/seats' || path === '/v1/team/member/remove' || path === '/v1/team/invite/revoke' || path === '/v1/team/settings/test-alert') return route.fulfill({json:{ok:true}});
       unexpected.push(path); return route.fulfill({status:500,json:{error:'unexpected_test_request'}});
@@ -99,7 +103,7 @@ async function run() {
   await test('sign-in/sign-up and recovery stay in redesigned routes', {signedIn:false}, async ({page}) => {
     await page.goto(BASE+DESIGN+'account.html?mode=signup&_ptxn=txn_fixture'); await expect(page.locator('#clerk-auth')).toContainText('Test sign-up');
     const args=await page.evaluate(()=>calls.find(c=>c[0]==='signup')[1]);
-    assert.equal(args.signInUrl,DESIGN+'account.html'); assert.equal(args.forceRedirectUrl,DESIGN+'account.html?_ptxn=txn_fixture');
+    assert.equal(args.signInUrl,DESIGN+'account.html?_ptxn=txn_fixture'); assert.equal(args.forceRedirectUrl,DESIGN+'account.html?_ptxn=txn_fixture');
   });
   await test('free account, profile, JWT, checkout identity and sign out', {}, async ({page,requests}) => {
     await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Free');
@@ -113,7 +117,7 @@ async function run() {
   await test('billing failure never presents a paid user as Free', {respond:p=>p==='/v1/entitlement'?{status:503,body:{}}:null}, async ({page}) => {
     await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Unavailable'); await expect(page.locator('#upgrade')).toBeHidden(); await expect(page.locator('#plan-retry')).toBeVisible();
   });
-  for (const source of ['lifetime','org_seat','business_email']) await test(source+' account has no personal checkout or billing', {respond:p=>p==='/v1/entitlement'?{body:{entitlement:{plan:'business_pro',source}}}:null}, async ({page})=>{
+  for (const source of ['lifetime','org_seat','business_email']) await test(source+' account has no personal checkout or billing', {respond:p=>p==='/v1/entitlement'?{body:{entitlement:{plan:'business_pro',source,...(source==='org_seat'?{org:{id:'org_fixture',name:'Fixture Co',role:'org:admin'}}:{})}}}:null}, async ({page})=>{
     await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Business Pro'); await expect(page.locator('#upgrade')).toBeHidden(); await expect(page.locator('#manage')).toBeHidden();
   });
   await test('payment SDK failure does not block account and reports checkout error', {paddleFailed:true}, async ({page})=>{
@@ -131,16 +135,20 @@ async function run() {
     await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#overlap-cancel')).toBeVisible(); await page.click('#overlap-cancel'); await expect(page.locator('#overlap-cancel')).toBeHidden();
     assert.ok(requests.some(r=>r.path==='/v1/billing/cancel'&&r.method==='POST'));
   });
-  await test('team admin invites, saves policy, and tests alerts', {}, async ({page,requests})=>{
+  await test('team admin invites, saves policy, and sees alerts as a preview', {}, async ({page,requests})=>{
     await page.goto(BASE+DESIGN+'team.html'); await expect(page.locator('#console')).toBeVisible(); await expect(page.locator('#nav-seats')).toHaveText('2/5');
     await page.click('[data-view="people"]'); await page.fill('#invite-email','colleague@example.test'); await page.click('#invite');
     await expect.poll(()=>requests.filter(r=>r.path==='/v1/team/invite').length).toBe(1);
     assert.deepEqual(requests.find(r=>r.path==='/v1/team/invite').body,{email:'colleague@example.test',role:'org:member'});
-    await page.click('[data-view="policy"]'); await page.check('#pol-lock'); await expect(page.locator('#nav-policy-dot')).toBeVisible();
+    await page.click('[data-view="policy"]'); await page.check('#pol-lock'); await expect(page.locator('#policy-dirty')).toBeVisible();
     await page.click('#policy-save'); await expect.poll(()=>requests.filter(r=>r.path==='/v1/team/settings'&&r.method==='PUT').length).toBe(1);
-    assert.equal(requests.find(r=>r.path==='/v1/team/settings'&&r.method==='PUT').body.policy.requireSessionLock,true);
-    await page.click('[data-view="alerts"]'); await page.fill('#alert-webhook','https://example.test/webhook'); await page.click('#alerts-save'); await expect(page.locator('#alerts-status')).toContainText('Saved.'); await page.click('#alerts-test');
-    await expect.poll(()=>requests.filter(r=>r.path==='/v1/team/settings/test-alert').length).toBe(1);
+    const put=requests.find(r=>r.path==='/v1/team/settings'&&r.method==='PUT').body;
+    assert.equal(put.policy.requireSessionLock,true);
+    // Policy saves send the policy only; alerts are a preview (desktop app).
+    assert.ok(!('alertWebhook' in put) && !('alertMinType' in put));
+    await page.click('[data-view="alerts"]'); await expect(page.locator('.preview-banner')).toContainText('desktop app');
+    for (const id of ['#alert-webhook','#alert-min','#alerts-save','#alerts-test']) await expect(page.locator(id)).toBeDisabled();
+    assert.ok(!requests.some(r=>r.path==='/v1/team/settings/test-alert'));
   });
   await test('team members cannot access the admin console', {teamBody:team({role:'org:member'})}, async ({page,requests})=>{
     await page.goto(BASE+DESIGN+'team.html'); await expect(page.locator('#member-actions')).toBeVisible(); await expect(page.locator('#console')).toBeHidden(); assert.ok(!requests.some(r=>r.path==='/v1/team/settings'));
