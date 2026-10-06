@@ -78,6 +78,9 @@ handleRedirectCallback:async()=>{},load:async()=>{},addListener:(f)=>{listeners.
     if (url.pathname === '/mock-api/v1/business-promo/inspect') return json(res,{companyName:'Northstar Engineering',email:'maya@northstar.example',emailHint:'m***@northstar.example',expiresAt:Date.now()+6*86400000,activated:false,seats:150,domain:{status:'available'}});
     if (url.pathname === '/mock-api/v1/business-promo/redeem') return json(res,{ok:true,orgId:'org_demo_northstar',seats:150});
     if (url.pathname === '/mock-api/v1/entitlement' && req.method === 'GET') return json(res, { entitlement: { clerkUserId:'user_demo_admin', email:'maya@northstar.example', plan:'business_pro', source:'org_seat', pro:true, features:['rehydrate','ghost','session_lock'], status:'active', businessDomain:null, org:{ id:'org_demo_northstar', name:'Northstar Engineering', role:'org:admin', seats:150 }, issuedAt:0, exp:9999999999 }, signature:null, personalSubscription:null });
+    // The admin pass: the real server opens it for a session started in the last 12 hours.
+    if (url.pathname === '/mock-api/v1/business-access/unlock/clerk' && req.method === 'POST')
+      return json(res, { accessToken: 'a'.repeat(64), expiresAt: Date.now() + 30 * 60000, orgId: 'org_demo_northstar' });
     if (url.pathname === '/mock-api/v1/team' && req.method === 'GET') return json(res, team);
     if (url.pathname === '/mock-api/v1/team/settings' && req.method === 'GET') return json(res, settings);
     if (url.pathname === '/mock-api/v1/team/settings/test-alert' && req.method === 'POST') {

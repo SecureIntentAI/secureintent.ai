@@ -60,7 +60,15 @@
         const clerk = window.Clerk;
         return `${clerk.user?.id || ''}:${clerk.session?.id || ''}:${clerk.organization?.id || ''}`;
       }
-      async function api(path, init = {}) {
+      // One silent admin check shared by every request that finds the pass
+      // missing or expired. The server opens it for a session the admin started
+      // in the last 12 hours, so an admin already signed in is not asked again.
+      let silentUnlock = null;
+      function unlockSilently() {
+        silentUnlock ??= window.SIAdminAccess.unlockWithClerk().finally(() => { silentUnlock = null; });
+        return silentUnlock;
+      }
+      async function api(path, init = {}, retried = false) {
         const scope = authScope();
         const assertScope = () => {
           if (scope !== authScope()) throw new DOMException('Account changed', 'AbortError');
@@ -92,8 +100,18 @@
           err.status = res.status;
           err.data = body || {};
           if(err.code==='admin_reauthentication_required' && (init.headers?.['X-SI-Admin-Access']||accessHeader)===window.SIAdminAccess.headers()['X-SI-Admin-Access']) {
-            const freshlySignedIn=Number(new Date(window.Clerk.session?.createdAt))>Date.now()-5*60_000;
-            showAdminClerkGate({automatic:!freshlySignedIn,reason:freshlySignedIn?'Clerk sign-in finished, but dashboard access was not confirmed. Please retry or contact SecureIntent support.':''});
+            if (!retried) {
+              try {
+                await unlockSilently();
+                assertScope();
+                return api(path, init, true);
+              } catch (unlockError) {
+                if (unlockError?.name === 'AbortError') throw unlockError;
+                showAdminClerkGate({automatic:false,reason:unlockError?.message||'',retry:unlockError?.code==='network'});
+                throw err;
+              }
+            }
+            showAdminClerkGate({automatic:false,reason:'Your sign-in is fine, but dashboard access was not confirmed. Try again or contact SecureIntent support.',retry:true});
           }
           throw err;
         }
@@ -2307,10 +2325,9 @@
           }
           let clerkPending=false;
           try { clerkPending=sessionStorage.getItem('si_admin_clerk_pending')==='1'; } catch {}
-          const freshSession=Number(new Date(window.Clerk.session?.createdAt))>Date.now()-5*60_000;
-          if(params.get('admin_return')==='1'||clerkPending||(freshSession&&!window.SIAdminAccess.headers()['X-SI-Admin-Access'])) {
+          if(params.get('admin_return')==='1'||clerkPending||!window.SIAdminAccess.headers()['X-SI-Admin-Access']) {
             try {
-              await window.SIAdminAccess.unlockWithClerk();
+              await unlockSilently();
               let returnView='';
               try {
                 returnView=sessionStorage.getItem('si_admin_return_view')||'';
