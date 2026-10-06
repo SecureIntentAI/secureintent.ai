@@ -77,6 +77,8 @@ async function ctxFor(browser, { teamBody = team(), settingsBody = settings(), v
   }));
   for (const u of ['**/fonts.googleapis.com/**', '**/fonts.gstatic.com/**', '**/cdnjs.cloudflare.com/**']) await ctx.route(u, r => r.fulfill({body:''}));
   for (const u of ["**/clerk.browser.js", "**/paddle.js"]) await ctx.route(u, (r) => r.fulfill({ body: "", contentType: "text/javascript" }));
+  // The admin pass: the real server opens it for a session started in the last 12 hours.
+  await ctx.route("**/v1/business-access/unlock/clerk", (r) => r.fulfill({ json: { accessToken: "a".repeat(64), expiresAt: Date.now() + 30 * 60_000, orgId: "org_x" } }));
   await ctx.route("**/v1/team/settings*", (r) => r.fulfill({ json: settingsBody }));
   await ctx.route("**/v1/team/metrics*", (r) => r.fulfill({ json: metrics }));
   await ctx.route("**/v1/team*", (r) => r.fulfill({ json: teamBody }));
