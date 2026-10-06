@@ -2264,7 +2264,7 @@
             title: adminVerification ? 'Verify your admin account with Clerk' : signUpMode ? "Create your account" : "Sign in to manage your team",
             sub: signUpMode
               ? "Use the business email address named in your organization invitation."
-              : adminVerification ? 'Use your registered organisation email, then sign in with your password or an email code. Google and other sign-in options can\'t open the admin console.' : '',
+              : adminVerification ? 'Sign in as your registered organisation email: with its password, an email code, or Google if your Google account is that same address.' : '',
             pitch: !adminVerification,
           });
           $("signout").hidden = true;
