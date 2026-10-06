@@ -96,10 +96,10 @@ const state = () => ({
   current: document.querySelector('.navitem[aria-current="page"]')?.dataset.view ?? null,
   hash: location.hash,
   seats: document.getElementById("nav-seats").textContent,
-  policyDot: document.getElementById("nav-policy-dot").hidden ? null : document.getElementById("nav-policy-dot").className,
-  alertsDot: document.getElementById("nav-alerts-dot").hidden ? null : document.getElementById("nav-alerts-dot").className,
-  policyDotColor: getComputedStyle(document.getElementById("nav-policy-dot")).backgroundColor,
-  alertsDotColor: getComputedStyle(document.getElementById("nav-alerts-dot")).backgroundColor,
+  // Unsaved edits are named beside the Policy Save button (no sidebar dots).
+  dirty: !document.getElementById("policy-dirty").hidden,
+  // Alerts are a preview until they ship with the desktop app.
+  alertsPreview: !!document.querySelector("#view-alerts .preview-banner") && document.getElementById("alerts-save").disabled,
   dangerColor: getComputedStyle(document.getElementById("team-err")).color,
   locked: [...document.querySelectorAll(".navitem")].filter((n) => n.getAttribute("aria-disabled") === "true").map((n) => n.dataset.view),
   topbarHidden: document.getElementById("topbar").hidden,
@@ -123,8 +123,8 @@ const state = () => ({
     check("lands on Overview", s.current === "overview" && s.view.join() === "view-overview", s);
     check("hash is #/overview", s.hash === "#/overview", s);
     check("seat badge reads 2/5", s.seats === "2/5", s);
-    check("alerts dot is green", s.alertsDot === "sdot sdot--ok" && s.alertsDotColor === "rgb(52, 211, 153)", s);
-    check("no unsaved dot on load", s.policyDot === null, s);
+    check("alerts page is a desktop-app preview", s.alertsPreview === true, s);
+    check("no unsaved note on load", s.dirty === false, s);
     check("nothing locked", s.locked.length === 0, s);
     check("topbar gives way to the sidebar", s.topbarHidden === true, s);
     check("no page errors", errs.length === 0, errs);
@@ -144,12 +144,12 @@ const state = () => ({
     await p.click("#pol-lock");
     await p.waitForTimeout(120);
     s = await p.evaluate(state);
-    check("toggling policy raises the unsaved dot", s.policyDot === "sdot sdot--dirty" && s.policyDotColor === "rgb(251, 191, 36)", s);
+    check("toggling policy shows the unsaved note", s.dirty === true, s);
     await p.click(".navitem[data-view=overview]");
     await p.waitForTimeout(150);
     s = await p.evaluate(state);
-    check("unsaved dot survives leaving the view", s.policyDot === "sdot sdot--dirty", s);
-    check("delivery health still outranks it on Alerts", s.alertsDot === "sdot sdot--ok", s);
+    check("unsaved note survives leaving the view", s.dirty === true, s);
+    check("Alerts stays a preview", s.alertsPreview === true, s);
     await p.screenshot({ path: OUT + "c-dirty.png" });
 
     // the edit itself must survive the round trip
@@ -180,7 +180,7 @@ const state = () => ({
     await p.waitForTimeout(900);
     const s = await p.evaluate(state);
     check("unpaid lands on People", s.current === "people", s);
-    check("unpaid locks the other three", s.locked.sort().join() === "alerts,overview,policy", s);
+    check("unpaid locks every other view", s.locked.sort().join() === "alerts,overview,policy,shadow", s);
     check("pending panel is up", await p.isVisible("#pending"), null);
     check("invite is disabled while unpaid", await p.isDisabled("#invite"), null);
     check("no page errors (unpaid)", errs.length === 0, errs);
@@ -205,7 +205,7 @@ const state = () => ({
     await p.goto(BASE + "/team.html");
     await p.waitForTimeout(900);
     const s = await p.evaluate(state);
-    check("a failing webhook shows the theme's danger color from Overview", s.alertsDot === "sdot sdot--bad" && s.alertsDotColor === s.dangerColor, s);
+    check("alerts stay a preview whatever the stored webhook health", s.alertsPreview === true, s);
     await p.click(".navitem[data-view=alerts]"); await p.waitForTimeout(200);
     await p.screenshot({ path: OUT + "c-alerts-bad.png" });
     await ctx.close();

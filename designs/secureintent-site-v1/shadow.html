@@ -15,7 +15,7 @@
   <link rel="preload" href="assets/shadow/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="assets/shadow/styles.css">
   <link rel="stylesheet" href="assets/shadow/dashboard.css">
-  <script src="integrations/admin-access.js?v=20261007-email-code" defer></script><script src="integrations/config.js"></script>
+  <script src="integrations/admin-access.js?v=20261007-prelaunch" defer></script><script src="integrations/config.js"></script>
   <script src="integrations/runtime.js"></script>
   <script src="assets/shadow/dashboard.js" type="module"></script>
 </head>
@@ -92,8 +92,7 @@
     </header>
 
     <main id="main">
-      <section class="page-heading" id="overview">
-        <div><div class="eyebrow">SECURITY WORKSPACE</div><h1>Shadow AI overview</h1><p>Discover AI tools, understand usage, and review sensitive activity.</p></div>
+      <section class="page-heading page-heading--embedded" id="overview">
         <div class="heading-actions"><span class="prototype-label" id="workspace-mode"><span class="sample-dot"></span>Business workspace</span><div class="export-menu-wrap"><button class="button" id="export-button" aria-haspopup="menu" aria-expanded="false" aria-controls="export-menu"><svg class="icon"><use href="#i-download"/></svg>Export overview</button><div class="export-menu" id="export-menu" role="menu" aria-label="Export format" hidden><button type="button" id="export-pdf" role="menuitem">Download PDF report</button><button type="button" id="export-json" role="menuitem">Download JSON data</button></div></div></div>
       </section>
 
@@ -101,12 +100,13 @@
 
       <div id="error" class="error-banner" role="alert" hidden></div>
       <section class="metrics" aria-label="Workspace summary" id="metrics"></section>
-      <section class="panel policy-rollout" aria-labelledby="policy-rollout-title">
-        <div class="panel-heading"><div><h2 id="policy-rollout-title">Policy delivery</h2><p id="policy-rollout-summary" role="status">Checking extension reports…</p></div></div>
-        <div class="policy-rollout-counts" id="policy-rollout-counts"></div>
-        <p class="policy-rollout-note" id="policy-rollout-note">An extension report confirms its active page guards; devices that are offline update when they reconnect.</p>
+      <section class="delivery-strip" id="policy-rollout" data-tone="neutral" aria-label="Policy delivery">
+        <span class="delivery-dot" aria-hidden="true"></span>
+        <p><strong id="policy-rollout-summary">Checking extension reports…</strong><span id="policy-rollout-note"></span></p>
+        <div class="delivery-counts" id="policy-rollout-counts"></div>
+        <a class="text-button" href="team.html#/overview" id="policy-rollout-link">View rollout <svg class="icon small"><use href="#i-arrow"/></svg></a>
       </section>
-      <div class="attention-strip"><span class="attention-icon"><svg class="icon small"><use href="#i-shield"/></svg></span><p><strong id="attention-count">Loading service decisions…</strong><span>Review unsanctioned usage before updating your policy.</span></p><button id="review-services" class="text-button">Review services <svg class="icon small"><use href="#i-arrow"/></svg></button></div>
+      <div class="attention-strip"><span class="attention-icon"><svg class="icon small"><use href="#i-shield"/></svg></span><p><strong id="attention-count">Loading service decisions…</strong><span>Mark each new AI service Sanctioned or Recognised, then set how your team may paste there.</span></p><button id="review-services" class="text-button">Review services <svg class="icon small"><use href="#i-arrow"/></svg></button></div>
 
       <div class="dashboard-grid">
         <section class="panel chart-panel" aria-labelledby="chart-title">
@@ -116,11 +116,11 @@
           <div class="chart-caption"><svg class="icon small"><use href="#i-activity"/></svg><span id="chart-caption">A visit is an observed page visit, not a submitted AI request.</span></div>
         </section>
 
-        <section class="panel progress-panel" aria-labelledby="progress-title"><div class="panel-heading"><div><h2 id="progress-title">Review progress</h2><p>Service and policy decisions.</p></div><span class="panel-symbol"><svg class="icon"><use href="#i-checklist"/></svg></span></div><div class="progress-visual"><svg viewBox="0 0 180 180" class="progress-ring" aria-hidden="true"><circle class="ring-track" cx="90" cy="90" r="72"/><circle class="ring-value" id="ring-value" cx="90" cy="90" r="72"/></svg><div class="progress-value"><strong id="progress-percent">—<span>%</span></strong><span>services sanctioned</span></div></div><div class="progress-stats"><div><i class="team-dot cyan"></i><strong id="completed-count">—</strong><span>Sanctioned</span></div><div><i class="team-dot peach"></i><strong id="open-count">—</strong><span>Unsanctioned</span></div></div><a class="progress-link" href="#reviews">Open review queue <svg class="icon"><use href="#i-arrow"/></svg></a></section>
+        <section class="panel progress-panel" aria-labelledby="progress-title"><div class="panel-heading"><div><h2 id="progress-title">Review progress</h2><p id="progress-headline">Service and policy decisions.</p></div><span class="panel-symbol"><svg class="icon"><use href="#i-checklist"/></svg></span></div><div class="review-body"><div class="review-ring"><svg viewBox="0 0 180 180" class="review-donut" role="img" aria-labelledby="progress-ring-label"><title id="progress-ring-label">Review progress</title><circle class="ring-track" cx="90" cy="90" r="72"/><g id="review-segments"></g></svg><div class="progress-value"><strong id="progress-percent">—<span>%</span></strong><span>reviewed</span></div></div><ul class="review-legend" id="review-legend"></ul></div><div class="review-rules" id="review-rules"></div><div class="review-next" id="review-next" hidden></div><a class="progress-link" href="#reviews">Open review queue <svg class="icon"><use href="#i-arrow"/></svg></a></section>
 
         <section class="panel services-panel" id="services" aria-labelledby="services-title">
           <div class="panel-heading"><div><div class="title-with-count"><h2 id="services-title">AI service inventory</h2><span class="count-badge" id="inventory-count">—</span></div><p>Service discovery and workspace classifications.</p></div><label class="search-control"><svg class="icon"><use href="#i-search"/></svg><input id="service-search" type="search" placeholder="Find a service…" aria-label="Search AI services"></label></div>
-          <div class="filter-row" role="group" aria-label="Service status filter"><button class="selected" data-service-filter="all" aria-pressed="true">All services</button><button data-service-filter="review" aria-pressed="false">Needs review <span id="review-filter-count">—</span></button><button data-service-filter="sanctioned" aria-pressed="false">Sanctioned <span id="sanctioned-filter-count">—</span></button></div>
+          <div class="filter-row" role="group" aria-label="Service status filter"><button class="selected" data-service-filter="all" aria-pressed="true">All services</button><button data-service-filter="review" aria-pressed="false">Needs review <span id="review-filter-count">—</span></button><button data-service-filter="recognized" aria-pressed="false">Recognised <span id="recognized-filter-count">—</span></button><button data-service-filter="sanctioned" aria-pressed="false">Sanctioned <span id="sanctioned-filter-count">—</span></button></div>
           <div class="service-grid" id="service-grid"></div><p id="service-empty" class="empty-state" hidden>No services match. Try another name or status.</p>
         </section>
 

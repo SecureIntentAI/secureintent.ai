@@ -36,7 +36,7 @@
   } catch(cause) {
    // The browser's own wording ("Failed to fetch") says nothing a person can act on.
    const error=new Error(cause?.name==='TimeoutError'
-    ?'SecureIntent took too long to answer. Your sign-in is fine — try again in a moment.'
+    ?'SecureIntent took too long to answer. Your sign-in is fine. Try again in a moment.'
     :"We couldn't reach SecureIntent to confirm your admin access. Check your connection, then try again.");
    error.code='network';
    throw error;

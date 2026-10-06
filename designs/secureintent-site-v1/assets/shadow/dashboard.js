@@ -15,6 +15,16 @@ const LIMIT = 25;
 const $ = selector => root.querySelector(selector);
 const $$ = selector => [...root.querySelectorAll(selector)];
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+// Admin-only view: the seat list maps a seat number to the member, shown as the
+// email's local part (julian.m), then the name, then the bare seat number.
+function seatLabel(seatNumber) {
+  if (!seatNumber) return 'Unattributed';
+  const seat = state.seats.find(item => item.seatNumber === seatNumber);
+  const label = seat ? String(seat.email || '').split('@')[0] || seat.name : '';
+  if (label) return label;
+  return state.seatsLoaded && state.seats.length ? `Seat ${seatNumber} (former member)` : `Seat ${seatNumber}`;
+}
+const eventSeat = event => event.seatNumber ?? (Number(String(event.seat || '').replace(/^Seat /, '')) || null);
 const number = value => Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0;
 const fmt = value => number(value).toLocaleString('en-US');
 const icon = name => `<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
@@ -81,11 +91,10 @@ function closeExportMenu(restoreFocus = false) {
 }
 function reportSnapshot() {
   return { sampleData: PREVIEW, localExtensionDemo: EXTENSION_DEMO, stale: state.stale, periodDays: state.days,
-    reportSubject: state.seatNumber === null ? 'Entire organisation' :
-      (state.seats.find(seat => seat.seatNumber === state.seatNumber)?.name ||
-       state.seats.find(seat => seat.seatNumber === state.seatNumber)?.email || `Seat ${state.seatNumber}`),
+    reportSubject: state.seatNumber === null ? 'Entire organisation' : seatLabel(state.seatNumber),
     reportIdentity: {adminName: window.Clerk?.user?.fullName || [window.Clerk?.user?.firstName,window.Clerk?.user?.lastName].filter(Boolean).join(' ') || 'Not available', organizationName:state.dashboard?.organization?.name || 'Not available', organizationEmail:state.dashboard?.organization?.email || 'Not available'}, exportedAt:Date.now(),
-    dashboard: state.dashboard, ledger: state.ledger, recent: state.recent };
+    dashboard: state.dashboard, recent: state.recent,
+    ledger: state.ledger && { ...state.ledger, events: state.ledger.events.map(event => ({ ...event, seat: seatLabel(eventSeat(event)) })) } };
 }
 function downloadJsonOverview() {
   if (!state.dashboard) return;
@@ -116,10 +125,57 @@ function selectedGroup(attribute, value) {
     button.setAttribute('aria-pressed', String(selected));
   });
 }
+// Review progress: the three decisions as a ring, their share of real usage,
+// paste rules across tools, and the busiest tool still waiting for a decision.
+const REVIEW_GROUPS = [
+  { key: 'sanctioned', label: 'Sanctioned', tone: 'sanctioned' },
+  { key: 'recognized', label: 'Recognised', tone: 'recognised' },
+  { key: 'review', label: 'Needs review', tone: 'review' },
+];
+function renderReviewProgress(summary) {
+  const all = tools();
+  const totalVisits = all.reduce((n, tool) => n + number(tool.visits), 0);
+  const groups = REVIEW_GROUPS.map(group => {
+    const members = all.filter(tool => classification(tool) === group.key);
+    const visits = members.reduce((n, tool) => n + number(tool.visits), 0);
+    return { ...group, count: members.length, visits, share: totalVisits ? visits / totalVisits : 0 };
+  });
+  const reviewed = groups[0].count + groups[1].count;
+  const fraction = all.length ? reviewed / all.length : 0;
+  $('#progress-percent').innerHTML = `${summary ? Math.round(fraction * 100) : '—'}<span>%</span>`;
+  $('#progress-headline').textContent = !summary ? 'Service and policy decisions.'
+    : !all.length ? 'No AI services observed yet.'
+    : reviewed === all.length ? `All ${all.length} AI ${all.length === 1 ? 'service' : 'services'} reviewed.`
+    : `${reviewed} of ${all.length} AI services reviewed.`;
+  // Ring: one arc per decision, sized by number of services, with small gaps.
+  const C = 2 * Math.PI * 72;
+  let offset = 0;
+  const gap = all.length > 1 ? 4 : 0;
+  $('#review-segments').innerHTML = summary && all.length ? groups.filter(g => g.count).map(g => {
+    const length = (g.count / all.length) * C;
+    const arc = `<circle class="ring-seg tone-${g.tone}" cx="90" cy="90" r="72" stroke-dasharray="${Math.max(0, length - gap)} ${C}" stroke-dashoffset="${-offset}"><title>${g.label}: ${g.count}</title></circle>`;
+    offset += length;
+    return arc;
+  }).join('') : '';
+  $('#review-legend').innerHTML = groups.map(g => `<li><span class="legend-dot tone-${g.tone}" aria-hidden="true"></span><span class="legend-label">${g.label}</span><strong>${summary ? fmt(g.count) : '—'}</strong><span class="legend-bar" aria-hidden="true"><i class="tone-${g.tone}" style="width:${Math.round(g.share * 100)}%"></i></span><small>${summary && totalVisits ? `${Math.round(g.share * 100)}% of visits` : 'No visits yet'}</small></li>`).join('');
+  const rules = { normal: 0, block_sensitive: 0, block_all: 0 };
+  for (const tool of all) rules[pasteMode(tool)] = (rules[pasteMode(tool)] || 0) + 1;
+  $('#review-rules').innerHTML = summary && all.length
+    ? `<span class="review-rules-title">Paste rules</span>${[['normal', 'normal', ''], ['block_sensitive', 'block sensitive', ' rule-warn'], ['block_all', 'block all', ' rule-block']].map(([key, label, cls]) => `<span class="rule-chip${cls}${rules[key] ? '' : ' is-zero'}">${fmt(rules[key])} ${label}</span>`).join('')}`
+    : '';
+  const next = all.filter(tool => classification(tool) === 'review').sort((a, b) => number(b.visits) - number(a.visits))[0];
+  $('#review-next').hidden = !next;
+  $('#review-next').innerHTML = next
+    ? `<div><span class="review-next-title">Next to review</span><strong>${esc(next.name)}</strong><small>${fmt(next.visits)} visits · ${fmt(next.pastes)} pastes</small></div><button class="button small" type="button" data-service="${esc(next.serviceId)}">Review</button>`
+    : '';
+}
 function renderMetrics() {
   const summary = state.dashboard?.summary;
   const sanctioned = tools().filter(tool => classification(tool) === 'sanctioned').length;
   const unsanctioned = tools().length - sanctioned;
+  // "Needs review" means undecided. Recognised is a decision, so it is not counted here.
+  const needsReview = tools().filter(tool => classification(tool) === 'review').length;
+  const recognised = tools().filter(tool => classification(tool) === 'recognized').length;
   const cards = [
     ['Discovered services', summary ? fmt(summary.totalTools) : '—', 'layers', summary ? `${sanctioned} sanctioned · ${unsanctioned} unsanctioned` : 'Waiting for activity'],
     ['Observed visits', summary ? fmt(summary.totalVisits) : '—', 'activity', `${state.days}-day reporting period`],
@@ -127,48 +183,46 @@ function renderMetrics() {
     ['Paste attempts', summary ? fmt(summary.pasteAttempts) : '—', 'clipboard', 'Attempted pastes, not submissions'],
   ];
   $('#metrics').innerHTML = cards.map(([title, value, glyph, note]) => `<article class="metric"><div class="metric-label"><span>${title}</span>${icon(glyph)}</div><div class="metric-main"><strong>${value}</strong></div><p class="metric-note">${note}</p></article>`).join('');
-  const fraction = tools().length ? sanctioned / tools().length : 0;
-  $('#progress-percent').innerHTML = `${summary ? Math.round(fraction * 100) : '—'}<span>%</span>`;
-  $('#ring-value').style.strokeDashoffset = String(452.39 * (1 - fraction));
-  $('#completed-count').textContent = summary ? sanctioned : '—';
-  $('#open-count').textContent = summary ? unsanctioned : '—';
+  renderReviewProgress(summary);
   for (const selector of ['#nav-service-count', '#inventory-count', '#queue-count']) $(selector).textContent = summary ? tools().length : '—';
-  $('#nav-review-count').textContent = summary ? unsanctioned : '—';
-  $('#review-filter-count').textContent = summary ? unsanctioned : '—';
+  $('#nav-review-count').textContent = summary ? needsReview : '—';
+  $('#review-filter-count').textContent = summary ? needsReview : '—';
+  $('#recognized-filter-count').textContent = summary ? recognised : '—';
   $('#sanctioned-filter-count').textContent = summary ? sanctioned : '—';
   $('#observed-services').textContent = summary ? `${tools().length} observed services` : 'Waiting for services';
-  $('#attention-count').textContent = summary ? unsanctioned ? `${unsanctioned} unsanctioned services to review.` : tools().length ? 'All observed services are sanctioned.' : 'No AI services observed yet.' : 'Waiting for service decisions.';
+  $('#attention-count').textContent = summary ? needsReview ? `${needsReview} ${needsReview === 1 ? 'service needs' : 'services need'} review.` : tools().length ? 'Every observed service has been reviewed.' : 'No AI services observed yet.' : 'Waiting for service decisions.';
   $('.attention-strip p > span').textContent = summary ? `${fmt(summary.highRiskDestinations)} higher-risk destinations · ${fmt(summary.sensitiveEvents)} sensitive events · ${bytes(summary.pasteBytes)} attempted volume` : 'Activity appears after enrolled extensions report it.';
 }
 function renderPolicyRollout() {
+  // Same rule and wording as the Overview's Policy rollout card (server-side
+  // lib/policyRollout): up to date, updating, needs attention, offline.
   const revision = state.dashboard?.policyVersion;
   const rollout = state.dashboard?.policyRollout;
+  const strip = $('#policy-rollout');
   const summary = $('#policy-rollout-summary');
+  const note = $('#policy-rollout-note');
   const counts = $('#policy-rollout-counts');
-  if (state.seatNumber !== null) {
-    summary.textContent = 'Policy delivery is reported for the whole organisation.';
-    counts.replaceChildren();
-    $('#policy-rollout-note').textContent = 'Select Entire organisation to review connected devices and policy acknowledgements.';
-    return;
-  }
-  if (!state.dashboard || !rollout) {
-    summary.textContent = state.dashboard ? `Revision ${revision} saved. Waiting for fresh device reports…` : 'Waiting for workspace data…';
-    counts.replaceChildren();
-    $('#policy-rollout-note').textContent = 'Reports update as connected extensions receive the policy and confirm their open page guards.';
-    return;
-  }
+  const set = (tone, text, detail = '', chips = []) => {
+    strip.dataset.tone = tone;
+    summary.textContent = text;
+    note.textContent = detail;
+    counts.innerHTML = chips.map(([cls, label]) => `<span class="${cls}">${label}</span>`).join('');
+  };
+  if (state.seatNumber !== null) return set('neutral', 'Policy delivery covers the whole organisation.', ' Select Entire organisation to see it.');
+  if (!state.dashboard) return set('neutral', 'Waiting for workspace data…');
+  if (!revision) return set('neutral', 'No team policy has been published yet.');
+  if (!rollout || !number(rollout.observedDevices)) return set('neutral', `Revision ${revision} saved.`, ' No extension has checked in yet.');
   const active = number(rollout.activeDevices);
-  const confirmed = number(rollout.confirmedDevices);
-  const pending = number(rollout.pendingDevices);
+  const upToDate = number(rollout.confirmedDevices);
+  const updating = number(rollout.pendingDevices);
   const attention = number(rollout.attentionDevices);
   const offline = number(rollout.offlineDevices);
-  summary.textContent = active
-    ? `Revision ${revision}: ${confirmed} of ${active} recently connected devices reported active page guards.`
-    : `Revision ${revision}: no extension has checked in during the last two minutes.`;
-  counts.innerHTML = [
-    `${confirmed} confirmed`, `${pending} pending`, `${attention} need attention`, `${offline} offline`,
-  ].map(label => `<span>${label}</span>`).join('');
-  $('#policy-rollout-note').textContent = `Devices seen in the last 30 days: ${fmt(rollout.observedDevices)}. Last report: ${date(rollout.lastReceiptAt)}. Reports describe open page guards; they do not prove coverage on every site.`;
+  const chips = [['is-ok', `${upToDate} up to date`], ['is-warn', `${updating} updating`], ['is-bad', `${attention} need attention`], ['', `${offline} offline`]]
+    .filter(([, label]) => !label.startsWith('0 '));
+  if (attention) return set('bad', `${attention} ${attention === 1 ? 'device has' : 'devices have'} protection off or a failed update.`, ` Revision ${revision}.`, chips);
+  if (!active) return set('neutral', 'No device has checked in during the last 10 minutes.', ` Revision ${revision}.`, chips);
+  if (updating) return set('warn', `${upToDate} of ${active} active devices have the latest policy.`, ` Revision ${revision}.`, chips);
+  return set('ok', active === 1 ? 'The active device is protected with the latest policy.' : `All ${active} active devices are protected with the latest policy.`, ` Revision ${revision}.`, chips);
 }
 function renderChart() {
   const rows = state.dashboard?.trends || [];
@@ -202,13 +256,13 @@ function renderChart() {
     const x = left + interval * (index + .5) - barWidth / 2, barHeight = (bottom - top) * bucket.value / max;
     const parsed = new Date(`${bucket.start}T12:00:00Z`);
     const label = Number.isNaN(parsed.getTime()) ? '' : parsed.toLocaleDateString('en-US', state.days === 7 ? { weekday: 'short', timeZone: 'UTC' } : { month: 'short', day: 'numeric', timeZone: 'UTC' });
-    svg += `<rect class="chart-bar secondary" x="${x}" y="${top}" width="${barWidth}" height="${bottom - top}"/><rect class="chart-bar" x="${x}" y="${bottom - barHeight}" width="${barWidth}" height="${barHeight}"><title>${esc(bucket.start)}${bucket.start !== bucket.end ? ` – ${esc(bucket.end)}` : ''}: ${fmt(bucket.value)}</title></rect>`;
+    svg += `<rect class="chart-bar secondary" x="${x}" y="${top}" width="${barWidth}" height="${bottom - top}"/><rect class="chart-bar" x="${x}" y="${bottom - barHeight}" width="${barWidth}" height="${barHeight}"><title>${esc(bucket.start)}${bucket.start !== bucket.end ? ` to ${esc(bucket.end)}` : ''}: ${fmt(bucket.value)}</title></rect>`;
     if (index === buckets.length - 1 || index % (width < 470 ? 2 : state.days === 7 ? 1 : 2) === 0) svg += `<text x="${x + barWidth / 2}" y="${height - 6}" text-anchor="middle">${esc(label)}</text>`;
   });
   $('#chart').innerHTML = svg + '</svg>';
 }
 function renderServices() {
-  const visible = tools().filter(tool => (state.filter === 'all' || (state.filter === 'review' ? classification(tool) !== 'sanctioned' : classification(tool) === 'sanctioned')) && `${tool.name} ${tool.hostname}`.toLowerCase().includes(state.search));
+  const visible = tools().filter(tool => (state.filter === 'all' || classification(tool) === state.filter) && `${tool.name} ${tool.hostname}`.toLowerCase().includes(state.search));
   $('#service-grid').innerHTML = visible.map(tool => `<button class="service-card" data-service="${esc(tool.serviceId)}" aria-label="View ${esc(tool.name)} details and policy"><span class="service-card-top"><span class="service-logo">${esc(marks[tool.serviceId] || String(tool.name).slice(0, 1))}</span>${icon('arrow-up')}</span><strong>${esc(tool.name)}</strong><span class="service-domain">${esc(tool.hostname)}</span><span class="service-meta">${fmt(tool.visits)} visits <span>·</span> ${tool.activeSeats == null ? `${fmt(tool.pastes)} pastes` : `${fmt(tool.activeSeats)} seats`}</span>${badge(tool)}</button>`).join('');
   $('#service-empty').hidden = visible.length > 0;
   $('#service-empty').textContent = state.dashboard ? tools().length ? 'No services match. Try another name or status.' : 'No AI tools discovered in this reporting period.' : 'Waiting for service data…';
@@ -229,9 +283,9 @@ const eventTone = action => ({ blocked: 'high', cancelled: 'review', sanitised: 
 function renderActivity() {
   $('#timeline').innerHTML = state.recent.length ? state.recent.slice(0, 4).map(event => `<li><span class="timeline-icon ${event.action === 'blocked' ? 'warm' : ''}">${icon(event.action === 'sanitised' ? 'check' : 'shield')}</span><div><strong>${esc(outcomes[event.action] || 'DLP event')}</strong><p>${esc(event.hostname)} · ${esc(event.reason)}</p><time>${esc(date(event.timestamp))}</time></div></li>`).join('') : '<li><div></div><p class="empty-state">No sensitive activity in this period.</p></li>';
   const ledger = state.ledger;
-  $('#ledger-body').innerHTML = ledger?.events.length ? ledger.events.map(event => `<tr><td>${esc(date(event.timestamp))}</td><td>${esc(event.seat || 'Unattributed')}</td><td>${esc(event.hostname)}<small>${esc(event.serviceId)}</small></td><td>${esc(event.reason)}</td><td><span class="badge ${eventTone(event.action)}">${esc(outcomes[event.action] || 'DLP event')}</span></td><td>${fmt(event.findingCount)}</td></tr>`).join('') : '<tr><td colspan="6" class="empty-state">No sensitive events in this period.</td></tr>';
+  $('#ledger-body').innerHTML = ledger?.events.length ? ledger.events.map(event => `<tr><td>${esc(date(event.timestamp))}</td><td>${esc(seatLabel(eventSeat(event)))}${eventSeat(event) && !seatLabel(eventSeat(event)).startsWith('Seat ') ? `<small>Seat ${eventSeat(event)}</small>` : ''}</td><td>${esc(event.hostname)}<small>${esc(event.serviceId)}</small></td><td>${esc(event.reason)}</td><td><span class="badge ${eventTone(event.action)}">${esc(outcomes[event.action] || 'DLP event')}</span></td><td>${fmt(event.findingCount)}</td></tr>`).join('') : '<tr><td colspan="6" class="empty-state">No sensitive events in this period.</td></tr>';
   const count = ledger?.events.length || 0;
-  $('#ledger-count').textContent = `${fmt(ledger?.total)} events · ${count ? state.offset + 1 : 0}–${count ? state.offset + count : 0}`;
+  $('#ledger-count').textContent = `${fmt(ledger?.total)} events · ${count ? state.offset + 1 : 0} to ${count ? state.offset + count : 0}`;
   state.nextOffset = ledger?.nextOffset ?? null;
   $('#prev').disabled = state.offset === 0;
   $('#next').disabled = state.nextOffset === null;
@@ -245,7 +299,7 @@ function renderAll() {
     ['chart', [state.days, state.chart, state.dashboard?.trends], renderChart],
     ['services', [state.dashboard !== null, tools()], renderServices],
     ['reviews', tools(), renderReviews],
-    ['activity', [state.offset, state.ledger, state.recent], renderActivity],
+    ['activity', [state.offset, state.ledger, state.recent, state.seats], renderActivity],
   ];
   for (const [key, data, render] of parts) {
     const signature = JSON.stringify(data);
@@ -253,15 +307,93 @@ function renderAll() {
   }
 }
 
+function seatNames(tool) {
+  const numbers = Array.isArray(tool.seatNumbers) ? tool.seatNumbers : [];
+  if (!numbers.length) return '';
+  const names = numbers.slice(0, 5).map(seatLabel).join(', ');
+  return `<small class="seat-names">${esc(numbers.length > 5 ? `${names} and ${numbers.length - 5} more` : names)}</small>`;
+}
 function showService(id) {
   const tool = toolById(id);
   if (!tool) return;
+  drill.controller?.abort();
   const editable = canManage();
   const description = { normal: 'Use the usual DLP warnings and available paste choices.', block_sensitive: 'Stop the whole paste when sensitive content is detected.', block_all: 'Stop every paste into this AI service.' };
-  $('#detail-content').innerHTML = `<span class="service-logo">${esc(marks[id] || String(tool.name).slice(0, 1))}</span><h2 id="detail-title" style="margin-top:14px">${esc(tool.name)}</h2><p class="dialog-subtitle">${esc(tool.hostname)} · Team policy</p><dl class="dialog-meta"><div><dt>Observed visits · ${state.days} days</dt><dd>${fmt(tool.visits)}</dd></div><div><dt>Paste attempts</dt><dd>${fmt(tool.pastes)}</dd></div><div><dt>Attempted volume</dt><dd>${bytes(tool.bytes)}</dd></div><div><dt>Active seats</dt><dd>${tool.activeSeats == null ? 'Not collected' : fmt(tool.activeSeats)}</dd></div></dl>
+  $('#detail-content').innerHTML = `<span class="service-logo">${esc(marks[id] || String(tool.name).slice(0, 1))}</span><h2 id="detail-title" style="margin-top:14px">${esc(tool.name)}</h2><p class="dialog-subtitle">${esc(tool.hostname)} · Team policy</p><dl class="dialog-meta"><div><dt>Observed visits · ${state.days} days</dt><dd>${fmt(tool.visits)}</dd></div><div><dt>Paste attempts</dt><dd>${fmt(tool.pastes)}${tool.pastes > 0 && !PREVIEW ? `<button class="drill-link" type="button" data-drill="pastes" data-drill-service="${esc(id)}">View</button>` : ''}</dd></div><div><dt>Attempted volume</dt><dd>${bytes(tool.bytes)}</dd></div><div><dt>Active seats</dt><dd>${tool.activeSeats == null ? 'Not collected' : fmt(tool.activeSeats)}${tool.activeSeats > 0 && !PREVIEW ? `<button class="drill-link" type="button" data-drill="seats" data-drill-service="${esc(id)}">View</button>` : ''}${seatNames(tool)}</dd></div></dl>
     <form id="policy-form" class="policy-form" data-service-id="${esc(id)}"><fieldset ${editable ? '' : 'disabled'}><label>Service classification<select name="classification">${Object.entries(classifications).map(([value, label]) => `<option value="${value}" ${classification(tool) === value ? 'selected' : ''}>${label}</option>`).join('')}</select></label><fieldset><legend>How should your team paste here?</legend>${Object.entries(modes).map(([value, label]) => `<label class="policy-option"><input type="radio" name="pasteMode" value="${value}" ${pasteMode(tool) === value ? 'checked' : ''}><span><strong>${label}</strong><small>${description[value]}</small></span></label>`).join('')}</fieldset></fieldset><p class="dialog-note">${EXTENSION_DEMO ? 'Local demo: policy changes apply to this browser’s open AI tabs immediately.' : PREVIEW ? 'Local preview: changes reset when you reload.' : 'Saves the organisation policy. Extension application will be shown only after a confirmed device acknowledgement.'} These controls govern pastes; website access remains available.</p>${editable ? '' : `<p class="dialog-note">${state.stale ? 'Refresh the dashboard before editing policy.' : 'Only organisation admins can change team policies.'}</p>`}<p id="policy-error" class="error-banner" role="alert" hidden></p><p id="policy-message" role="status" hidden></p><div class="dialog-actions"><button class="button" type="button" data-close-dialog>Close</button>${editable ? '<button class="button primary" id="save-policy" type="submit">Save team policy</button>' : ''}</div></form>`;
-  dialogTrigger = root.activeElement || document.activeElement;
-  $('#detail-dialog').showModal();
+  if (!$('#detail-dialog').open) {
+    dialogTrigger = root.activeElement || document.activeElement;
+    $('#detail-dialog').showModal();
+  }
+}
+
+// Workspace details drill-down: who used this tool, or each paste attempt.
+// Admin-only API; metadata only (time, size, outcome), never pasted text.
+const drill = { serviceId: null, kind: null, rows: [], nextOffset: null, total: 0, controller: null };
+const fullName = seatNumber => {
+  const seat = state.seats.find(item => item.seatNumber === seatNumber);
+  return seat?.name && seat.name !== seatLabel(seatNumber) ? seat.name : '';
+};
+const pasteOutcome = row => row.outcome
+  ? `Sensitive · ${row.outcome === 'warning_bypassed' ? 'Pasted anyway' : outcomes[row.outcome] || 'Flagged'}`
+  : 'No sensitive data found';
+function renderDrill() {
+  const tool = toolById(drill.serviceId);
+  if (!tool) return;
+  const title = drill.kind === 'seats' ? 'Active seats' : 'Paste attempts';
+  const rows = drill.kind === 'seats'
+    ? drill.rows.map(row => `<li class="drill-row"><div><strong>${esc(seatLabel(row.seatNumber))}</strong>${fullName(row.seatNumber) ? `<small>${esc(fullName(row.seatNumber))}</small>` : ''}</div><div class="drill-meta"><span>${fmt(row.visits)} ${row.visits === 1 ? 'visit' : 'visits'} · ${fmt(row.pastes)} ${row.pastes === 1 ? 'paste' : 'pastes'}${row.sensitiveEvents ? ` · ${fmt(row.sensitiveEvents)} sensitive` : ''}</span><small>Last active ${esc(date(row.lastSeen))}</small></div></li>`)
+    : drill.rows.map(row => `<li class="drill-row"><div><strong>${esc(seatLabel(row.seatNumber))}</strong><small>${esc(date(row.timestamp))}</small></div><div class="drill-meta"><span class="badge ${row.outcome ? eventTone(row.outcome) : 'low'}">${esc(pasteOutcome(row))}</span><small>${esc(bytes(row.byteSize))}</small></div></li>`);
+  const status = drill.loading ? 'Loading…' : drill.error ? '' : !drill.rows.length ? 'No activity in this period.' : '';
+  $('#detail-content').innerHTML = `<button class="text-button drill-back" type="button" data-drill-back="${esc(drill.serviceId)}">‹ Back to ${esc(tool.name)} policy</button>
+    <h2 id="detail-title" style="margin-top:10px">${title}</h2><p class="dialog-subtitle">${esc(tool.name)} · last ${state.days} days${drill.kind === 'pastes' && drill.total ? ` · ${fmt(drill.total)} ${drill.total === 1 ? 'paste' : 'pastes'}` : ''}</p>
+    <ul class="drill-list">${rows.join('')}</ul>
+    ${status ? `<p class="dialog-note">${status}</p>` : ''}${drill.error ? `<p class="error-banner" role="alert">${esc(drill.error)}</p>` : ''}
+    <p class="dialog-note">${drill.kind === 'pastes' ? 'Metadata only: time, size and outcome.' : 'Activity counts only.'} SecureIntent never receives what was pasted.</p>
+    <div class="dialog-actions">${drill.nextOffset !== null ? '<button class="button" type="button" data-drill-more>Load more</button>' : ''}<button class="button" type="button" data-close-dialog>Close</button></div>`;
+}
+async function loadDrill(append = false) {
+  drill.controller?.abort();
+  const controller = new AbortController();
+  drill.controller = controller;
+  drill.loading = true; drill.error = '';
+  if (!append) { drill.rows = []; drill.nextOffset = null; drill.total = 0; }
+  renderDrill();
+  try {
+    const body = { serviceId: drill.serviceId, kind: drill.kind, days: state.days,
+      ...(state.seatNumber === null ? {} : { seatNumber: state.seatNumber }),
+      ...(drill.kind === 'pastes' ? { limit: 25, offset: append ? drill.rows.length : 0 } : {}) };
+    const data = await api('/v1/shadow/admin/service-activity', body, controller.signal);
+    if (drill.controller !== controller) return;
+    const rows = drill.kind === 'seats' ? data.seats : data.pastes;
+    drill.rows = append ? [...drill.rows, ...(rows || [])] : rows || [];
+    drill.nextOffset = data.nextOffset ?? null;
+    drill.total = number(data.total);
+  } catch (error) {
+    if (controller.signal.aborted) return;
+    drill.error = error.message || 'This list could not be loaded. Try again.';
+  } finally {
+    // A cancelled request (Back, Close, another tool) must never paint over
+    // whatever the dialog shows now.
+    if (drill.controller === controller && !controller.signal.aborted) {
+      drill.loading = false;
+      renderDrill();
+    }
+  }
+}
+function cancelDrill() {
+  drill.controller?.abort();
+  drill.controller = null;
+  drill.serviceId = null;
+}
+function showDrill(serviceId, kind) {
+  // Keep unsaved classification / paste mode choices for when the admin comes Back.
+  const form = $('#policy-form');
+  drill.unsaved = form && !$('#policy-message').hidden && $('#policy-message').textContent.startsWith('Unsaved') && form.dataset.serviceId === serviceId
+    ? { classification: form.elements.classification.value, pasteMode: form.elements.pasteMode.value }
+    : null;
+  Object.assign(drill, { serviceId, kind });
+  void loadDrill();
 }
 async function savePolicy(form) {
   if (state.saving || !canManage()) return;
@@ -286,6 +418,8 @@ async function savePolicy(form) {
     if (state.scope !== scope) return;
     Object.assign(toolById(change.serviceId), change);
     state.dashboard.policyVersion = result.policyVersion;
+    // The team console's Policy page shares this revision (see team.js).
+    window.dispatchEvent(new CustomEvent('si-policy-saved', { detail: { policyVersion: result.policyVersion } }));
     state.dashboard.policyRollout = null;
     const message = EXTENSION_DEMO ? 'Demo policy saved and sent to open tabs.' : PREVIEW ? 'Preview policy updated. Changes reset on reload.' : `Saved: ${modes[change.pasteMode]} (revision ${result.policyVersion}). Waiting for device confirmation.`;
     $('#policy-status').textContent = message;
@@ -342,7 +476,7 @@ async function load() {
       state.seatsLoaded = true;
       const select = $('#report-seat');
       select.replaceChildren(new Option('Entire organisation', ''), ...state.seats.map(seat =>
-        new Option(`${seat.name || seat.email || `Seat ${seat.seatNumber}`} · Seat ${seat.seatNumber}`, String(seat.seatNumber))));
+        new Option(`${seatLabel(seat.seatNumber)} · Seat ${seat.seatNumber}`, String(seat.seatNumber))));
       select.value = seatNumber === null ? '' : String(seatNumber);
     }
     state.stale = false;
@@ -465,6 +599,21 @@ root.addEventListener('click', event => {
   if (button.dataset.reviewFilter) { state.reviewFilter = button.dataset.reviewFilter; selectedGroup('data-review-filter', state.reviewFilter); renderReviews(); }
   if (button.dataset.view) { state.view = button.dataset.view; selectedGroup('data-view', state.view); renderReviews(); }
   if (button.dataset.service) showService(button.dataset.service);
+  if (button.dataset.drill) showDrill(button.dataset.drillService, button.dataset.drill);
+  if (button.dataset.drillBack) {
+    const kept = drill.unsaved;
+    cancelDrill();
+    showService(button.dataset.drillBack);
+    const form = $('#policy-form');
+    if (kept && form) {
+      form.elements.classification.value = kept.classification;
+      const mode = form.querySelector(`input[name="pasteMode"][value="${kept.pasteMode}"]`);
+      if (mode) mode.checked = true;
+      $('#policy-message').textContent = 'Unsaved changes. Click Save team policy to apply them to your organization.';
+      $('#policy-message').hidden = false;
+    }
+  }
+  if (button.hasAttribute('data-drill-more') && drill.nextOffset !== null) void loadDrill(true);
   if (button.hasAttribute('data-close-dialog') && !state.saving) button.closest('dialog').close();
 });
 root.addEventListener('change', event => {
@@ -477,6 +626,7 @@ root.addEventListener('change', event => {
 root.addEventListener('submit', event => { if (event.target.id === 'policy-form') { event.preventDefault(); savePolicy(event.target); } });
 $('#detail-dialog').addEventListener('cancel', event => { if (state.saving) event.preventDefault(); });
 $('#detail-dialog').addEventListener('close', () => {
+  cancelDrill();
   if (dialogTrigger?.isConnected) dialogTrigger.focus({ preventScroll: true });
   else $('#review-policy').focus({ preventScroll: true });
 });

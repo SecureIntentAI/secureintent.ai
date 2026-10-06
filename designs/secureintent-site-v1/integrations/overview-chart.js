@@ -9,7 +9,7 @@
   // the one outcome where the data actually left.
   const GROUPS = [
     { key: "stopped", label: "Blocked or cancelled", actions: ["blocked", "cancelled"] },
-    { key: "anon", label: "Pasted anonymised", actions: ["paste_anonymously"] },
+    { key: "anon", label: "Anonymised or sanitised", actions: ["paste_anonymously", "sanitised"] },
     { key: "anyway", label: "Pasted anyway", actions: ["paste_anyway"] },
     { key: "other", label: "Other", actions: [] },
   ];
@@ -63,7 +63,7 @@
         if (row) for (const g of GROUPS) b[g.key] += row[g.key];
       }
       b.total = b.stopped + b.anon + b.anyway + b.other;
-      b.label = weekly ? `${shortDate(b.start)} – ${shortDate(b.end)}` : shortDate(b.start);
+      b.label = weekly ? `${shortDate(b.start)} to ${shortDate(b.end)}` : shortDate(b.start);
       b.from = isoDay(b.start);
       b.to = isoDay(b.end);
       buckets.push(b);
@@ -74,7 +74,10 @@
   function stats(m, s) {
     const total = s.buckets.reduce((t, b) => t + b.total, 0);
     const busiest = s.buckets.reduce((best, b) => (b.total > (best?.total || 0) ? b : best), null);
-    const anyway = s.buckets.reduce((t, b) => t + b.anyway, 0);
+    // Without the per-day outcome split the buckets carry no outcomes, so take
+    // "pasted anyway" from the period's outcome totals instead of reporting 0.
+    const fromTotals = num((m?.byAction || []).find((r) => r.key === "paste_anyway")?.n);
+    const anyway = s.split ? s.buckets.reduce((t, b) => t + b.anyway, 0) : Math.min(fromTotals, total);
     const previous = Number.isFinite(Number(m?.previousTotal)) ? num(m.previousTotal) : null;
     let change = null;
     if (previous !== null) {

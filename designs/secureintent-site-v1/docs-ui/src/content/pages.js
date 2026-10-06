@@ -44,7 +44,7 @@ export const pages = [
     title: "Terms of service",
     label: "PREVIEW INFORMATION",
     description:
-      "A local destination for the legal link—not a replacement for reviewed product terms.",
+      "A local destination for the legal link, not a replacement for reviewed product terms.",
     body: `
     <div class="legal-preview"><h2>This is a design preview</h2><p>This standalone website does not create accounts, process payments, install software, or enter you into a product subscription. Forms run locally and do not submit information to a server.</p><h2>Before publishing</h2><p>The approved product terms and privacy policy need to be supplied and reviewed before launch. This page deliberately does not invent legal terms or copy policies from another company.</p><h2>Understand the product</h2><p>For the product’s processing boundary, read the <a href="/designs/secureintent-site-v1/docs/security/local-processing/">local processing guide</a>. For the limits of the demonstration, see <a href="/designs/secureintent-site-v1/docs/overview/what-is-secureintent/">What is SecureIntent?</a></p><a class="button button-outline" href="/designs/secureintent-site-v1/index.html">Back to the website ${icon("arrow")}</a></div>`,
   },

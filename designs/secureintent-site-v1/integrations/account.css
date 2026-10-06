@@ -466,6 +466,11 @@
       .account-app .feat--locked .feat-state {
         color: var(--cyan);
       }
+      .account-app .feat--soon .feat-label,
+      .account-app .feat--soon .feat-ic,
+      .account-app .feat--soon .feat-state {
+        color: var(--muted);
+      }
 
       /* Clerk mount points — center their internal cards */
       .account-app #clerk-auth,
@@ -488,3 +493,25 @@
       .account-app [hidden] {
         display: none !important;
       }
+
+/* ---- One-code team join card -------------------------------------------- */
+.account-app .join-form { margin-top: 22px; }
+.account-app .join-form input[readonly] { opacity: 0.8; cursor: default; }
+.account-app .join-names { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.account-app .join-wide { width: 100%; margin-top: 16px; }
+.account-app .join-google { gap: 10px; }
+.account-app .join-or { display: flex; align-items: center; gap: 12px; margin: 14px 0 -2px; color: var(--muted); font-size: 12px; }
+.account-app .join-or::before, .account-app .join-or::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.account-app .join-code { font-family: var(--mono); font-size: 24px; letter-spacing: 0.45em; text-align: center; }
+.account-app .join-actions { display: flex; justify-content: space-between; gap: 12px; margin-top: 14px; }
+.account-app .join-actions .text-action[disabled] { opacity: 0.55; cursor: default; }
+.account-app .join-error { margin: 14px 0 0; padding: 10px 12px; border-radius: 9px; background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); font-size: 13px; line-height: 1.5; }
+.account-app .join-alt { text-align: center; }
+.account-app .join-alt a { color: var(--cyan); font-weight: 600; }
+@media (max-width: 480px) { .account-app .join-names { grid-template-columns: 1fr; } }
+.account-app #clerk-auth.is-join { display: block; }
+.account-app .join-actions .text-action { border: 0; background: transparent; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.account-app .join-password { position: relative; }
+.account-app .join-password input { padding-right: 64px; }
+.account-app .join-password .text-action { position: absolute; top: 50%; right: 8px; transform: translateY(-50%); padding: 6px 8px; border: 0; background: transparent; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.account-app .join-password-note { margin: 0 0 16px; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(114, 255, 255, 0.16); background: rgba(114, 255, 255, 0.05); color: var(--text); font-size: 13px; line-height: 1.5; }

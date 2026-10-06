@@ -103,6 +103,17 @@ function makeReport(snapshot) {
     ['Attempted paste volume', formatBytes(summary.pasteBytes)],
     ['Data status', snapshot.stale ? 'May be out of date' : 'Current at export'],
   ];
+  // What happened to the sensitive pastes. Older APIs send no breakdown; then
+  // the row is left out rather than shown as zeros.
+  const outcomes = summary.outcomes;
+  if (outcomes && typeof outcomes === 'object') {
+    cards.push(
+      ['Blocked', count(outcomes.blocked)],
+      ['Cancelled', count(outcomes.cancelled)],
+      ['Sanitised', count(outcomes.sanitised)],
+      ['Pasted anyway', count(outcomes.warning_bypassed)],
+    );
+  }
   const gap = 8;
   const cardW = (WIDTH - gap * 3) / 4;
   cards.forEach(([label, value], index) => {
@@ -114,7 +125,7 @@ function makeReport(snapshot) {
     text(clipped(label, 24), x + 8, top + 15, 7, COLORS.muted);
     text(clipped(value, 17), x + 8, top + 37, 13, COLORS.ink, true);
   });
-  y += 128;
+  y += Math.ceil(cards.length / 4) * 58 + 12;
 
   section('Activity trend');
   const trends = Array.isArray(dashboard.trends) ? dashboard.trends : [];
@@ -151,7 +162,7 @@ function makeReport(snapshot) {
       rect(x + i * slot + (slot - barW) / 2, base - h, barW, h, color);
     });
     text(`${count(rows.reduce((n, row) => n + row.value, 0))} total`, x, base + 12, 7, COLORS.muted);
-    text(`${rows[0].start || ''}  -  ${rows.at(-1).end || ''}`, x + 90, base + 12, 7, COLORS.faint);
+    text(`${rows[0].start || ''} to ${rows.at(-1).end || ''}`, x + 90, base + 12, 7, COLORS.faint);
   };
   ensure(107);
   drawBars('OBSERVED VISITS', 'visits', LEFT, COLORS.cyan);
