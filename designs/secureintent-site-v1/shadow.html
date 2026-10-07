@@ -111,7 +111,7 @@
       <div class="dashboard-grid">
         <section class="panel chart-panel" aria-labelledby="chart-title">
           <div class="panel-heading"><div><h2 id="chart-title">Activity overview</h2><p>Observed visits and paste attempts.</p></div><div class="segmented compact" role="group" aria-label="Chart metric"><button class="selected" data-chart="visits" aria-pressed="true">Visits</button><button data-chart="pastes" aria-pressed="false">Pastes</button></div></div>
-          <div class="chart-topline"><div><strong id="chart-total">—</strong><span id="chart-unit">observed visits</span></div><div class="legend"><span class="legend-dot"></span><span id="chart-legend">Service visits</span></div></div>
+          <div class="chart-topline"><div><strong id="chart-total">—</strong><span id="chart-unit">observed visits</span></div><div class="legend" aria-label="Chart legend"></div></div>
           <div class="chart" id="chart"></div>
           <div class="chart-caption"><svg class="icon small"><use href="#i-activity"/></svg><span id="chart-caption">A visit is an observed page visit, not a submitted AI request.</span></div>
         </section>
@@ -135,7 +135,7 @@
       </section>
       <section class="panel ledger-panel" id="ledger" aria-labelledby="ledger-title">
         <div class="panel-heading"><div><h2 id="ledger-title">DLP event ledger</h2><p>Detection reasons and outcomes. Hostnames only; no pasted content.</p></div><button class="button" id="refresh">Refresh data</button></div>
-        <div class="ledger-scroll"><table class="ledger-table"><caption class="sr-only">Sensitive paste activity</caption><thead><tr><th scope="col">Time</th><th scope="col">Seat</th><th scope="col">Destination</th><th scope="col">Detection reason</th><th scope="col">Resolution</th><th scope="col">Findings</th></tr></thead><tbody id="ledger-body"></tbody></table></div>
+        <div class="ledger-scroll"><table class="ledger-table"><caption class="sr-only">Sensitive paste activity</caption><thead><tr><th scope="col">Time</th><th scope="col">Member</th><th scope="col">Destination</th><th scope="col">Detection reason</th><th scope="col">Resolution</th><th scope="col">Findings</th></tr></thead><tbody id="ledger-body"></tbody></table></div>
         <div class="queue-footer"><span id="ledger-count">Loading events…</span><div class="pager"><button class="button" id="prev" disabled>Previous</button><button class="button" id="next" disabled>Next</button></div></div>
       </section>
       <footer class="page-footer" id="design-info"><span>SecureIntent <span class="footer-slash">/</span> Shadow AI</span><span id="updated">Waiting for data</span></footer>

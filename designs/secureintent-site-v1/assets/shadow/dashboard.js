@@ -22,7 +22,7 @@ function seatLabel(seatNumber) {
   const seat = state.seats.find(item => item.seatNumber === seatNumber);
   const label = seat ? String(seat.email || '').split('@')[0] || seat.name : '';
   if (label) return label;
-  return state.seatsLoaded && state.seats.length ? `Seat ${seatNumber} (former member)` : `Seat ${seatNumber}`;
+  return state.seatsLoaded && state.seats.length ? 'Former member' : `Seat ${seatNumber}`;
 }
 const eventSeat = event => event.seatNumber ?? (Number(String(event.seat || '').replace(/^Seat /, '')) || null);
 const number = value => Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0;
@@ -30,7 +30,7 @@ const fmt = value => number(value).toLocaleString('en-US');
 const icon = name => `<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 const modes = { normal: 'Normal protection', block_sensitive: 'Block sensitive pastes', block_all: 'Block all pastes' };
 const classifications = { sanctioned: 'Sanctioned', recognized: 'Recognised', review: 'Needs review' };
-const outcomes = { blocked: 'Blocked', cancelled: 'Cancelled', sanitised: 'Sanitised & pasted', warning_bypassed: 'Warning bypassed' };
+const outcomes = { blocked: 'Blocked', cancelled: 'Cancelled', sanitised: 'Sanitised & pasted', warning_bypassed: 'Pasted anyway' };
 const marks = { chatgpt: 'G', claude: '✳', gemini: '✧', copilot: 'C', perplexity: 'P', deepseek: 'D' };
 const date = value => {
   if (!value) return 'Not available';
@@ -191,7 +191,7 @@ function renderMetrics() {
   $('#sanctioned-filter-count').textContent = summary ? sanctioned : '—';
   $('#observed-services').textContent = summary ? `${tools().length} observed services` : 'Waiting for services';
   $('#attention-count').textContent = summary ? needsReview ? `${needsReview} ${needsReview === 1 ? 'service needs' : 'services need'} review.` : tools().length ? 'Every observed service has been reviewed.' : 'No AI services observed yet.' : 'Waiting for service decisions.';
-  $('.attention-strip p > span').textContent = summary ? `${fmt(summary.highRiskDestinations)} higher-risk destinations · ${fmt(summary.sensitiveEvents)} sensitive events · ${bytes(summary.pasteBytes)} attempted volume` : 'Activity appears after enrolled extensions report it.';
+  $('.attention-strip p > span').textContent = summary ? `${fmt(summary.highRiskDestinations)} of ${fmt(summary.totalTools)} AI ${number(summary.totalTools) === 1 ? 'tool' : 'tools'} ${number(summary.highRiskDestinations) === 1 ? 'needs' : 'need'} review · ${fmt(summary.sensitiveEvents)} sensitive events · ${bytes(summary.pasteBytes)} attempted volume` : 'Activity appears after enrolled extensions report it.';
 }
 function renderPolicyRollout() {
   // Same rule and wording as the Overview's Policy rollout card (server-side
@@ -224,41 +224,108 @@ function renderPolicyRollout() {
   if (updating) return set('warn', `${upToDate} of ${active} active devices have the latest policy.`, ` Revision ${revision}.`, chips);
   return set('ok', active === 1 ? 'The active device is protected with the latest policy.' : `All ${active} active devices are protected with the latest policy.`, ` Revision ${revision}.`, chips);
 }
+// What happened to each day's paste attempts, bottom of the bar first. "Clean"
+// is attempts with nothing sensitive; "Other sensitive" covers events reported
+// without an outcome (older extensions). Older APIs send no daily outcomes.
+const PASTE_SEGMENTS = [
+  ['blocked', 'Blocked', 'var(--red)'],
+  ['sanitised', 'Sanitised', 'var(--green)'],
+  ['cancelled', 'Cancelled', 'var(--muted)'],
+  ['warning_bypassed', 'Pasted anyway', 'var(--peach)'],
+  ['other', 'Other sensitive', 'var(--purple)'],
+  ['clean', 'Clean', 'color-mix(in srgb, var(--accent) 34%, transparent)'],
+];
+function daySegments(row) {
+  const o = row.outcomes || {};
+  const known = ['blocked', 'sanitised', 'cancelled', 'warning_bypassed'].reduce((n, k) => n + number(o[k]), 0);
+  const sensitive = Math.max(number(row.sensitiveEvents), known);
+  return {
+    blocked: number(o.blocked), sanitised: number(o.sanitised), cancelled: number(o.cancelled), warning_bypassed: number(o.warning_bypassed),
+    other: sensitive - known, clean: Math.max(0, number(row.pastes) - sensitive),
+  };
+}
+/** A round axis maximum split into four whole-number steps. */
+function axisMax(value) {
+  const raw = Math.max(1, value) / 4;
+  const power = 10 ** Math.floor(Math.log10(raw));
+  const step = [1, 2, 5, 10].map(m => m * power).find(m => m >= raw);
+  return Math.max(4, Math.ceil(step) * 4);
+}
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+/** "8 Sep", "Mon", or "Mon 8 Sep 2026" for a UTC day, the same on every browser. */
+const dayLabel = (day, opts = {}) => {
+  const d = new Date(`${day}T12:00:00Z`);
+  if (Number.isNaN(d.getTime())) return '';
+  if (opts.weekday && !opts.day) return WEEKDAYS[d.getUTCDay()];
+  return [opts.weekday ? WEEKDAYS[d.getUTCDay()] : '', d.getUTCDate(), MONTHS[d.getUTCMonth()], opts.year ? d.getUTCFullYear() : ''].filter(Boolean).join(' ');
+};
 function renderChart() {
   const rows = state.dashboard?.trends || [];
-  const sum = rows.reduce((n, row) => n + number(row[state.chart]), 0);
+  const pastes = state.chart === 'pastes';
+  const value = row => pastes ? Math.max(number(row.pastes), Object.values(daySegments(row)).reduce((a, b) => a + b, 0)) : number(row.visits);
+  const sum = rows.reduce((n, row) => n + value(row), 0);
   $('#chart-total').textContent = state.dashboard ? fmt(sum) : '—';
-  $('#chart-unit').textContent = state.chart === 'visits' ? 'observed visits' : 'paste attempts';
-  $('#chart-legend').textContent = state.chart === 'visits' ? 'Service visits' : 'Paste attempts';
-  $('#chart-caption').textContent = state.chart === 'visits' ? 'A visit is an observed page visit, not a submitted AI request.' : 'Paste attempts are not submissions. Pasted content is never included.';
+  $('#chart-unit').textContent = pastes ? 'paste attempts' : 'observed visits';
+  const legend = $('.chart-topline .legend');
+  const totals = Object.fromEntries(PASTE_SEGMENTS.map(([key]) => [key, rows.reduce((n, row) => n + daySegments(row)[key], 0)]));
+  legend.innerHTML = pastes
+    ? PASTE_SEGMENTS.filter(([key]) => totals[key]).map(([key, label, color]) => `<span class="legend-item"><span class="legend-dot" style="background:${color}"></span>${esc(label)} ${fmt(totals[key])}</span>`).join('')
+    : '<span class="legend-item"><span class="legend-dot"></span>AI page visits</span>';
+  const active = rows.filter(row => value(row) > 0).length;
+  const peak = rows.reduce((best, row) => (value(row) > value(best) ? row : best), rows[0] || {});
+  const explain = pastes ? 'Paste attempts are not submissions. Pasted content is never included.' : 'A visit is an observed page visit, not a submitted AI request.';
+  $('#chart-caption').textContent = sum ? `Busiest day ${dayLabel(peak.day, { day: 'numeric', month: 'short' })} (${fmt(value(peak))}) · active on ${fmt(active)} of ${fmt(rows.length)} days. ${explain}` : explain;
   if (!rows.length || !sum) {
     $('#chart').innerHTML = `<p class="empty-state">${state.dashboard ? 'No activity in this reporting period.' : 'Waiting for activity data…'}</p>`;
     return;
   }
-  // Sum actual daily API buckets. No interpolation or fabricated live trends.
-  const groupSize = Math.ceil(rows.length / (state.days === 7 ? 7 : 10));
-  const buckets = [];
-  for (let i = 0; i < rows.length; i += groupSize) {
-    const group = rows.slice(i, i + groupSize);
-    buckets.push({ start: String(group[0].day), end: String(group.at(-1).day), value: group.reduce((n, row) => n + number(row[state.chart]), 0) });
-  }
+  // One bar per calendar day (UTC), straight from the API. Nothing interpolated.
   const width = Math.max(240, Math.round($('#chart').getBoundingClientRect().width));
-  const height = 218, left = 40, right = width - 10, top = 14, bottom = height - 30;
-  const step = state.chart === 'visits' ? 100 : 5;
-  const max = Math.max(step, Math.ceil(Math.max(...buckets.map(b => b.value)) / step) * step);
-  const interval = (right - left) / buckets.length, barWidth = Math.min(30, interval * .42);
-  let svg = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${fmt(sum)} ${state.chart} over ${state.days} days"><title>${PREVIEW ? 'Sample' : 'Observed'} activity over ${state.days} days</title>`;
-  for (let i = 0; i <= 4; i++) {
-    const y = top + (bottom - top) * i / 4;
-    svg += `<line class="chart-gridline" x1="${left}" x2="${right}" y1="${y}" y2="${y}"/><text x="30" y="${y + 3}" text-anchor="end">${fmt(Math.round(max * (4 - i) / 4))}</text>`;
-  }
-  buckets.forEach((bucket, index) => {
-    const x = left + interval * (index + .5) - barWidth / 2, barHeight = (bottom - top) * bucket.value / max;
-    const parsed = new Date(`${bucket.start}T12:00:00Z`);
-    const label = Number.isNaN(parsed.getTime()) ? '' : parsed.toLocaleDateString('en-US', state.days === 7 ? { weekday: 'short', timeZone: 'UTC' } : { month: 'short', day: 'numeric', timeZone: 'UTC' });
-    svg += `<rect class="chart-bar secondary" x="${x}" y="${top}" width="${barWidth}" height="${bottom - top}"/><rect class="chart-bar" x="${x}" y="${bottom - barHeight}" width="${barWidth}" height="${barHeight}"><title>${esc(bucket.start)}${bucket.start !== bucket.end ? ` to ${esc(bucket.end)}` : ''}: ${fmt(bucket.value)}</title></rect>`;
-    if (index === buckets.length - 1 || index % (width < 470 ? 2 : state.days === 7 ? 1 : 2) === 0) svg += `<text x="${x + barWidth / 2}" y="${height - 6}" text-anchor="middle">${esc(label)}</text>`;
+  const height = 218, left = 46, right = width - 8, top = 16, bottom = height - 38;
+  const max = axisMax(Math.max(...rows.map(value)));
+  const slot = (right - left) / rows.length, barWidth = Math.max(2, Math.min(22, slot * 0.7));
+  const yOf = n => bottom - (bottom - top) * n / max;
+  let svg = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${fmt(sum)} ${pastes ? 'paste attempts' : 'visits'} over ${rows.length} days, one bar per day"><title>${PREVIEW ? 'Sample' : 'Observed'} ${pastes ? 'paste attempts' : 'visits'} per day</title>`;
+  // Weekends, lightly shaded, so weekday patterns stand out.
+  if (rows.length <= 31) rows.forEach((row, i) => {
+    const weekday = new Date(`${row.day}T12:00:00Z`).getUTCDay();
+    if (weekday === 0 || weekday === 6) svg += `<rect class="chart-weekend" x="${left + i * slot}" y="${top}" width="${slot}" height="${bottom - top}"/>`;
   });
+  for (let i = 0; i <= 4; i++) {
+    const n = max * i / 4, y = yOf(n);
+    svg += `<line class="chart-gridline" x1="${left}" x2="${right}" y1="${y}" y2="${y}"/><text x="${left - 7}" y="${y + 3}" text-anchor="end">${fmt(n)}</text>`;
+  }
+  svg += `<text class="chart-axis-title" transform="translate(11 ${(top + bottom) / 2}) rotate(-90)" text-anchor="middle">${pastes ? 'Paste attempts' : 'Visits'}</text>`;
+  svg += `<text class="chart-axis-title" x="${(left + right) / 2}" y="${height - 2}" text-anchor="middle">Day (UTC)</text>`;
+  const labelEvery = Math.max(1, Math.ceil(rows.length / Math.max(2, Math.floor((right - left) / 58))));
+  rows.forEach((row, i) => {
+    const x = left + i * slot + (slot - barWidth) / 2;
+    const segments = daySegments(row);
+    let stack = 0, bars = '';
+    if (pastes) {
+      for (const [key, , color] of PASTE_SEGMENTS) {
+        const n = segments[key];
+        if (!n) continue;
+        bars += `<rect class="chart-segment" x="${x}" y="${yOf(stack + n)}" width="${barWidth}" height="${yOf(stack) - yOf(stack + n)}" style="fill:${color}"/>`;
+        stack += n;
+      }
+    } else if (value(row)) {
+      bars = `<rect class="chart-bar" x="${x}" y="${yOf(value(row))}" width="${barWidth}" height="${bottom - yOf(value(row))}"/>`;
+    }
+    const detail = pastes
+      ? PASTE_SEGMENTS.filter(([key]) => segments[key]).map(([key, label]) => `${fmt(segments[key])} ${label.toLowerCase()}`).join(' · ')
+      : '';
+    const tip = `${dayLabel(row.day, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}: ${fmt(value(row))} ${pastes ? 'paste attempts' : 'visits'}${detail ? ` (${detail})` : ''}`;
+    // A full-height hit area so even an empty day shows its date on hover.
+    svg += `<g class="chart-day">${bars}<rect class="chart-hit" x="${left + i * slot}" y="${top}" width="${slot}" height="${bottom - top}"><title>${esc(tip)}</title></rect></g>`;
+    if (row === peak && value(row)) svg += `<text class="chart-peak" x="${x + barWidth / 2}" y="${yOf(value(row)) - 4}" text-anchor="middle">${fmt(value(row))}</text>`;
+    if (i % labelEvery === 0 || i === rows.length - 1) {
+      if (i === rows.length - 1 && i % labelEvery && (rows.length - 1) % labelEvery < labelEvery / 2) return;
+      svg += `<text x="${left + i * slot + slot / 2}" y="${bottom + 14}" text-anchor="middle">${esc(dayLabel(row.day, rows.length <= 7 ? { weekday: 'short' } : { day: 'numeric', month: 'short' }))}</text>`;
+    }
+  });
+  svg += `<line class="chart-axis" x1="${left}" x2="${right}" y1="${bottom}" y2="${bottom}"/>`;
   $('#chart').innerHTML = svg + '</svg>';
 }
 function renderServices() {
@@ -283,7 +350,7 @@ const eventTone = action => ({ blocked: 'high', cancelled: 'review', sanitised: 
 function renderActivity() {
   $('#timeline').innerHTML = state.recent.length ? state.recent.slice(0, 4).map(event => `<li><span class="timeline-icon ${event.action === 'blocked' ? 'warm' : ''}">${icon(event.action === 'sanitised' ? 'check' : 'shield')}</span><div><strong>${esc(outcomes[event.action] || 'DLP event')}</strong><p>${esc(event.hostname)} · ${esc(event.reason)}</p><time>${esc(date(event.timestamp))}</time></div></li>`).join('') : '<li><div></div><p class="empty-state">No sensitive activity in this period.</p></li>';
   const ledger = state.ledger;
-  $('#ledger-body').innerHTML = ledger?.events.length ? ledger.events.map(event => `<tr><td>${esc(date(event.timestamp))}</td><td>${esc(seatLabel(eventSeat(event)))}${eventSeat(event) && !seatLabel(eventSeat(event)).startsWith('Seat ') ? `<small>Seat ${eventSeat(event)}</small>` : ''}</td><td>${esc(event.hostname)}<small>${esc(event.serviceId)}</small></td><td>${esc(event.reason)}</td><td><span class="badge ${eventTone(event.action)}">${esc(outcomes[event.action] || 'DLP event')}</span></td><td>${fmt(event.findingCount)}</td></tr>`).join('') : '<tr><td colspan="6" class="empty-state">No sensitive events in this period.</td></tr>';
+  $('#ledger-body').innerHTML = ledger?.events.length ? ledger.events.map(event => `<tr><td>${esc(date(event.timestamp))}</td><td>${esc(seatLabel(eventSeat(event)))}</td><td>${esc(event.hostname)}<small>${esc(event.serviceId)}</small></td><td>${esc(event.reason)}</td><td><span class="badge ${eventTone(event.action)}">${esc(outcomes[event.action] || 'DLP event')}</span></td><td>${fmt(event.findingCount)}</td></tr>`).join('') : '<tr><td colspan="6" class="empty-state">No sensitive events in this period.</td></tr>';
   const count = ledger?.events.length || 0;
   $('#ledger-count').textContent = `${fmt(ledger?.total)} events · ${count ? state.offset + 1 : 0} to ${count ? state.offset + count : 0}`;
   state.nextOffset = ledger?.nextOffset ?? null;
@@ -476,7 +543,7 @@ async function load() {
       state.seatsLoaded = true;
       const select = $('#report-seat');
       select.replaceChildren(new Option('Entire organisation', ''), ...state.seats.map(seat =>
-        new Option(`${seatLabel(seat.seatNumber)} · Seat ${seat.seatNumber}`, String(seat.seatNumber))));
+        new Option(seatLabel(seat.seatNumber), String(seat.seatNumber))));
       select.value = seatNumber === null ? '' : String(seatNumber);
     }
     state.stale = false;

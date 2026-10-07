@@ -76,3 +76,19 @@
 .delivery-counts .is-warn { color: var(--peach); background: var(--peach-bg); border-color: transparent; }
 .delivery-counts .is-bad { color: #ef6b6b; border-color: #ef6b6b55; }
 @media (max-width: 760px) { .delivery-strip { flex-wrap: wrap; } .delivery-strip p { flex: 1 1 calc(100% - 30px); } }
+
+/* Daily activity chart: one bar per day, outcome colours, labelled axes. */
+.chart-topline { flex-wrap: wrap; }
+.chart-topline .legend { flex-wrap: wrap; justify-content: flex-end; gap: 6px 12px; }
+.legend-item { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 11px; white-space: nowrap; }
+.legend-item .legend-dot { flex-shrink: 0; }
+.chart .chart-weekend { fill: var(--surface-raised); opacity: .45; }
+.chart .chart-hit { fill: transparent; }
+.chart .chart-day:hover .chart-hit { fill: var(--accent-soft); opacity: .35; }
+.chart .chart-segment { shape-rendering: crispEdges; }
+.chart .chart-axis { stroke: var(--line); }
+.chart .chart-axis-title { font-size: 10px; fill: var(--muted); letter-spacing: .02em; }
+.chart .chart-peak { font-size: 11px; font-weight: 600; fill: var(--text); }
+@media (max-width: 640px) {
+  .chart-topline .legend { display: flex !important; justify-content: flex-start; width: 100%; }
+}

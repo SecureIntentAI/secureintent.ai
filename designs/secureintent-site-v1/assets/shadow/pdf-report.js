@@ -15,7 +15,31 @@ const COLORS = {
   panel: [0.96, 0.97, 0.98],
   cyan: [0.12, 0.66, 0.78],
   peach: [0.91, 0.55, 0.43],
+  red: [0.86, 0.27, 0.27],
+  green: [0.18, 0.62, 0.42],
+  grey: [0.62, 0.66, 0.72],
+  purple: [0.53, 0.42, 0.82],
+  clean: [0.80, 0.88, 0.93],
+  weekend: [0.975, 0.98, 0.985],
   white: [1, 1, 1],
+};
+
+// Helvetica-Bold and Helvetica advance widths (1/1000 em), ASCII 32 to 126, from
+// the standard font metrics: used to place the header's wordmark and right-aligned
+// labels exactly. Kept in step with integrations/overview-pdf.js.
+const W_REGULAR = '278 278 355 556 556 889 667 191 333 333 389 584 278 333 278 278 556 556 556 556 556 556 556 556 556 556 278 278 584 584 584 556 1015 667 667 722 722 667 611 778 722 278 500 667 556 833 722 778 667 778 722 667 611 722 667 944 667 667 611 278 278 278 469 556 333 556 556 500 556 556 278 556 556 222 222 500 222 833 556 556 556 556 333 500 278 556 500 722 500 500 500 334 260 334 584'.split(' ').map(Number);
+const W_BOLD = '278 333 474 556 556 889 722 238 333 333 389 584 278 333 278 278 556 556 556 556 556 556 556 556 556 556 333 333 584 584 584 611 975 722 722 722 722 667 611 778 722 278 556 722 611 833 722 778 667 778 722 667 611 722 667 944 667 667 611 333 278 333 584 556 333 556 611 556 611 556 333 611 611 278 278 556 278 889 611 611 611 611 389 556 333 611 556 778 556 556 500 389 280 389 584'.split(' ').map(Number);
+const measure = (value, size, bold = false) => {
+  const widths = bold ? W_BOLD : W_REGULAR;
+  let total = 0;
+  for (const ch of plain(value)) total += widths[ch.charCodeAt(0) - 32] ?? 556;
+  return total * size / 1000;
+};
+const BRAND_CYAN = [0.45, 1, 1];
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const longDay = day => {
+  const d = new Date(`${day}T12:00:00Z`);
+  return Number.isNaN(d.getTime()) ? '' : `${d.getUTCDate()} ${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 };
 
 const safeNumber = value => Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0;
@@ -49,22 +73,41 @@ function makeReport(snapshot) {
   const line = (x1, top1, x2, top2, color = COLORS.line, width = 0.7) => {
     push(`${width} w ${pdfColor(color)} RG ${x1.toFixed(1)} ${(PAGE_H - top1).toFixed(1)} m ${x2.toFixed(1)} ${(PAGE_H - top2).toFixed(1)} l S`);
   };
+  const textRight = (value, right, top, size, color, bold = false) => text(value, right - measure(value, size, bold), top, size, color, bold);
+  /** The SecureIntent mark from the site logo (viewBox 250), `size` points tall, top-left at (x, top). Returns its width. */
+  const mark = (x, top, size) => {
+    const k = size / 120; // the mark spans y 75 to 195 of the 250 box
+    const w = 28 * k;
+    const X = px => x + w / 2 + (px - 50) * k;
+    const T = py => top + (py - 75) * k;
+    push('q 1 J');
+    line(X(50), T(195), X(110), T(75), COLORS.white, w);
+    line(X(130), T(195), X(160), T(135), BRAND_CYAN, w);
+    line(X(190), T(75), X(190) + 0.01, T(75), BRAND_CYAN, w); // the dot: radius 14 = half the stroke
+    push('Q');
+    return 140 * k + w;
+  };
+  const wordmark = (x, top, size) => {
+    text('SecureIntent', x, top, size, COLORS.white, true);
+    text('.ai', x + measure('SecureIntent', size, true), top, size, BRAND_CYAN, true);
+  };
+  const headerOrg = (snapshot.reportIdentity || {}).organizationName || 'Your organisation';
+  const headerDays = Array.isArray(snapshot.dashboard?.trends) ? snapshot.dashboard.trends : [];
+  const headerRange = headerDays.length ? `${longDay(headerDays[0].day)} to ${longDay(headerDays.at(-1).day)}` : `Last ${count(snapshot.periodDays)} days`;
   const beginPage = () => {
     page = [];
     pages.push(page);
-    rect(0, 0, PAGE_W, 78, COLORS.navy);
-    // Original SecureIntent mark, drawn as vector strokes for sharp PDF output.
-    push('q 1 J');
-    line(LEFT,39,LEFT+9,21,COLORS.white,4.2);
-    line(LEFT+12,39,LEFT+16.5,30,[0.45,1,1],4.2);
-    line(LEFT+21,21,LEFT+21.01,21,[0.45,1,1],4.2);
-    push('Q');
-    text('SECUREINTENT  /  SHADOW AI', LEFT+32, 31, 9, [0.65, 0.86, 0.91], true);
-    text('Security activity report', LEFT, 55, 18, COLORS.white, true);
-    text(`Last ${count(snapshot.periodDays)} days`, RIGHT - 96, 34, 9, COLORS.white, true);
+    // Brand header: logo and wordmark, workspace and period, then the title block.
+    rect(0, 0, PAGE_W, 120, COLORS.navy);
+    rect(0, 120, PAGE_W, 3, COLORS.cyan);
+    wordmark(LEFT + mark(LEFT, 26, 22) + 9, 43, 15);
     const sourceLabel = snapshot.sampleData ? 'SAMPLE PREVIEW' : snapshot.localExtensionDemo ? 'LOCAL EXTENSION DEMO' : 'BUSINESS WORKSPACE';
-    text(sourceLabel, RIGHT - 146, 53, 8, [0.77, 0.83, 0.90]);
-    y = 103;
+    textRight(sourceLabel, RIGHT, 33, 7, [0.65, 0.86, 0.91], true);
+    textRight(`Last ${count(snapshot.periodDays)} days`, RIGHT, 46, 10, COLORS.white, true);
+    text('SHADOW AI', LEFT, 74, 7.5, [0.65, 0.86, 0.91], true);
+    text('Security activity report', LEFT, 96, 22, COLORS.white, true);
+    text(`${headerOrg}  |  ${headerRange}`, LEFT, 110, 8.5, [0.77, 0.83, 0.90]);
+    y = 146;
   };
   const ensure = height => {
     if (y + height <= BOTTOM) return;
@@ -98,7 +141,7 @@ function makeReport(snapshot) {
     ['Observed visits', count(summary.totalVisits)],
     ['Unsanctioned usage', `${safeNumber(summary.unsanctionedUsagePercent).toFixed(1)}%`],
     ['Paste attempts', count(summary.pasteAttempts)],
-    ['Higher-risk destinations', count(summary.highRiskDestinations)],
+    ['AI tools needing review', `${count(summary.highRiskDestinations)} of ${count(summary.totalTools)}`, safeNumber(summary.highRiskDestinations) ? COLORS.peach : null],
     ['Sensitive paste events', count(summary.sensitiveEvents)],
     ['Attempted paste volume', formatBytes(summary.pasteBytes)],
     ['Data status', snapshot.stale ? 'May be out of date' : 'Current at export'],
@@ -116,58 +159,126 @@ function makeReport(snapshot) {
   }
   const gap = 8;
   const cardW = (WIDTH - gap * 3) / 4;
-  cards.forEach(([label, value], index) => {
+  cards.forEach(([label, value, tone], index) => {
     const row = Math.floor(index / 4);
     const col = index % 4;
     const x = LEFT + col * (cardW + gap);
     const top = y + row * 58;
     rect(x, top, cardW, 51, COLORS.panel);
     text(clipped(label, 24), x + 8, top + 15, 7, COLORS.muted);
-    text(clipped(value, 17), x + 8, top + 37, 13, COLORS.ink, true);
+    text(clipped(value, 17), x + 8, top + 37, 13, tone || COLORS.ink, true);
   });
   y += Math.ceil(cards.length / 4) * 58 + 12;
 
-  section('Activity trend');
+  section('Activity per day');
   const trends = Array.isArray(dashboard.trends) ? dashboard.trends : [];
-  const grouped = (key, buckets = 10) => {
-    if (!trends.length) return [];
-    const size = Math.ceil(trends.length / buckets);
-    const rows = [];
-    for (let i = 0; i < trends.length; i += size) {
-      const group = trends.slice(i, i + size);
-      rows.push({ start: group[0].day, end: group.at(-1).day, value: group.reduce((n, row) => n + safeNumber(row[key]), 0) });
-    }
-    return rows;
+  // What happened to each day's paste attempts, bottom of the bar first.
+  const SEGMENTS = [
+    ['blocked', 'Blocked', COLORS.red],
+    ['sanitised', 'Sanitised', COLORS.green],
+    ['cancelled', 'Cancelled', COLORS.grey],
+    ['warning_bypassed', 'Pasted anyway', COLORS.peach],
+    ['other', 'Other sensitive', COLORS.purple],
+    ['clean', 'Clean', COLORS.clean],
+  ];
+  const segmentsOf = row => {
+    const o = row.outcomes || {};
+    const known = ['blocked', 'sanitised', 'cancelled', 'warning_bypassed'].reduce((n, k) => n + safeNumber(o[k]), 0);
+    const sensitive = Math.max(safeNumber(row.sensitiveEvents), known);
+    return { blocked: safeNumber(o.blocked), sanitised: safeNumber(o.sanitised), cancelled: safeNumber(o.cancelled),
+      warning_bypassed: safeNumber(o.warning_bypassed), other: sensitive - known, clean: Math.max(0, safeNumber(row.pastes) - sensitive) };
   };
-  const drawBars = (title, key, x, color) => {
-    const chartW = 244;
-    text(title, x, y + 2, 8, COLORS.muted, true);
-    const rows = grouped(key, 10);
-    const top = y + 14;
-    const plotH = 59;
-    const base = top + plotH;
-    if (!rows.length || rows.every(row => row.value === 0)) {
-      text('No activity recorded', x, top + 28, 8, COLORS.faint);
+  const axisMax = value => {
+    const raw = Math.max(1, value) / 4;
+    const power = 10 ** Math.floor(Math.log10(raw));
+    const step = [1, 2, 5, 10].map(m => m * power).find(m => m >= raw);
+    return Math.max(4, Math.ceil(step) * 4);
+  };
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayText = (day, opts = {}) => {
+    const d = new Date(`${day}T12:00:00Z`);
+    if (Number.isNaN(d.getTime())) return '';
+    return [opts.weekday ? WEEKDAYS[d.getUTCDay()] : '', d.getUTCDate(), MONTHS[d.getUTCMonth()]].filter(Boolean).join(' ');
+  };
+  // One full-width chart, one bar per calendar day (UTC), labelled axes.
+  const dailyChart = (title, unit, valueOf, stacked) => {
+    const values = trends.map(valueOf);
+    const total = values.reduce((a, b) => a + b, 0);
+    ensure(150);
+    text(title, LEFT, y + 2, 9, COLORS.ink, true);
+    if (!total) {
+      text('No activity recorded in this period.', LEFT, y + 22, 8, COLORS.faint);
+      y += 38;
       return;
     }
-    const max = Math.max(1, ...rows.map(row => row.value));
-    for (let i = 0; i <= 2; i++) {
-      const gy = top + plotH * i / 2;
-      line(x, gy, x + chartW, gy, COLORS.line, 0.45);
-    }
-    const slot = chartW / rows.length;
-    const barW = Math.min(13, slot * 0.56);
-    rows.forEach((row, i) => {
-      const h = Math.max(row.value ? 2 : 0, plotH * row.value / max);
-      rect(x + i * slot + (slot - barW) / 2, base - h, barW, h, color);
+    const peakIndex = values.indexOf(Math.max(...values));
+    const active = values.filter(Boolean).length;
+    text(`Total ${count(total)}  |  Busiest day ${dayText(trends[peakIndex].day, { day: 'numeric', month: 'short' })} (${count(values[peakIndex])})  |  Active on ${count(active)} of ${count(trends.length)} days`,
+      LEFT + 190, y + 2, 7, COLORS.muted);
+    const plotLeft = LEFT + 34, plotRight = RIGHT, top = y + 16, plotH = 82, base = top + plotH;
+    const max = axisMax(Math.max(...values));
+    const yOf = n => base - plotH * n / max;
+    const slot = (plotRight - plotLeft) / trends.length;
+    const barW = Math.max(1.2, Math.min(11, slot * 0.7));
+    if (trends.length <= 31) trends.forEach((row, i) => {
+      const weekday = new Date(`${row.day}T12:00:00Z`).getUTCDay();
+      if (weekday === 0 || weekday === 6) rect(plotLeft + i * slot, top, slot, plotH, COLORS.weekend);
     });
-    text(`${count(rows.reduce((n, row) => n + row.value, 0))} total`, x, base + 12, 7, COLORS.muted);
-    text(`${rows[0].start || ''} to ${rows.at(-1).end || ''}`, x + 90, base + 12, 7, COLORS.faint);
+    for (let i = 0; i <= 4; i++) {
+      const n = max * i / 4;
+      line(plotLeft, yOf(n), plotRight, yOf(n), COLORS.line, i ? 0.4 : 0.8);
+      const label = count(n);
+      text(label, plotLeft - 5 - label.length * 3.6, yOf(n) + 2.5, 6.5, COLORS.faint);
+    }
+    // Y axis title, written vertically.
+    push(`${pdfColor(COLORS.muted)} rg BT /F1 6.5 Tf 0 1 -1 0 ${(LEFT + 4).toFixed(1)} ${(PAGE_H - base + 4).toFixed(1)} Tm (${escapePdf(unit)}) Tj ET`);
+    trends.forEach((row, i) => {
+      const x = plotLeft + i * slot + (slot - barW) / 2;
+      if (stacked) {
+        const parts = segmentsOf(row);
+        let stack = 0;
+        for (const [key, , color] of SEGMENTS) {
+          if (!parts[key]) continue;
+          rect(x, yOf(stack + parts[key]), barW, yOf(stack) - yOf(stack + parts[key]), color);
+          stack += parts[key];
+        }
+      } else if (values[i]) {
+        rect(x, yOf(values[i]), barW, base - yOf(values[i]), COLORS.cyan);
+      }
+      if (i === peakIndex) {
+        const label = count(values[i]);
+        text(label, x + barW / 2 - label.length * 1.9, yOf(values[i]) - 3, 6.5, COLORS.ink, true);
+      }
+    });
+    const labelEvery = Math.max(1, Math.ceil(trends.length / 8));
+    trends.forEach((row, i) => {
+      if (i % labelEvery && i !== trends.length - 1) return;
+      if (i === trends.length - 1 && i % labelEvery && (i % labelEvery) < labelEvery / 2) return;
+      const label = dayText(row.day, trends.length <= 7 ? { weekday: 'short', day: 'numeric' } : { day: 'numeric', month: 'short' });
+      text(label, plotLeft + i * slot + slot / 2 - label.length * 1.7, base + 10, 6.5, COLORS.faint);
+    });
+    text('Day (UTC)', (plotLeft + plotRight) / 2 - 14, base + 20, 6.5, COLORS.muted);
+    y = base + 28;
+    if (stacked) {
+      let lx = plotLeft;
+      for (const [key, label, color] of SEGMENTS) {
+        const n = trends.reduce((sum, row) => sum + segmentsOf(row)[key], 0);
+        if (!n) continue;
+        rect(lx, y - 6, 6, 6, color);
+        const item = `${label} ${count(n)}`;
+        text(item, lx + 9, y, 7, COLORS.muted);
+        lx += 18 + item.length * 3.8;
+      }
+      y += 10;
+    }
+    y += 8;
   };
-  ensure(107);
-  drawBars('OBSERVED VISITS', 'visits', LEFT, COLORS.cyan);
-  drawBars('PASTE ATTEMPTS', 'pastes', LEFT + 263, COLORS.peach);
-  y += 103;
+  dailyChart('Paste attempts per day', 'Paste attempts', row => {
+    const parts = segmentsOf(row);
+    return Math.max(safeNumber(row.pastes), Object.values(parts).reduce((a, b) => a + b, 0));
+  }, true);
+  dailyChart('AI page visits per day', 'Visits', row => safeNumber(row.visits), false);
   text('Visits show page loads, not AI submissions. Paste counts are attempts, not confirmed submissions.', LEFT, y, 7, COLORS.faint);
   y += 19;
 
@@ -214,8 +325,8 @@ function makeReport(snapshot) {
     text('No sensitive paste events are available in the current ledger page.', LEFT, y + 12, 8, COLORS.muted);
     y += 27;
   } else {
-    const dlpWidths = [85, 50, 90, 130, 106, 46];
-    const dlpHeaders = ['Time', 'Seat', 'Destination', 'Detection reason', 'Resolution', 'Findings'];
+    const dlpWidths = [100, 82, 88, 110, 82, 45];
+    const dlpHeaders = ['Time', 'Member', 'Destination', 'Detection reason', 'Resolution', 'Findings'];
     const drawDlpHeader = () => {
       rect(LEFT, y, WIDTH, 22, COLORS.panel);
       let x = LEFT;
@@ -226,7 +337,7 @@ function makeReport(snapshot) {
     events.forEach((event, index) => {
       if (y + 26 > BOTTOM) { beginPage(); section('Sensitive paste activity (continued)'); drawDlpHeader(); }
       if (index % 2 === 1) rect(LEFT, y, WIDTH, 26, [0.985, 0.988, 0.992]);
-      const outcome = { blocked: 'Blocked', cancelled: 'Cancelled', sanitised: 'Sanitised', warning_bypassed: 'Warning bypassed' }[event.action] || 'DLP event';
+      const outcome = { blocked: 'Blocked', cancelled: 'Cancelled', sanitised: 'Sanitised', warning_bypassed: 'Pasted anyway' }[event.action] || 'DLP event';
       const values = [reportDate(event.timestamp), event.seat || 'Unattributed', event.hostname, event.reason, outcome, count(event.findingCount)];
       let x = LEFT;
       values.forEach((value, i) => { text(clipped(value, Math.floor((dlpWidths[i] - 10) / 3.8)), x + 5, y + 16, 7, COLORS.ink); x += dlpWidths[i]; });
