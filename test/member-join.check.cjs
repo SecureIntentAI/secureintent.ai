@@ -43,12 +43,17 @@ const path = require('node:path');
     await page.click('button[type=submit]');
     await expect(page.locator('.join-error')).toContainText('at least 8 characters');
     await page.fill('#join-password', PASSWORD);
-    await page.click('[data-join-reveal]');
+    await page.click('[data-join-reveal][aria-controls="join-password"]');
     await expect(page.locator('#join-password')).toHaveAttribute('type', 'text');
+    await page.fill('#join-password2', PASSWORD + 'x');
+    await page.click('button[type=submit]');
+    await expect(page.locator('.join-error')).toHaveText("The passwords don't match.");
+    await page.fill('#join-password2', PASSWORD);
     await page.click('button[type=submit]');
     await expect(page.locator('#join-code')).toBeVisible();
     await page.click('[data-join-back]');
     await expect(page.locator('#join-password')).toHaveValue(PASSWORD); // kept when changing details
+    await expect(page.locator('#join-password2')).toHaveValue(PASSWORD);
     await page.click('button[type=submit]');
     await expect(page.locator('#join-code')).toBeVisible();
     await expect(page.locator('[data-join-resend]')).toBeDisabled();

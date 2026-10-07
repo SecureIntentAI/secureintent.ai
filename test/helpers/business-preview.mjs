@@ -65,10 +65,11 @@ http.createServer(async (req,res) => {
     // Signed in by default. An invitation link (#invite=) starts signed out so the
     // one-code join card can be walked through; the ticket "signs in" locally.
     res.end(`(()=>{const USER={id:'user_demo_admin',fullName:'Maya Chen',primaryEmailAddress:{emailAddress:'maya@northstar.example'},passwordEnabled:false,updatePassword:async(o)=>{window.__previewPasswordSet=o&&o.newPassword;USER.passwordEnabled=true;}};const SESSION={id:'session_fixture',getToken:async()=> 'synthetic-preview-token'};
-const inviting=/[#&]invite=[a-f0-9]{64}/.test(location.hash)||(!!sessionStorage.getItem('si:business-member-invite')&&!sessionStorage.getItem('preview-joined'));
+if(/[?&]preview_signed_out=1/.test(location.search))sessionStorage.setItem('preview-signed-out','1');
+const inviting=(/[#&]invite=[a-f0-9]{64}/.test(location.hash)&&location.pathname.includes('account'))||((!!sessionStorage.getItem('si:business-member-invite')||sessionStorage.getItem('preview-signed-out')==='1')&&!sessionStorage.getItem('preview-joined'));
 const listeners=[];
 window.Clerk={user:inviting?null:USER,organization:{id:'org_demo_northstar',name:'Northstar Engineering'},session:inviting?null:SESSION,
-client:{signIn:{create:async(o)=>({status:o&&o.strategy==='ticket'&&o.ticket?'complete':'needs_identifier',createdSessionId:'session_fixture'}),authenticateWithRedirect:async()=>{throw new Error('Google is not available in the local preview');}}},
+client:{signIn:{create:async(o)=>({status:o&&o.strategy==='ticket'&&o.ticket?'complete':'needs_identifier',createdSessionId:'session_fixture'}),authenticateWithRedirect:async(o)=>{sessionStorage.setItem('preview-joined','1');sessionStorage.setItem('preview-google','1');location.assign(o.redirectUrl);}}},
 setActive:async()=>{sessionStorage.setItem('preview-joined','1');window.Clerk.user=USER;window.Clerk.session=SESSION;listeners.forEach(f=>f());},
 handleRedirectCallback:async()=>{},load:async()=>{},addListener:(f)=>{listeners.push(f);},signOut:()=>{},mountSignIn:()=>{},mountSignUp:()=>{},mountUserProfile:()=>{},unmountUserProfile:()=>{}};})();`);
     return;
@@ -77,6 +78,17 @@ handleRedirectCallback:async()=>{},load:async()=>{},addListener:(f)=>{listeners.
     if (url.pathname === '/mock-api/v1/business-signup/inspect') return json(res, { enabled: false });
     if (url.pathname === '/mock-api/v1/business-promo/inspect') return json(res,{companyName:'Northstar Engineering',email:'maya@northstar.example',emailHint:'m***@northstar.example',expiresAt:Date.now()+6*86400000,activated:false,seats:150,domain:{status:'available'}});
     if (url.pathname === '/mock-api/v1/business-promo/redeem') return json(res,{ok:true,orgId:'org_demo_northstar',seats:150});
+    // Member invitation accepted by a signed-in account (the Google path in the preview).
+    if (url.pathname === '/mock-api/v1/business-member/accept' && req.method === 'POST') return json(res, { ok: true, orgId: 'org_demo_northstar' });
+    if (url.pathname === '/mock-api/v1/business-member/pending') return json(res, { invitation: null });
+    // One-code admin setup. The local preview accepts the code 123456.
+    if (url.pathname.startsWith('/mock-api/v1/business-promo/activate/') && req.method === 'POST') {
+      const chunks = []; for await (const chunk of req) chunks.push(chunk);
+      const body = JSON.parse(Buffer.concat(chunks).toString() || '{}');
+      const fail = (status, error) => { res.writeHead(status, {'Content-Type':'application/json'}); res.end(JSON.stringify({ error })); };
+      if (url.pathname.endsWith('/start')) return body.firstName ? json(res, { ok: true, email: 'maya@northstar.example', retryAfter: 30 }) : fail(400, 'name_required');
+      if (url.pathname.endsWith('/verify')) return body.code === '123456' ? json(res, { ok: true, orgId: 'org_demo_northstar', seats: 150, ticket: 'preview_ticket' }) : fail(400, 'invalid_code');
+    }
     if (url.pathname === '/mock-api/v1/entitlement' && req.method === 'GET') return json(res, { entitlement: { clerkUserId:'user_demo_admin', email:'maya@northstar.example', plan:'business_pro', source:'org_seat', pro:true, features:['rehydrate','ghost','session_lock'], status:'active', businessDomain:null, org:{ id:'org_demo_northstar', name:'Northstar Engineering', role:'org:admin', seats:150 }, issuedAt:0, exp:9999999999 }, signature:null, personalSubscription:null });
     // The admin pass: the real server opens it for a session started in the last 12 hours.
     if (url.pathname === '/mock-api/v1/business-access/unlock/clerk' && req.method === 'POST')

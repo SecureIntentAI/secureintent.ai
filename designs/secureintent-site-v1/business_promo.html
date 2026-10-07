@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8"><script src="integrations/config.js"></script><script src="integrations/runtime.js"></script><script>(function(){try{document.documentElement.dataset.theme=localStorage.getItem('si_site_theme')==='dark'?'dark':'light';}catch(_){}})();</script>
   <meta name="theme-color" content="#050608" id="theme-color"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><title>Activate Business · SecureIntent</title><base href="/designs/secureintent-site-v1/">
-  <link rel="icon" href="../../favicon-32x32.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="how-it-works.css"><link rel="stylesheet" href="site-pages.css"><script src="how-it-works.js?v=20260915-menu-cleanup" defer></script><script src="integrations/business-promo.js?v=20261005-activation-paths" defer></script>
-<link rel="stylesheet" href="integrations/app.css"><script src="../../install-links.js" defer></script><script src="integrations/site.js" defer></script><link rel="stylesheet" href="business-onboarding.css?v=20261005-activation-paths"></head>
+  <link rel="icon" href="../../favicon-32x32.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="how-it-works.css"><link rel="stylesheet" href="site-pages.css"><script src="how-it-works.js?v=20260915-menu-cleanup" defer></script><script src="integrations/business-promo.js?v=20261008-one-code" defer></script>
+<link rel="stylesheet" href="integrations/app.css"><script src="../../install-links.js" defer></script><script src="integrations/site.js" defer></script><link rel="stylesheet" href="business-onboarding.css?v=20261008-one-code"></head>
 <body class="business-onboarding">
   <a class="skip" href="#main">Skip to content</a>
   <header class="site-header"><div class="container header-inner"><a href="index.html" class="brand"><svg class="business-brand-mark" viewBox="0 0 44 48" fill="none" aria-hidden="true"><path d="M26 6 7 42" stroke="#0a5166" stroke-width="6" stroke-linecap="round"/><path d="m38 22-10 20" stroke="#14a6a5" stroke-width="6" stroke-linecap="round"/></svg><span>SecureIntent<span class="brand-suffix">.ai</span></span></a><div class="header-actions"><div class="theme-switch" role="group" aria-label="Colour theme"><button class="theme-option" type="button" data-set-theme="dark" aria-pressed="true">Dark</button><button class="theme-option" type="button" data-set-theme="light" aria-pressed="false">Light</button></div></div></div></header>
@@ -14,12 +14,40 @@
 
     <div id="bp-welcome" hidden>
       <div class="eyebrow">Business invitation · Administrator</div>
-      <h1>Activate SecureIntent<br><span class="accent">Business for <span data-company></span>.</span></h1>
-      <p class="lede">You've been invited to set up and manage <strong data-company></strong>'s workspace. Your team gets protection on every seat; you get the console.</p>
-      <ul class="business-features" aria-label="Included in your Business workspace"><li><span class="business-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3"/><path d="M6 21v-3a6 6 0 0 1 12 0v3M4 5a3 3 0 0 0 0 6m16-6a3 3 0 0 1 0 6M1 18v-2a4 4 0 0 1 3-4m19 6v-2a4 4 0 0 0-3-4"/></svg></span><span>150<br>team seats</span></li><li><span class="business-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20v-6m8 6V8m8 12V2" stroke-width="5"/></svg></span><span>Business<br>dashboard</span></li><li><span class="business-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2c0 6-4 10-10 10 6 0 10 4 10 10 0-6 4-10 10-10-6 0-10-4-10-10ZM20 2v4m-2-2h4"/></svg></span><span>Shadow AI<br>visibility</span></li><li><span class="business-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 3 6v6c0 5 5 9 9 11 4-2 9-6 9-11V6Z"/></svg></span><span>Team<br>policies</span></li><li><span class="business-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 9a7 7 0 0 1 14 0v6l3 4H2l3-4ZM10 22h4M12 2V0"/></svg></span><span>Security<br>alerts</span></li><li><span class="business-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2h10l6 6v14H4ZM14 2v7h6M8 12h8m-8 4h8M8 7h2"/></svg></span><span>Downloadable<br>reports</span></li></ul>
-      <ul class="bp-facts"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m3 7 9 6 9-6"/></svg><span>Invitation for <strong data-email></strong></span></li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Valid until <strong data-expires></strong></span></li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16v10H4zM4 11h16"/></svg><span>No card required</span></li></ul>
-      <button class="button bp-primary" type="button" id="bp-start">Activate workspace <span aria-hidden="true">→</span></button>
-      <p class="utility-note">Only <strong data-email></strong> can activate this workspace.</p>
+      <h1>Set up <span class="accent" data-company></span><br>on SecureIntent.</h1>
+      <p class="lede">SecureIntent invited you to set up and manage <strong data-company></strong>'s workspace. Your team gets protection on every seat; you get the console. No card required.</p>
+      <ul class="business-features" aria-label="Included in your Business workspace"><li><span class="business-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3"/><path d="M6 21v-3a6 6 0 0 1 12 0v3M4 5a3 3 0 0 0 0 6m16-6a3 3 0 0 1 0 6M1 18v-2a4 4 0 0 1 3-4m19 6v-2a4 4 0 0 0-3-4"/></svg></span><span>150<br>team seats</span></li><li><span class="business-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20v-6m8 6V8m8 12V2" stroke-width="5"/></svg></span><span>Business<br>dashboard</span></li><li><span class="business-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2c0 6-4 10-10 10 6 0 10 4 10 10 0-6 4-10 10-10-6 0-10-4-10-10ZM20 2v4m-2-2h4"/></svg></span><span>Shadow AI<br>visibility</span></li><li><span class="business-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 3 6v6c0 5 5 9 9 11 4-2 9-6 9-11V6Z"/></svg></span><span>Team<br>policies</span></li><li><span class="business-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2h10l6 6v14H4ZM14 2v7h6M8 12h8m-8 4h8M8 7h2"/></svg></span><span>Downloadable<br>reports</span></li></ul>
+      <form class="utility-form bp-form" id="bp-setup" novalidate>
+        <label for="bp-email">Work email</label>
+        <input id="bp-email" type="email" readonly aria-readonly="true">
+        <div class="bp-names">
+          <div><label for="bp-first">First name</label><input id="bp-first" autocomplete="given-name" maxlength="60" required></div>
+          <div><label for="bp-last">Last name</label><input id="bp-last" autocomplete="family-name" maxlength="60"></div>
+        </div>
+        <label for="bp-password">Password</label>
+        <div class="bp-password"><input id="bp-password" type="password" autocomplete="new-password" minlength="8" maxlength="72" placeholder="At least 8 characters" required><button class="text-action" type="button" data-reveal="bp-password" aria-pressed="false">Show</button></div>
+        <label for="bp-password2">Confirm password</label>
+        <div class="bp-password"><input id="bp-password2" type="password" autocomplete="new-password" maxlength="72" required><button class="text-action" type="button" data-reveal="bp-password2" aria-pressed="false">Show</button></div>
+        <p class="bp-error" id="bp-setup-error" role="alert" hidden></p>
+        <button class="button bp-primary" type="submit" id="bp-send">Email me a code <span aria-hidden="true">→</span></button>
+        <div class="bp-or" aria-hidden="true"><span>or</span></div>
+        <button class="button secondary bp-google" type="button" id="bp-google"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg> Continue with Google</button>
+        <p class="utility-note">Google works when your Google account is <strong data-email></strong>. Next time, sign in with this email and password, or with Google.</p>
+      </form>
+      <p class="utility-note bp-signin-note">Already set up? <a class="text-action" href="team.html#/overview">Open the Business console</a></p>
+    </div>
+
+    <div id="bp-code-step" hidden>
+      <div class="eyebrow">Check your email</div>
+      <h1>Enter your<br><span class="accent">6-digit code.</span></h1>
+      <p class="lede">We sent it to <strong data-email></strong>. It expires in 10 minutes.</p>
+      <form class="utility-form bp-form" id="bp-code-form" novalidate>
+        <label for="bp-code">Verification code</label>
+        <input id="bp-code" class="bp-code-input" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••">
+        <p class="bp-error" id="bp-code-error" role="alert" hidden></p>
+        <button class="button bp-primary" type="submit" id="bp-verify">Activate workspace <span aria-hidden="true">→</span></button>
+        <div class="bp-code-actions"><button class="text-action" type="button" id="bp-resend">Resend code</button><button class="text-action" type="button" id="bp-change">Change details</button></div>
+      </form>
     </div>
 
     <div id="bp-auth" hidden>
@@ -54,7 +82,7 @@
       <div class="eyebrow">Workspace ready</div>
       <h1><span data-company></span> is<br><span class="accent">ready.</span></h1>
       <ul class="business-next-steps"><li>150 seats, with you as administrator</li><li>Next: invite your team from the Business console</li><li>Each member installs the extension and signs in</li></ul>
-      <a class="button bp-primary" href="team.html#/people" id="bp-console">Open Business console <span aria-hidden="true">→</span></a>
+      <a class="button bp-primary" href="team.html#/overview" id="bp-console">Open Business console <span aria-hidden="true">→</span></a>
       <p class="utility-note" id="bp-redirect-note">Taking you there now…</p>
     </div>
 
