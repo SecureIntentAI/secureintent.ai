@@ -1,14 +1,17 @@
 (async () => {
   'use strict';
   // Admin activation for an operator-issued Business invitation:
-  //   loading -> welcome -> account (Clerk) -> confirm -> done
+  //   loading -> setup (name, password) -> one emailed code -> done, signed in
+  //   or: setup -> Continue with Google -> back here -> activated -> done
+  // An admin already signed in with the invited email gets one-click confirm.
   // plus blocking cards (domain registered/suspended, link unavailable, ...).
   // Every value from the API is written with textContent.
   const SI = window.SI, $ = (id) => document.getElementById(id);
   const SESSION_KEY = 'si_business_invitation';
   const LOCAL_KEY = 'si_business_invitation_v2';
   const KEEP_MS = 7 * 86400000;
-  const VIEWS = ['bp-loading', 'bp-welcome', 'bp-auth', 'bp-confirm', 'bp-mismatch', 'bp-done', 'bp-blocked'];
+  const VIEWS = ['bp-loading', 'bp-welcome', 'bp-code-step', 'bp-auth', 'bp-confirm', 'bp-mismatch', 'bp-done', 'bp-blocked'];
+  const GOOGLE_KEY = 'si_business_google';  // set before the Google redirect: activate on return
   const validToken = (t) => typeof t === 'string' && /^[a-f0-9]{64}$/.test(t);
   let token = '';
   let tokenFromLink = false;  // clicked just now, versus remembered from an earlier visit
@@ -19,6 +22,8 @@
   let view = 'bp-loading';
   let lookedUpFor = '';
   let final = false;          // a blocking card is showing; Clerk refreshes must not replace it
+  let password = '';          // kept in memory only; saved with Clerk after sign-in, never sent to our API
+  let resendAt = 0;
 
   // ---------- link token: this tab, plus 7 days in this browser ----------
   function remember(t) {
@@ -67,6 +72,15 @@
   const MESSAGES = {
     activation_in_progress: 'Activation is already in progress. Wait a moment and try again.',
     activation_unavailable: 'Activation is temporarily unavailable. Your invitation is safe; please try again.',
+    name_required: 'Enter your first name.',
+    too_soon: 'A code was just sent. You can ask for another in a moment.',
+    too_many: 'Too many codes were sent. Wait an hour, then try again.',
+    send_failed: "We couldn't send the email just now. Try again in a minute.",
+    recipient_denied: "This address can't receive codes in this environment.",
+    invalid_code: "That code isn't right. Check the email and try again.",
+    too_many_attempts: 'Too many wrong codes. Ask for a new code.',
+    code_expired: 'That code has expired or was already used. Ask for a new code.',
+    unavailable: 'Activation is temporarily unavailable. Please try again.',
     authentication_unavailable: 'We could not confirm your sign-in just now. Please try again.',
     organization_already_claimed: 'This account already administers a Business workspace. Contact SecureIntent for help.',
     unauthenticated: 'Sign in to continue.',
@@ -101,6 +115,7 @@
   function fill() {
     document.querySelectorAll('[data-company]').forEach((n) => { n.textContent = invite.companyName; });
     document.querySelectorAll('[data-email]').forEach((n) => { n.textContent = invite.email; });
+    if ($('bp-email')) $('bp-email').value = invite.email;
     document.querySelectorAll('[data-expires]').forEach((n) => {
       n.textContent = new Date(invite.expiresAt).toLocaleDateString(undefined, { dateStyle: 'medium' });
     });
@@ -219,7 +234,6 @@
     else window.Clerk.mountSignUp(el, { ...common, signInUrl: SI.page('business_promo.html?mode=signin') });
     mounted = mode;
   }
-  $('bp-start').addEventListener('click', () => openAuth('signup'));
   $('bp-tab-signup').addEventListener('click', () => openAuth('signup'));
   $('bp-tab-signin').addEventListener('click', () => openAuth('signin'));
   $('bp-back').addEventListener('click', () => { unmountAuth(); show('bp-welcome'); });
@@ -229,6 +243,150 @@
   }
   $('bp-switch').addEventListener('click', switchAccount);
   $('bp-use-invited').addEventListener('click', switchAccount);
+
+  // ---------- one-code setup: name, password, one emailed code ----------
+  function formError(id, text) {
+    const el = $(id);
+    el.textContent = text || '';
+    el.hidden = !text;
+  }
+  /** Map an API refusal to the right card, or return the message to show inline. */
+  function setupRefusal(error) {
+    const c = error.code;
+    if (c === 'organization_domain_claimed') { blocked('registered', error.data?.domain); return ''; }
+    if (c === 'organization_domain_suspended') { blocked('suspended', error.data?.domain); return ''; }
+    if (c === 'invitation_unavailable' || c === 'invalid_invitation') { forget(); blocked('unavailable'); return ''; }
+    if (c === 'invitation_used') { blocked(invite?.activated ? 'activated' : 'used'); return ''; }
+    if (c === 'already_member') { blocked('already_member'); return ''; }
+    return error.message;
+  }
+  function tickResend() {
+    const btn = $('bp-resend');
+    const left = Math.max(0, Math.ceil((resendAt - Date.now()) / 1000));
+    btn.disabled = left > 0 || busy;
+    btn.textContent = left ? `Resend code in ${left}s` : 'Resend code';
+    if (left && view === 'bp-code-step') setTimeout(tickResend, 1000);
+  }
+  async function sendCode(fromCodeStep = false) {
+    if (busy) return;
+    const first = $('bp-first').value.trim(), last = $('bp-last').value.trim();
+    if (!fromCodeStep) {
+      password = $('bp-password').value;
+      if (!first) { formError('bp-setup-error', 'Enter your first name.'); $('bp-first').focus(); return; }
+      if (password.length < 8) { formError('bp-setup-error', 'Choose a password of at least 8 characters.'); $('bp-password').focus(); return; }
+      if (password !== $('bp-password2').value) { formError('bp-setup-error', "The passwords don't match."); $('bp-password2').focus(); return; }
+    }
+    busy = true;
+    formError('bp-setup-error', '');
+    formError('bp-code-error', '');
+    const button = fromCodeStep ? $('bp-resend') : $('bp-send');
+    button.disabled = true;
+    try {
+      const result = await call('POST', '/v1/business-promo/activate/start', { token, firstName: first, lastName: last });
+      resendAt = Date.now() + (Number(result.retryAfter) || 30) * 1000;
+      if (!fromCodeStep) { show('bp-code-step'); $('bp-code').value = ''; $('bp-code').focus(); }
+      else formError('bp-code-error', '');
+    } catch (error) {
+      if (error.code === 'too_soon') {
+        resendAt = Date.now() + (Number(error.data?.retryAfter) || 30) * 1000;
+        if (!fromCodeStep) show('bp-code-step');
+      } else {
+        const text = setupRefusal(error);
+        if (text) formError(fromCodeStep ? 'bp-code-error' : 'bp-setup-error', text);
+      }
+    } finally {
+      busy = false;
+      button.disabled = false;
+      if (view === 'bp-code-step') tickResend();
+    }
+  }
+  /** After the code: sign in with the one-time ticket, save the password with Clerk, open the console. */
+  async function verifyCode() {
+    if (busy) return;
+    const code = $('bp-code').value.replace(/\D/g, '');
+    if (code.length !== 6) { formError('bp-code-error', 'Enter the 6-digit code from the email.'); $('bp-code').focus(); return; }
+    busy = true;
+    formError('bp-code-error', '');
+    $('bp-verify').disabled = true;
+    $('bp-verify').firstChild.textContent = 'Activating… ';
+    let result;
+    try {
+      result = await call('POST', '/v1/business-promo/activate/verify', { token, code });
+    } catch (error) {
+      busy = false;
+      $('bp-verify').disabled = false;
+      $('bp-verify').firstChild.textContent = 'Activate workspace ';
+      const text = setupRefusal(error);
+      if (text) { formError('bp-code-error', text); $('bp-code').focus(); }
+      return;
+    }
+    // The workspace exists from here on. Nothing below can undo it.
+    final = true;
+    forget();
+    let note = '';
+    try {
+      if (!result.ticket) throw new Error('no ticket');
+      const attempt = await window.Clerk.client.signIn.create({ strategy: 'ticket', ticket: result.ticket });
+      if (attempt.status !== 'complete') throw new Error('ticket incomplete');
+      await window.Clerk.setActive({ session: attempt.createdSessionId });
+      note = await savePassword();
+    } catch {
+      note = 'Your workspace is ready. Sign in with your work email to open the console.';
+    }
+    busy = false;
+    done(note);
+  }
+  /** The password goes from this browser straight to Clerk. An existing password is kept. */
+  async function savePassword() {
+    const value = password;
+    password = '';
+    const user = window.Clerk.user;
+    if (!value || !user) return '';
+    if (user.passwordEnabled) return 'This email already had a SecureIntent password, so we kept it. Use that password to sign in next time.';
+    try {
+      await user.updatePassword({ newPassword: value });
+      return '';
+    } catch (e) {
+      const reason = e?.errors?.[0]?.longMessage || e?.errors?.[0]?.message || '';
+      return `Your workspace is ready, but your password wasn't saved${reason ? `: ${reason}` : '.'} Set one in your account settings.`;
+    }
+  }
+  function done(note = '') {
+    final = true;
+    show('bp-done');
+    $('bp-redirect-note').textContent = note || 'Taking you to your dashboard now…';
+    // A note needs reading; otherwise go straight to the Overview dashboard.
+    if (!note) setTimeout(() => location.assign(SI.page('team.html') + '#/overview'), 2000);
+  }
+  async function continueWithGoogle() {
+    if (busy) return;
+    busy = true;
+    formError('bp-setup-error', '');
+    try {
+      sessionStorage.setItem(GOOGLE_KEY, '1');
+      await window.Clerk.client.signIn.authenticateWithRedirect({
+        strategy: 'oauth_google',
+        redirectUrl: SI.page('business_promo.html?sso-callback=1'),
+        redirectUrlComplete: SI.page('business_promo.html'),
+      });
+    } catch {
+      try { sessionStorage.removeItem(GOOGLE_KEY); } catch { /* ignore */ }
+      busy = false;
+      formError('bp-setup-error', "Google sign-in isn't available right now. Use Email me a code instead.");
+    }
+  }
+  $('bp-setup').addEventListener('submit', (e) => { e.preventDefault(); void sendCode(); });
+  $('bp-code-form').addEventListener('submit', (e) => { e.preventDefault(); void verifyCode(); });
+  $('bp-resend').addEventListener('click', () => void sendCode(true));
+  $('bp-change').addEventListener('click', () => { if (!busy) { show('bp-welcome'); $('bp-password').value = password; $('bp-password2').value = password; } });
+  $('bp-google').addEventListener('click', () => void continueWithGoogle());
+  document.querySelectorAll('[data-reveal]').forEach((btn) => btn.addEventListener('click', () => {
+    const input = $(btn.dataset.reveal);
+    const showIt = input.type === 'password';
+    input.type = showIt ? 'text' : 'password';
+    btn.textContent = showIt ? 'Hide' : 'Show';
+    btn.setAttribute('aria-pressed', String(showIt));
+  }));
 
   // ---------- routing ----------
   const primaryEmail = (user) => (user?.primaryEmailAddress?.emailAddress || '').toLowerCase();
@@ -256,20 +414,25 @@
     if (user) {
       unmountAuth();
       const email = primaryEmail(user);
+      let fromGoogle = false;
+      try { fromGoogle = sessionStorage.getItem(GOOGLE_KEY) === '1'; sessionStorage.removeItem(GOOGLE_KEY); } catch { /* ignore */ }
+      if (email === invite.email && fromGoogle) { void activate(); return; }
       if (email === invite.email) { $('bp-signed-in').textContent = email; if (view !== 'bp-confirm') show('bp-confirm'); }
       else { $('bp-wrong-email').textContent = email || 'another account'; if (view !== 'bp-mismatch') show('bp-mismatch'); }
       return;
     }
     const mode = new URLSearchParams(location.search).get('mode');
-    if (view === 'bp-auth') return;
+    if (view === 'bp-auth' || view === 'bp-code-step') return;
     if (mode === 'signin' || mode === 'signup') openAuth(mode);
     else if (view !== 'bp-welcome') show('bp-welcome');
   }
 
   // ---------- activation ----------
-  $('bp-activate').addEventListener('click', async () => {
+  $('bp-activate').addEventListener('click', () => void activate());
+  async function activate() {
     if (busy) return;
     busy = true;
+    if (view !== 'bp-confirm') { show('bp-loading'); }
     const button = $('bp-activate');
     button.disabled = true;
     $('bp-switch').disabled = true;
@@ -279,8 +442,7 @@
       if (result.orgId && !result.orgId.startsWith('org_si_')) await window.Clerk.setActive({ organization: result.orgId });
       forget();
       busy = false;
-      show('bp-done');
-      setTimeout(() => location.assign(SI.page('team.html')), 2500);
+      done();
     } catch (error) {
       busy = false;
       const c = error.code;
@@ -290,12 +452,13 @@
       if (c === 'invitation_used') return blocked('used');
       if (c === 'already_member') return blocked('already_member');
       if (c === 'invitation_email_mismatch') { status('Sign in with the verified business email address named in this invitation.', true); return; }
+      if (view !== 'bp-confirm') { $('bp-signed-in').textContent = primaryEmail(window.Clerk.user); show('bp-confirm'); }
       status(error.message, true);
     } finally {
       button.disabled = false;
       $('bp-switch').disabled = false;
     }
-  });
+  }
 
   // ---------- start ----------
   try {
@@ -314,6 +477,18 @@
       if (invite) fill();
     }
     await window.Clerk.load();
+    // Back from "Continue with Google": finish the sign-in, then activate.
+    if (new URLSearchParams(location.search).has('sso-callback')) {
+      try {
+        await window.Clerk.handleRedirectCallback({
+          signInForceRedirectUrl: SI.page('business_promo.html'),
+          signUpForceRedirectUrl: SI.page('business_promo.html'),
+        });
+      } catch {
+        try { sessionStorage.removeItem(GOOGLE_KEY); } catch { /* ignore */ }
+        status("Google sign-in didn't complete. Try again, or use Email me a code.", true);
+      }
+    }
     window.Clerk.addListener(() => route());
     route();
   } catch (error) {

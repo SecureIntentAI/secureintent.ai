@@ -696,13 +696,14 @@ const CFG = SI.config;
       // ticket from our API, the seat already accepted. Owning the invited inbox
       // is what the code proves; the backend re-checks everything.
       const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-      const join = { step: "loading", company: "", email: "", error: "", firstName: "", lastName: "", password: "", busy: false, resendAt: 0, timer: null };
+      const join = { step: "loading", company: "", email: "", error: "", firstName: "", lastName: "", password: "", password2: "", busy: false, resendAt: 0, timer: null };
       const JOIN_ERRORS = {
         invitation_expired: "This invitation has expired. Ask your administrator to send a new one.",
         invitation_unavailable: "This invitation is no longer valid. Ask your administrator to send a new one.",
         invitation_already_accepted: "You've already joined with this invitation. Sign in to continue.",
         name_required: "Enter your first name.",
         password_short: "Choose a password of at least 8 characters.",
+        password_mismatch: "The passwords don't match.",
         too_soon: "A code was just sent. You can ask for another in a moment.",
         too_many: "Too many codes were sent. Wait an hour, then try again.",
         invalid_code: "That code isn't right. Check the email and try again.",
@@ -756,21 +757,27 @@ const CFG = SI.config;
               <div><label for="join-first">First name</label><input id="join-first" autocomplete="given-name" maxlength="60" required value="${esc(join.firstName)}"></div>
               <div><label for="join-last">Last name</label><input id="join-last" autocomplete="family-name" maxlength="60" value="${esc(join.lastName)}"></div>
             </div>
-            ${err}
-            <button class="button secondary join-wide join-google" type="button" data-join-google ${join.busy ? "disabled" : ""}>
-              <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
-              Continue with Google
-            </button>
-            <div class="join-or" aria-hidden="true"><span>or join with email</span></div>
-            <label for="join-password">Create a password</label>
+            <label for="join-password">Password</label>
             <div class="join-password">
               <input id="join-password" type="password" autocomplete="new-password" minlength="8" maxlength="72" placeholder="At least 8 characters">
               <button class="text-action" type="button" data-join-reveal aria-controls="join-password" aria-pressed="false">Show</button>
             </div>
-            <button class="button join-wide" type="submit" ${join.busy ? "disabled" : ""}>${join.busy ? "Sending…" : "Email me a code"}</button>
-            <p class="utility-note">Next time, sign in with ${esc(join.email)} and this password, or with Google if your Google account uses this email. We email one code now to confirm the address.</p>
+            <label for="join-password2">Confirm password</label>
+            <div class="join-password">
+              <input id="join-password2" type="password" autocomplete="new-password" maxlength="72">
+              <button class="text-action" type="button" data-join-reveal aria-controls="join-password2" aria-pressed="false">Show</button>
+            </div>
+            ${err}
+            <button class="button join-wide" type="submit" ${join.busy ? "disabled" : ""}>${join.busy ? "Sending…" : "Email me a code →"}</button>
+            <div class="join-or" aria-hidden="true"><span>or</span></div>
+            <button class="button secondary join-wide join-google" type="button" data-join-google ${join.busy ? "disabled" : ""}>
+              <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+              Continue with Google
+            </button>
+            <p class="utility-note">Google works when your Google account is ${esc(join.email)}. Next time, sign in with this email and password, or with Google.</p>
           </form>${signInLink}`;
           if ($("join-password")) $("join-password").value = join.password;
+          if ($("join-password2")) $("join-password2").value = join.password2;
           return;
         }
         if (join.step === "code") {
@@ -829,8 +836,10 @@ const CFG = SI.config;
         join.firstName = ($("join-first")?.value ?? join.firstName).trim();
         join.lastName = ($("join-last")?.value ?? join.lastName).trim();
         if ($("join-password")) join.password = $("join-password").value;
+        if ($("join-password2")) join.password2 = $("join-password2").value;
         if (!join.firstName) { join.error = joinError("name_required"); renderJoin(); $("join-first")?.focus(); return; }
         if (join.password.length < 8) { join.error = joinError("password_short"); renderJoin(); $("join-password")?.focus(); return; }
+        if (join.password !== join.password2) { join.error = joinError("password_mismatch"); renderJoin(); $("join-password2")?.focus(); return; }
         join.busy = true; join.error = ""; renderJoin();
         try {
           const res = await joinApi("start", { firstName: join.firstName, lastName: join.lastName });
@@ -881,6 +890,7 @@ const CFG = SI.config;
       async function saveJoinPassword() {
         const password = join.password;
         join.password = "";
+        join.password2 = "";
         const user = window.Clerk.user;
         if (!password || !user) return;
         let note = "";
@@ -928,7 +938,7 @@ const CFG = SI.config;
       document.addEventListener("click", (event) => {
         const reveal = event.target.closest?.("[data-join-reveal]");
         if (reveal) {
-          const input = $("join-password");
+          const input = $(reveal.getAttribute("aria-controls"));
           const show = input.type === "password";
           input.type = show ? "text" : "password";
           reveal.textContent = show ? "Hide" : "Show";
