@@ -63,6 +63,29 @@ const path = require('node:path');
       if (pdf.includes(text)) throw Error(`PDF still contains: ${text}`);
     }
     console.log('PASS: PDF carries the renamed card, daily charts with axes and the Member column');
+
+    // A member who joins while the admin's page is open: the first seat list
+    // lacks them, then their activity arrives. They must show by name, not
+    // as "Former member".
+    const late = await context.newPage();
+    let seatCalls = 0;
+    await late.route('**/mock-api/v1/shadow/admin/seats', (route) => {
+      seatCalls++;
+      const seats = [{ seatNumber: 1, name: 'Julian Marton', email: 'julian.m@northstar.example' }];
+      if (seatCalls > 1) seats.push({ seatNumber: 2, name: 'Kaushik Raj', email: 'kaushik.raj@northstar.example' });
+      return route.fulfill({ json: { seats } });
+    });
+    await late.route('**/mock-api/v1/shadow/admin/ledger', (route) => route.fulfill({ json: {
+      total: 1, nextOffset: null,
+      events: [{ eventId: 'e1', timestamp: Date.now(), seatNumber: 2, seat: 'Seat 2', hostname: 'chatgpt.com',
+        serviceId: 'chatgpt', reason: 'OpenAI API key', action: 'blocked', findingCount: 1 }],
+    } }));
+    await late.goto(`${origin}/team.html#/overview`);
+    await late.locator('#console-nav [data-view="shadow"]').click();
+    await expect(late.locator('#ledger-body')).toContainText('kaushik.raj', { timeout: 15000 });
+    await expect(late.locator('#ledger-body')).not.toContainText('Former member');
+    expect(seatCalls).toBe(2);
+    console.log('PASS: a member who joined after the page opened shows by name, not "Former member"');
     if (errors.length) throw Error(errors.join('\n'));
   } finally {
     await browser.close();
