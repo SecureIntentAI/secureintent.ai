@@ -17,6 +17,15 @@ const $$ = selector => [...root.querySelectorAll(selector)];
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 // Admin-only view: the seat list maps a seat number to the member, shown as the
 // email's local part (julian.m), then the name, then the bare seat number.
+/** Store the admin-only seat list and rebuild the member filter from it. */
+function applySeats(seatList, selected) {
+  state.seats = Array.isArray(seatList.seats) ? seatList.seats : [];
+  state.seatsLoaded = true;
+  const select = $('#report-seat');
+  select.replaceChildren(new Option('Entire organisation', ''), ...state.seats.map(seat =>
+    new Option(seatLabel(seat.seatNumber), String(seat.seatNumber))));
+  select.value = selected === null ? '' : String(selected);
+}
 function seatLabel(seatNumber) {
   if (!seatNumber) return 'Unattributed';
   const seat = state.seats.find(item => item.seatNumber === seatNumber);
@@ -41,7 +50,7 @@ const bytes = value => number(value) < 1024 ? `${fmt(value)} B` : number(value) 
 const pasteMode = tool => Object.hasOwn(modes, tool.pasteMode) ? tool.pasteMode : tool.pasteBlocked ? 'block_all' : 'normal';
 const classification = tool => Object.hasOwn(classifications, tool.classification) ? tool.classification : 'review';
 const badge = tool => `<span class="badge ${classification(tool) === 'recognized' ? 'progress' : classification(tool)}">${classifications[classification(tool)]}</span>`;
-const state = { days: 30, seatNumber: null, seats: [], seatsLoaded: false, chart: 'visits', search: '', filter: 'all', reviewFilter: 'all', view: 'list', offset: 0, nextOffset: null,
+const state = { days: 30, seatNumber: null, seats: [], seatsLoaded: false, seatsRechecked: new Set(), chart: 'visits', search: '', filter: 'all', reviewFilter: 'all', view: 'list', offset: 0, nextOffset: null,
   dashboard: null, ledger: null, recent: [], scope: '', ready: false, saving: false, stale: true };
 let extensionDemo, previewApi, timer, retryDelay = POLL_MS, requestController, requestId = 0, toastTimer, dialogTrigger;
 const tools = () => state.dashboard?.tools || [];
@@ -538,13 +547,19 @@ async function load() {
     state.dashboard = dashboard;
     state.ledger = ledger;
     state.recent = (latest || ledger).events;
-    if (seatList) {
-      state.seats = Array.isArray(seatList.seats) ? seatList.seats : [];
-      state.seatsLoaded = true;
-      const select = $('#report-seat');
-      select.replaceChildren(new Option('Entire organisation', ''), ...state.seats.map(seat =>
-        new Option(seatLabel(seat.seatNumber), String(seat.seatNumber))));
-      select.value = seatNumber === null ? '' : String(seatNumber);
+    if (seatList) applySeats(seatList, seatNumber);
+    // A member who joined after this page loaded gets a seat with their first
+    // AI activity. Their events would otherwise show as "Former member" until a
+    // reload, so an unseen seat number fetches the list again, once per seat.
+    const seen = [...ledger.events, ...(latest?.events || [])].map(eventSeat)
+      .concat(dashboard.tools.flatMap(tool => tool.seatNumbers || []))
+      .filter(n => Number.isSafeInteger(n) && n > 0);
+    const unknown = [...new Set(seen)].filter(n => !state.seats.some(seat => seat.seatNumber === n) && !state.seatsRechecked.has(n));
+    if (state.seatsLoaded && unknown.length) {
+      unknown.forEach(n => state.seatsRechecked.add(n));
+      const fresh = await api('/v1/shadow/admin/seats', {}, controller.signal).catch(() => null);
+      if (id !== requestId) return;
+      if (fresh) applySeats(fresh, seatNumber);
     }
     state.stale = false;
     $('#error').hidden = true;
