@@ -1745,7 +1745,7 @@
         const d = mr.data;
         const kit = window.SIOverviewPdf?.kit;
         if (!d || !kit) return;
-        const { PAGE_W, PAGE_H, LEFT, RIGHT, BOTTOM, C, rgb, escapePdf, textWidth, clip, count, when, encode } = kit;
+        const { PAGE_W, PAGE_H, LEFT, RIGHT, BOTTOM, C, rgb, escapePdf, textWidth, clip, count, when, encode, header } = kit;
         const pages = [];
         let page, y;
         const push = (cmd) => page.push(cmd);
@@ -1759,12 +1759,13 @@
         const name = m.name || (m.email ? m.email.split("@")[0] : "Member");
         const begin = () => {
           page = []; pages.push(page);
-          rect(0, 0, PAGE_W, 78, C.navy);
-          text("SECUREINTENT  /  BUSINESS", LEFT, 31, 9, [0.65, 0.86, 0.91], true);
-          text("Member report", LEFT, 57, 18, C.white, true);
-          text(`Last ${count(d.days)} days`, RIGHT, 34, 9, C.white, true, "right");
-          text(when(new Date()), RIGHT, 53, 8, [0.77, 0.83, 0.9], false, "right");
-          y = 104;
+          y = header(push, {
+            eyebrow: "BUSINESS CONSOLE",
+            title: "Member report",
+            subtitle: `${name}  |  ${currentTeam?.name || "Your organisation"}  |  ${when(new Date())}`,
+            rightLabel: "BUSINESS WORKSPACE",
+            rightValue: `Last ${count(d.days)} days`,
+          });
         };
         const ensure = (h) => { if (y + h > BOTTOM) begin(); };
         const section = (title) => { ensure(40); text(title, LEFT, y + 11, 11, C.ink, true); rule(y + 18); y += 30; };

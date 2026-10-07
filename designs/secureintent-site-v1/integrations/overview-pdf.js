@@ -45,6 +45,63 @@
     const s = plain(v);
     return s.length > max ? `${s.slice(0, Math.max(1, max - 3))}...` : s;
   };
+  // Helvetica-Bold and Helvetica advance widths (1/1000 em), ASCII 32 to 126, from
+  // the standard font metrics: used to place the header's wordmark and
+  // right-aligned labels exactly. Kept in step with assets/shadow/pdf-report.js.
+  const W_REGULAR = "278 278 355 556 556 889 667 191 333 333 389 584 278 333 278 278 556 556 556 556 556 556 556 556 556 556 278 278 584 584 584 556 1015 667 667 722 722 667 611 778 722 278 500 667 556 833 722 778 667 778 722 667 611 722 667 944 667 667 611 278 278 278 469 556 333 556 556 500 556 556 278 556 556 222 222 500 222 833 556 556 556 556 333 500 278 556 500 722 500 500 500 334 260 334 584".split(" ").map(Number);
+  const W_BOLD = "278 333 474 556 556 889 722 238 333 333 389 584 278 333 278 278 556 556 556 556 556 556 556 556 556 556 333 333 584 584 584 611 975 722 722 722 722 667 611 778 722 278 556 722 611 833 722 778 667 778 722 667 611 722 667 944 667 667 611 333 278 333 584 556 333 556 611 556 611 556 333 611 611 278 278 556 278 889 611 611 611 611 389 556 333 611 556 778 556 556 500 389 280 389 584".split(" ").map(Number);
+  const measure = (v, size, bold) => {
+    const widths = bold ? W_BOLD : W_REGULAR;
+    let total = 0;
+    for (const ch of plain(v)) total += widths[ch.charCodeAt(0) - 32] ?? 556;
+    return (total * size) / 1000;
+  };
+  const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  /** "8 Sep 2026" for a YYYY-MM-DD day; anything else is shown as given. */
+  const longDay = (day) => {
+    const d = new Date(`${day}T12:00:00Z`);
+    return /^\d{4}-\d{2}-\d{2}$/.test(String(day)) && !Number.isNaN(d.getTime())
+      ? `${d.getUTCDate()} ${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCFullYear()}`
+      : String(day ?? "");
+  };
+
+  /**
+   * The brand header shared by the Overview and member reports: the
+   * SecureIntent mark (site logo, drawn to scale) and wordmark, workspace and
+   * period on the right, then eyebrow, title and subtitle. Returns where the
+   * page content starts.
+   */
+  function header(push, { eyebrow, title, subtitle, rightLabel, rightValue }) {
+    const text = (v, x, top, size, color, bold = false) =>
+      push(`${rgb(color)} rg BT /${bold ? "F2" : "F1"} ${size} Tf 1 0 0 1 ${x.toFixed(1)} ${(PAGE_H - top).toFixed(1)} Tm (${escapePdf(v)}) Tj ET`);
+    const right = (v, top, size, color, bold = false) => text(v, RIGHT - measure(v, size, bold), top, size, color, bold);
+    const rect = (x, top, w, h, color) =>
+      push(`${rgb(color)} rg ${x.toFixed(1)} ${(PAGE_H - top - h).toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)} re f`);
+    const stroke = (x1, t1, x2, t2, color, w) =>
+      push(`${w.toFixed(2)} w ${rgb(color)} RG ${x1.toFixed(2)} ${(PAGE_H - t1).toFixed(2)} m ${x2.toFixed(2)} ${(PAGE_H - t2).toFixed(2)} l S`);
+    const cyan = [0.45, 1, 1];
+    const k = 22 / 120; // the logo mark spans y 75 to 195 of its 250 box; 22 points tall
+    const w = 28 * k;
+    const X = (px) => LEFT + w / 2 + (px - 50) * k;
+    const T = (py) => 26 + (py - 75) * k;
+    rect(0, 0, PAGE_W, 120, C.navy);
+    rect(0, 120, PAGE_W, 3, C.cyan);
+    push("q 1 J");
+    stroke(X(50), T(195), X(110), T(75), C.white, w);
+    stroke(X(130), T(195), X(160), T(135), cyan, w);
+    stroke(X(190), T(75), X(190) + 0.01, T(75), cyan, w); // the dot: radius 14 = half the stroke
+    push("Q");
+    const wx = LEFT + 140 * k + w + 9;
+    text("SecureIntent", wx, 43, 15, C.white, true);
+    text(".ai", wx + measure("SecureIntent", 15, true), 43, 15, cyan, true);
+    if (rightLabel) right(rightLabel, 33, 7, [0.65, 0.86, 0.91], true);
+    if (rightValue) right(rightValue, 46, 10, C.white, true);
+    if (eyebrow) text(eyebrow, LEFT, 74, 7.5, [0.65, 0.86, 0.91], true);
+    text(title, LEFT, 96, 22, C.white, true);
+    if (subtitle) text(clip(subtitle, 96), LEFT, 110, 8.5, [0.77, 0.83, 0.9]);
+    return 146;
+  }
+
   const when = (d) => d.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
 
   function makeReport(r) {
@@ -68,17 +125,13 @@
     const beginPage = () => {
       page = [];
       pages.push(page);
-      rect(0, 0, PAGE_W, 78, C.navy);
-      push("q 1 J");
-      line(LEFT, 39, LEFT + 9, 21, C.white, 4.2);
-      line(LEFT + 12, 39, LEFT + 16.5, 30, [0.45, 1, 1], 4.2);
-      line(LEFT + 21, 21, LEFT + 21.01, 21, [0.45, 1, 1], 4.2);
-      push("Q");
-      text("SECUREINTENT  /  BUSINESS", LEFT + 32, 31, 9, [0.65, 0.86, 0.91], true);
-      text("Overview report", LEFT, 57, 18, C.white, true);
-      text(`Last ${count(s.days)} days`, RIGHT, 34, 9, C.white, true, "right");
-      text(`${s.buckets[0].from} to ${s.buckets[s.buckets.length - 1].to}`, RIGHT, 53, 8, [0.77, 0.83, 0.9], false, "right");
-      y = 104;
+      y = header(push, {
+        eyebrow: "BUSINESS CONSOLE",
+        title: "Overview report",
+        subtitle: `${r.organization || "Your organisation"}  |  ${longDay(s.buckets[0].from)} to ${longDay(s.buckets[s.buckets.length - 1].to)}`,
+        rightLabel: "BUSINESS WORKSPACE",
+        rightValue: `Last ${count(s.days)} days`,
+      });
     };
     const ensure = (h) => {
       if (y + h > BOTTOM) beginPage();
@@ -257,6 +310,6 @@
   }
 
   // Shared with the member report (team.js): the same page geometry and fonts.
-  const kit = { PAGE_W, PAGE_H, LEFT, RIGHT, BOTTOM, WIDTH, C, plain, escapePdf, rgb, textWidth, clip, count, when, encode };
+  const kit = { PAGE_W, PAGE_H, LEFT, RIGHT, BOTTOM, WIDTH, C, plain, escapePdf, rgb, textWidth, clip, count, when, encode, header };
   window.SIOverviewPdf = { build, download, kit };
 })();
