@@ -8,6 +8,7 @@
   // Every value from the API is written with textContent.
   const SI = window.SI, $ = (id) => document.getElementById(id);
   const SESSION_KEY = 'si_business_invitation';
+  const DOMAIN_KEY = 'si_business_domain_link'; // this tab only: survives the Google redirect
   const LOCAL_KEY = 'si_business_invitation_v2';
   const KEEP_MS = 7 * 86400000;
   const VIEWS = ['bp-loading', 'bp-welcome', 'bp-code-step', 'bp-auth', 'bp-confirm', 'bp-mismatch', 'bp-done', 'bp-blocked'];
@@ -31,7 +32,7 @@
     try { localStorage.setItem(LOCAL_KEY, JSON.stringify({ token: t, at: Date.now() })); } catch { /* storage blocked */ }
   }
   function forget() {
-    try { sessionStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
+    try { sessionStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(DOMAIN_KEY); } catch { /* ignore */ }
     try { localStorage.removeItem(LOCAL_KEY); } catch { /* ignore */ }
   }
   function recall() {
@@ -42,6 +43,18 @@
     } catch { /* ignore */ }
     return '';
   }
+  // Domain link (#domain=…): one organisation and email domain, no named person.
+  // Anyone on the domain can set up; the first to complete it is the admin.
+  let domainToken = '';
+  let domainFromLink = false;
+  try {
+    const hash = new URLSearchParams(location.hash.slice(1));
+    const fromDomainLink = hash.get('domain') || '';
+    if (validToken(fromDomainLink)) { domainToken = fromDomainLink; domainFromLink = true; sessionStorage.setItem(DOMAIN_KEY, fromDomainLink); }
+    else if (!hash.get('invite')) { const kept = sessionStorage.getItem(DOMAIN_KEY); if (validToken(kept)) domainToken = kept; }
+  } catch { /* the token in memory still works */ }
+  const domainMode = () => !!invite?.isDomainLink;
+  const onDomain = (email) => !!invite?.emailDomain && email.split('@')[1] === invite.emailDomain && /^[^@\s]+@[^@\s]+$/.test(email);
   try {
     const fromLink = new URLSearchParams(location.hash.slice(1)).get('invite') || '';
     if (validToken(fromLink)) remember(fromLink);
@@ -84,6 +97,7 @@
     authentication_unavailable: 'We could not confirm your sign-in just now. Please try again.',
     organization_already_claimed: 'This account already administers a Business workspace. Contact SecureIntent for help.',
     unauthenticated: 'Sign in to continue.',
+    email_domain_mismatch: 'Use your work email on this organisation\'s domain.',
   };
 
   // ---------- rendering helpers ----------
@@ -114,8 +128,19 @@
   }
   function fill() {
     document.querySelectorAll('[data-company]').forEach((n) => { n.textContent = invite.companyName; });
-    document.querySelectorAll('[data-email]').forEach((n) => { n.textContent = invite.email; });
-    if ($('bp-email')) $('bp-email').value = invite.email;
+    document.querySelectorAll('[data-email]').forEach((n) => { n.textContent = invite.email || `@${invite.emailDomain}`; });
+    if ($('bp-email')) {
+      const email = $('bp-email');
+      if (domainMode()) {
+        email.readOnly = false;
+        email.removeAttribute('aria-readonly');
+        email.placeholder = `you@${invite.emailDomain}`;
+        email.autocomplete = 'email';
+        $('bp-email-note').hidden = false;
+        $('bp-email-note').textContent = `Use your @${invite.emailDomain} email. We send it one code to confirm it is yours.`;
+        $('bp-google-note').textContent = `Google works when your Google account is on @${invite.emailDomain}. Next time, sign in with this email and password, or with Google.`;
+      } else email.value = invite.email;
+    }
     document.querySelectorAll('[data-expires]').forEach((n) => {
       n.textContent = new Date(invite.expiresAt).toLocaleDateString(undefined, { dateStyle: 'medium' });
     });
@@ -275,6 +300,12 @@
       if (!first) { formError('bp-setup-error', 'Enter your first name.'); $('bp-first').focus(); return; }
       if (password.length < 8) { formError('bp-setup-error', 'Choose a password of at least 8 characters.'); $('bp-password').focus(); return; }
       if (password !== $('bp-password2').value) { formError('bp-setup-error', "The passwords don't match."); $('bp-password2').focus(); return; }
+      if (domainMode()) {
+        const email = $('bp-email').value.trim().toLowerCase();
+        if (!onDomain(email)) { formError('bp-setup-error', `Enter your work email ending in @${invite.emailDomain}.`); $('bp-email').focus(); return; }
+        invite.email = email;
+        $('bp-code-step').querySelectorAll('[data-email]').forEach((n) => { n.textContent = email; });
+      }
     }
     busy = true;
     formError('bp-setup-error', '');
@@ -282,7 +313,9 @@
     const button = fromCodeStep ? $('bp-resend') : $('bp-send');
     button.disabled = true;
     try {
-      const result = await call('POST', '/v1/business-promo/activate/start', { token, firstName: first, lastName: last });
+      const result = domainMode()
+        ? await call('POST', '/v1/business-promo/domain/start', { token: domainToken, email: invite.email, firstName: first, lastName: last })
+        : await call('POST', '/v1/business-promo/activate/start', { token, firstName: first, lastName: last });
       resendAt = Date.now() + (Number(result.retryAfter) || 30) * 1000;
       if (!fromCodeStep) { show('bp-code-step'); $('bp-code').value = ''; $('bp-code').focus(); }
       else formError('bp-code-error', '');
@@ -311,7 +344,9 @@
     $('bp-verify').firstChild.textContent = 'Activating… ';
     let result;
     try {
-      result = await call('POST', '/v1/business-promo/activate/verify', { token, code });
+      result = domainMode()
+        ? await call('POST', '/v1/business-promo/domain/verify', { token: domainToken, email: invite.email, code })
+        : await call('POST', '/v1/business-promo/activate/verify', { token, code });
     } catch (error) {
       busy = false;
       $('bp-verify').disabled = false;
@@ -416,8 +451,9 @@
       const email = primaryEmail(user);
       let fromGoogle = false;
       try { fromGoogle = sessionStorage.getItem(GOOGLE_KEY) === '1'; sessionStorage.removeItem(GOOGLE_KEY); } catch { /* ignore */ }
-      if (email === invite.email && fromGoogle) { void activate(); return; }
-      if (email === invite.email) { $('bp-signed-in').textContent = email; if (view !== 'bp-confirm') show('bp-confirm'); }
+      const matches = domainMode() ? onDomain(email) : email === invite.email;
+      if (matches && fromGoogle) { void activate(); return; }
+      if (matches) { $('bp-signed-in').textContent = email; if (view !== 'bp-confirm') show('bp-confirm'); }
       else { $('bp-wrong-email').textContent = email || 'another account'; if (view !== 'bp-mismatch') show('bp-mismatch'); }
       return;
     }
@@ -438,7 +474,9 @@
     $('bp-switch').disabled = true;
     status('Creating your workspace…');
     try {
-      const result = await call('POST', '/v1/business-promo/redeem', byEmail || !token ? { byEmail: true } : { token }, true);
+      const result = domainMode()
+        ? await call('POST', '/v1/business-promo/domain/redeem', { token: domainToken }, true)
+        : await call('POST', '/v1/business-promo/redeem', byEmail || !token ? { byEmail: true } : { token }, true);
       if (result.orgId && !result.orgId.startsWith('org_si_')) await window.Clerk.setActive({ organization: result.orgId });
       forget();
       busy = false;
@@ -463,7 +501,18 @@
   // ---------- start ----------
   try {
     await SI.ready({ auth: true });
-    if (token) {
+    if (domainToken && !(token && tokenFromLink)) {
+      token = '';
+      try {
+        const link = await call('POST', '/v1/business-promo/domain/inspect', { token: domainToken });
+        invite = { ...link, email: '', isDomainLink: true, activated: false };
+        fill();
+      } catch (error) {
+        forget(); domainToken = ''; invite = null;
+        if (domainFromLink) { blocked('unavailable'); await window.Clerk.load(); window.Clerk.addListener(() => route()); return; }
+      }
+    }
+    if (token && !invite) {
       try { invite = await call('POST', '/v1/business-promo/inspect', { token }); }
       catch (error) {
         if (error.code === 'invitation_unavailable' || error.code === 'invalid_invitation') {

@@ -88,6 +88,18 @@ handleRedirectCallback:async()=>{},load:async()=>{},addListener:(f)=>{listeners.
     // Member invitation accepted by a signed-in account (the Google path in the preview).
     if (url.pathname === '/mock-api/v1/business-member/accept' && req.method === 'POST') return json(res, { ok: true, orgId: 'org_demo_northstar' });
     if (url.pathname === '/mock-api/v1/business-member/pending') return json(res, { invitation: null });
+    // Domain link (#domain=…): any @northstar.example address; code 123456.
+    if (url.pathname.startsWith('/mock-api/v1/business-promo/domain/') && req.method === 'POST') {
+      const chunks = []; for await (const chunk of req) chunks.push(chunk);
+      const body = JSON.parse(Buffer.concat(chunks).toString() || '{}');
+      const step = url.pathname.split('/').pop();
+      const fail = (status, error) => { res.writeHead(status, {'Content-Type':'application/json'}); res.end(JSON.stringify({ error })); };
+      const onDomain = (e) => typeof e === 'string' && e.endsWith('@northstar.example');
+      if (step === 'inspect') return json(res, { companyName: 'Northstar Engineering', emailDomain: 'northstar.example', expiresAt: Date.now() + 6 * 86400000, seats: 150, domain: { status: 'available' } });
+      if (step === 'start') return !body.firstName ? fail(400, 'name_required') : !onDomain(body.email) ? fail(403, 'email_domain_mismatch') : json(res, { ok: true, email: body.email, retryAfter: 30 });
+      if (step === 'verify') return body.code === '123456' && onDomain(body.email) ? json(res, { ok: true, orgId: 'org_demo_northstar', seats: 150, ticket: 'preview_ticket' }) : fail(400, 'invalid_code');
+      if (step === 'redeem') return json(res, { ok: true, orgId: 'org_demo_northstar', seats: 150 });
+    }
     // One-code admin setup. The local preview accepts the code 123456.
     if (url.pathname.startsWith('/mock-api/v1/business-promo/activate/') && req.method === 'POST') {
       const chunks = []; for await (const chunk of req) chunks.push(chunk);

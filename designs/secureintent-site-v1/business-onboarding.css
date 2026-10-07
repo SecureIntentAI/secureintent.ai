@@ -157,3 +157,4 @@
 .bp-form .bp-google { background: #fff; color: var(--business-ink); border: 1px solid var(--business-border); box-shadow: none; }
 .bp-form .bp-google:hover { background: #f4f8fa; box-shadow: none; }
 [data-theme="dark"] .bp-form .bp-google { background: transparent; color: #e8eef2; }
+.bp-field-note { display: block; margin-top: 6px; color: var(--business-muted); font-size: 12px; line-height: 1.5; }
