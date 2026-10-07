@@ -37,7 +37,14 @@ const shadowDashboard = {
   generatedAt: Date.now(), dataAsOf: Date.now(), policyVersion: 3, canManagePolicy: true,
   policyRollout: { observedDevices: 5, activeDevices: 4, confirmedDevices: 3, pendingDevices: 1, attentionDevices: 0, offlineDevices: 1, pageGuardsConfirmed: 2, lastReceiptAt: Date.now() - 30000 },
   summary: { totalTools: 5, totalVisits: 486, unsanctionedUsagePercent: 61.1, pasteAttempts: 132, pasteBytes: 284910, sensitiveEvents: 9, highRiskDestinations: 2, outcomes: { blocked: 3, cancelled: 2, sanitised: 3, warning_bypassed: 1 } },
-  trends: Array.from({length:30},(_,i)=>({day:new Date(Date.now()-(29-i)*86400000).toISOString().slice(0,10),visits:i<6?17:16,pastes:i<12?5:4,sensitiveEvents:i<9?1:0})),
+  // Varied days with weekend dips; the nine sensitive pastes match summary.outcomes.
+  trends: Array.from({length:30},(_,i)=>{
+    const day=new Date(Date.now()-(29-i)*86400000);
+    const weekend=[0,6].includes(day.getUTCDay());
+    const outcomes={blocked:[3,11,24].includes(i)?1:0,cancelled:[7,19].includes(i)?1:0,sanitised:[5,16,27].includes(i)?1:0,warning_bypassed:i===22?1:0};
+    const sensitiveEvents=Object.values(outcomes).reduce((a,b)=>a+b,0);
+    return {day:day.toISOString().slice(0,10),visits:weekend?6+(i%3):14+(i*7)%9,pastes:weekend?1+(i%2):3+(i*5)%5,sensitiveEvents,outcomes};
+  }),
   tools: [
     {serviceId:'chatgpt',name:'ChatGPT',hostname:'chatgpt.com',classification:'sanctioned',visits:189,pastes:54,sensitiveEvents:2,activeSeats:3,seatNumbers:[1,2,4],lastSeen:Date.now()-240000},
     {serviceId:'claude',name:'Claude',hostname:'claude.ai',classification:'recognized',visits:121,pastes:36,sensitiveEvents:3,activeSeats:2,seatNumbers:[3,9],lastSeen:Date.now()-900000},
