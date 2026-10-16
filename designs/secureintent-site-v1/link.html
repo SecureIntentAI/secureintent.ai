@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8"><script src="integrations/config.js"></script><script src="integrations/runtime.js"></script><script>(function(){try{document.documentElement.dataset.theme=localStorage.getItem('si_site_theme')==='light'?'light':'dark';}catch(_){}})();</script>
+  <meta name="theme-color" content="#050608" id="theme-color"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Approve desktop sign-in · SecureIntent</title><base href="/designs/secureintent-site-v1/">
+  <link rel="icon" href="../../favicon-32x32.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="how-it-works.css"><link rel="stylesheet" href="site-pages.css"><script src="how-it-works.js?v=20260915-menu-cleanup" defer></script>
+<link rel="stylesheet" href="integrations/account.css?v=20261008-one-code"><link rel="stylesheet" href="integrations/app.css"><link rel="stylesheet" href="integrations/link.css?v=20261016"><script src="integrations/link.js?v=20261016" defer></script><script src="integrations/site.js" defer></script></head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header"><div class="container header-inner"><a href="index.html" class="brand"><span aria-hidden="true" class="brand-dot">●</span><span>SecureIntent<span class="brand-suffix">.ai</span></span></a><div class="header-actions"><div class="theme-switch" role="group" aria-label="Colour theme"><button class="theme-option" type="button" data-set-theme="dark" aria-pressed="true">Dark</button><button class="theme-option" type="button" data-set-theme="light" aria-pressed="false">Light</button></div><a class="text-action" href="index.html">Back to site →</a></div></div></header>
+  <main id="main" tabindex="-1" class="utility-page"><section class="account-app"><div>
+      <div id="loading">Loading…</div>
+
+      <!-- Signed out: sign in first, then come back to the same code. -->
+      <div id="auth" class="utility-panel" hidden><div class="eyebrow">SecureIntent desktop</div>
+        <div class="auth-head">
+          <h1>Sign in to approve</h1>
+          <p>Sign in with your SecureIntent account to connect the desktop app.</p>
+        </div>
+        <div id="clerk-auth"></div>
+      </div>
+
+      <!-- Signed in: what is asking, and the two answers. -->
+      <div id="approve" class="utility-panel link-panel" hidden><div class="eyebrow">SecureIntent desktop</div>
+        <h1>Approve this device?</h1>
+        <p class="link-lead">Check that this code matches the one in the desktop app.</p>
+        <div class="link-code" id="link-code" aria-label="Sign-in code">…</div>
+        <dl class="link-facts">
+          <dt>Device</dt><dd id="link-device">…</dd>
+          <dt>Account</dt><dd id="link-email">…</dd>
+        </dl>
+        <div class="link-actions">
+          <button class="upgrade" id="link-approve" type="button">Approve</button>
+          <button class="text-action" id="link-deny" type="button">Not me</button>
+        </div>
+        <p class="link-error" id="link-error" role="alert" hidden></p>
+      </div>
+
+      <!-- Every ending: approved, denied, expired, used, no code. -->
+      <div id="result" class="utility-panel link-panel" hidden><div class="eyebrow">SecureIntent desktop</div>
+        <h1 id="result-title">Done</h1>
+        <p class="link-lead" id="result-body"></p>
+      </div>
+    </div></section></main>
+</body></html>

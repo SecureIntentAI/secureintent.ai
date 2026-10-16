@@ -1,0 +1,20 @@
+/* Approve desktop sign-in (link.html). Layout comes from account.css. */
+.link-panel h1 { margin: 6px 0 8px; }
+.link-lead { color: var(--body); margin: 0 0 20px; }
+.link-code {
+  font-family: "Fira Code", ui-monospace, Menlo, monospace;
+  font-size: clamp(28px, 7vw, 40px);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+  padding: 18px 20px;
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.08));
+  border-radius: 12px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+.link-facts { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 0 0 24px; }
+.link-facts dt { color: var(--body); }
+.link-facts dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+.link-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.link-error { color: #ff8a80; margin: 16px 0 0; }
