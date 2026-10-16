@@ -22,8 +22,8 @@
 
       <!-- Signed in: what is asking, and the two answers. -->
       <div id="approve" class="utility-panel link-panel" hidden><div class="eyebrow">SecureIntent desktop</div>
-        <h1>Approve this device?</h1>
-        <p class="link-lead">Check that this code matches the one in the desktop app.</p>
+        <h1 id="approve-title">Approve this device?</h1>
+        <p class="link-lead" id="approve-lead">Check that this code matches the one in the desktop app.</p>
         <div class="link-code" id="link-code" aria-label="Sign-in code">…</div>
         <dl class="link-facts">
           <dt>Device</dt><dd id="link-device">…</dd>
@@ -40,6 +40,7 @@
       <div id="result" class="utility-panel link-panel" hidden><div class="eyebrow">SecureIntent desktop</div>
         <h1 id="result-title">Done</h1>
         <p class="link-lead" id="result-body"></p>
+        <button class="upgrade" id="result-again" type="button" hidden>Sign in again</button>
       </div>
     </div></section></main>
 </body></html>

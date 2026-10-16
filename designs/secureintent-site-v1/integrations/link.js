@@ -19,9 +19,10 @@
   function show(id) {
     for (const panel of ['loading', 'auth', 'approve', 'result']) $(panel).hidden = panel !== id;
   }
-  function finish(title, body) {
+  function finish(title, body, again = false) {
     $('result-title').textContent = title;
     $('result-body').textContent = body;
+    $('result-again').hidden = !again;
     show('result');
   }
   const ENDINGS = {
@@ -29,11 +30,20 @@
     code_used: ['This code was already used', 'Press Sign in again in the desktop app if it is not signed in.'],
     code_invalid: ['Code not recognised', 'Press Sign in again in the desktop app and open the new link it gives you.'],
     email_unverified: ['Verify your email first', 'Confirm your email address in your account, then press Sign in again in the desktop app.'],
+    // Unlocking the team admin pages from the desktop.
+    password_verification_required: ['Sign in again to confirm', 'Unlocking the team admin pages needs a fresh sign-in with your password, an emailed code or Google for the admin address.', true],
+    clerk_verification_required: ['Sign in again to confirm', 'Unlocking the team admin pages needs a fresh sign-in with your password, an emailed code or Google for the admin address.', true],
+    different_account: ['Signed in with another account', 'Sign in with the same account that is signed in on the desktop app.', true],
+    forbidden: ['Only the team admin can unlock this', 'Sign in with the account that manages the team.', true],
+    business_organisation_required: ['Only the team admin can unlock this', 'Sign in with the account that manages the team.', true],
   };
   function ended(error) {
-    const [title, body] = ENDINGS[error] || ['Something went wrong', 'Please try again in a moment.'];
-    finish(title, body);
+    const [title, body, again] = ENDINGS[error] || ['Something went wrong', 'Please try again in a moment.'];
+    finish(title, body, !!again);
   }
+  // A fresh sign-in, back to this page with the same code.
+  $('result-again').addEventListener('click', () => void window.Clerk.signOut({ redirectUrl: location.href }));
+  let purpose = 'sign_in';
 
   if (!code) {
     finish('Open this page from the desktop app', 'In SecureIntent desktop, go to Settings and press Sign in. It opens this page with your code.');
@@ -76,6 +86,12 @@
       return;
     }
     const device = inspected.body.device || {};
+    purpose = inspected.body.purpose === 'admin_unlock' ? 'admin_unlock' : 'sign_in';
+    if (purpose === 'admin_unlock') {
+      $('approve-title').textContent = 'Unlock team admin on this device?';
+      $('approve-lead').textContent = 'This opens the team admin pages in the desktop app. Check that this code matches the one it shows.';
+      $('link-approve').textContent = 'Unlock';
+    }
     $('link-code').textContent = code;
     $('link-device').textContent = `${device.name || 'Unknown device'} (${OS_NAMES[device.os] || device.os || 'unknown system'}), app ${device.appVersion || ''}`.trim();
     $('link-email').textContent = inspected.body.email || window.Clerk.user.primaryEmailAddress?.emailAddress || 'Your account';
@@ -88,7 +104,9 @@
     try {
       const result = await call(step);
       if (result.ok) {
-        if (step === 'approve') finish('Desktop app connected', 'You can close this tab and go back to the desktop app. It signs in by itself in a few seconds.');
+        if (step === 'approve' && purpose === 'admin_unlock') finish('Team admin unlocked', 'You can close this tab and go back to the desktop app. The admin pages open by themselves in a few seconds.');
+        else if (step === 'approve') finish('Desktop app connected', 'You can close this tab and go back to the desktop app. It signs in by itself in a few seconds.');
+        else if (purpose === 'admin_unlock') finish('Unlock refused', 'The admin pages stay locked in the desktop app. If you did not ask for this yourself, you can ignore it.');
         else finish('Sign-in refused', 'The desktop app will not be signed in. If you did not press Sign in yourself, you can ignore this.');
         // The code is done with; keep it out of history.
         history.replaceState(null, '', location.pathname);

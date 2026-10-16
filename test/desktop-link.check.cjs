@@ -56,6 +56,19 @@ const path = require('node:path');
     await expect(page.locator('#result-title')).toHaveText('This code has expired');
     console.log('PASS: an expired code says to press Sign in again');
 
+    await open(`${origin}/link.html#code=ADMN-2345`);
+    await expect(page.locator('#approve-title')).toHaveText('Unlock team admin on this device?');
+    await expect(page.locator('#link-approve')).toHaveText('Unlock');
+    await page.click('#link-approve');
+    await expect(page.locator('#result-title')).toHaveText('Team admin unlocked');
+    console.log('PASS: an admin unlock is worded as one and unlocks on approval');
+
+    await open(`${origin}/link.html#code=AGAN-2345`);
+    await page.click('#link-approve');
+    await expect(page.locator('#result-title')).toHaveText('Sign in again to confirm');
+    await expect(page.locator('#result-again')).toBeVisible();
+    console.log('PASS: an admin unlock that needs a fresh sign-in offers "Sign in again"');
+
     await open(`${origin}/link.html?preview_signed_out=1#code=KQ7M-4TXP`);
     await expect(page.locator('#auth')).toBeVisible();
     await expect(page.locator('#approve')).toBeHidden();
