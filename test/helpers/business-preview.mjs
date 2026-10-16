@@ -83,6 +83,13 @@ handleRedirectCallback:async()=>{},load:async()=>{},addListener:(f)=>{listeners.
   }
   if (url.pathname.startsWith('/mock-api/')) {
     if (url.pathname === '/mock-api/v1/business-signup/inspect') return json(res, { enabled: false });
+    // Desktop sign-in approval (link.html#code=…): EXPR-ED22 has expired, any other code is waiting.
+    if (url.pathname.startsWith('/mock-api/v1/desktop/link/') && req.method === 'POST') {
+      const body = JSON.parse(await new Promise(resolve => { let data = ''; req.on('data', c => data += c); req.on('end', () => resolve(data || '{}')); }));
+      if (body.code === 'EXPR-ED22') { res.writeHead(410, {'Content-Type':'application/json; charset=utf-8'}); res.end(JSON.stringify({ error: 'code_expired' })); return; }
+      if (url.pathname.endsWith('/inspect')) return json(res, { device: { name: 'MacBook Pro', os: 'macos', appVersion: '0.2.12' }, expiresAt: Date.now() + 600000, email: 'maya@northstar.example' });
+      return json(res, { ok: true });
+    }
     if (url.pathname === '/mock-api/v1/business-promo/inspect') return json(res,{companyName:'Northstar Engineering',email:'maya@northstar.example',emailHint:'m***@northstar.example',expiresAt:Date.now()+6*86400000,activated:false,seats:150,domain:{status:'available'}});
     if (url.pathname === '/mock-api/v1/business-promo/redeem') return json(res,{ok:true,orgId:'org_demo_northstar',seats:150});
     // Member invitation accepted by a signed-in account (the Google path in the preview).
