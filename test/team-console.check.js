@@ -100,8 +100,9 @@ const state = () => ({
   seats: document.getElementById("nav-seats").textContent,
   // Unsaved edits are named beside the Policy Save button (no sidebar dots).
   dirty: !document.getElementById("policy-dirty").hidden,
-  // Alerts are a preview until they ship with the desktop app.
-  alertsPreview: !!document.querySelector("#view-alerts .preview-banner") && document.getElementById("alerts-save").disabled,
+  // Alerts are live (they ship with the desktop app): no preview banner, and
+  // the controls are usable once the settings have loaded.
+  alertsLive: !document.querySelector("#view-alerts .preview-banner") && !document.getElementById("alerts-save").disabled && !document.getElementById("alert-webhook").disabled,
   dangerColor: getComputedStyle(document.getElementById("team-err")).color,
   locked: [...document.querySelectorAll(".navitem")].filter((n) => n.getAttribute("aria-disabled") === "true").map((n) => n.dataset.view),
   topbarHidden: document.getElementById("topbar").hidden,
@@ -125,7 +126,7 @@ const state = () => ({
     check("lands on Overview", s.current === "overview" && s.view.join() === "view-overview", s);
     check("hash is #/overview", s.hash === "#/overview", s);
     check("seat badge reads 2/5", s.seats === "2/5", s);
-    check("alerts page is a desktop-app preview", s.alertsPreview === true, s);
+    check("alerts page is live once settings load", s.alertsLive === true, s);
     check("no unsaved note on load", s.dirty === false, s);
     check("nothing locked", s.locked.length === 0, s);
     check("topbar gives way to the sidebar", s.topbarHidden === true, s);
@@ -151,7 +152,7 @@ const state = () => ({
     await p.waitForTimeout(150);
     s = await p.evaluate(state);
     check("unsaved note survives leaving the view", s.dirty === true, s);
-    check("Alerts stays a preview", s.alertsPreview === true, s);
+    check("Alerts stays usable", s.alertsLive === true, s);
     await p.screenshot({ path: OUT + "c-dirty.png" });
 
     // the edit itself must survive the round trip
@@ -207,7 +208,7 @@ const state = () => ({
     await p.goto(BASE + "/team.html");
     await p.waitForTimeout(900);
     const s = await p.evaluate(state);
-    check("alerts stay a preview whatever the stored webhook health", s.alertsPreview === true, s);
+    check("alerts stay usable whatever the stored webhook health", s.alertsLive === true, s);
     await p.click(".navitem[data-view=alerts]"); await p.waitForTimeout(200);
     await p.screenshot({ path: OUT + "c-alerts-bad.png" });
     await ctx.close();

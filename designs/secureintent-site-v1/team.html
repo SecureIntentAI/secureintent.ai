@@ -137,7 +137,6 @@
               <path d="M6.6 13.2a1.6 1.6 0 0 0 2.8 0" stroke-linecap="round" />
             </svg>
             <span class="label">Alerts</span>
-            <span class="nav-tag" title="Coming with the SecureIntent desktop app">Preview</span>
           </a>
           <a class="navitem" href="team.html#/shadow" data-view="shadow" id="shadow-nav">
             <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
@@ -486,31 +485,18 @@
         <section class="view" id="view-alerts" tabindex="-1" aria-labelledby="head-alerts" hidden>
           <div class="viewhead">
             <div>
-              <h1 id="head-alerts">Alerts <span class="title-tag">Preview</span></h1>
+              <h1 id="head-alerts">Alerts</h1>
               <p class="sub">
-                Get a message in your team chat when someone pastes something sensitive.
+                Get a message in your team chat when a secret is caught, in the browser or on the desktop.
               </p>
             </div>
           </div>
 
-          <div class="preview-banner" role="note">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6" />
-              <path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-            </svg>
-            <div>
-              <strong>Coming with the SecureIntent desktop app</strong>
-              <p>
-                This is a preview of how security alerts will work. Saving and test messages
-                aren't available yet.
-              </p>
-            </div>
-          </div>
-
-          <div class="panel is-preview" aria-disabled="true">
+          <div class="panel">
             <p class="note" style="margin-top: 0">
-              Alerts will post to Slack, Teams, or any HTTPS endpoint. Each alert says what kind of
-              secret it was and where it was headed, never the text itself.
+              Alerts post to Slack, Teams, or any HTTPS endpoint when a member's secret is caught,
+              in the browser extension or the desktop app. Each alert says what kind of secret it
+              was and where, never the text itself.
             </p>
             <div class="health" id="alert-health" hidden>
               <span class="dot" aria-hidden="true"></span>

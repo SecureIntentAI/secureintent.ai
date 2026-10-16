@@ -767,8 +767,8 @@
       let settingsLoaded = false;
       let savedWebhook = "";
 
-      // The Alerts page is a preview until alerts ship with the desktop app, so
-      // its controls are never enabled (they are disabled in the markup).
+      // Disabled in the markup and enabled once the settings have loaded, so
+      // nothing can be saved over a record that was never read.
       const SETTINGS_CONTROLS = [
         "pol-block",
         "pol-lock",
@@ -780,6 +780,10 @@
         "pat-add",
         "pol-replace",
         "policy-save",
+        "alert-webhook",
+        "alert-min",
+        "alerts-save",
+        "alerts-test",
       ];
       const setSettingsEnabled = (on) => {
         SETTINGS_CONTROLS.forEach((id) => {
@@ -1083,8 +1087,8 @@
        */
       async function saveSettings(statusEl, btn) {
         if (!settingsLoaded) return;
-        // Policy only. Alerts are a preview until the desktop app ships them, and
-        // the server keeps the stored alert settings when these fields are absent.
+        // Policy only. Alerts save from their own page, and the server keeps the
+        // stored alert settings when these fields are absent.
         settings.policy.blockInsteadOfWarn = $("pol-block").checked;
         settings.policy.requireSessionLock = $("pol-lock").checked;
         settings.policy.replaceDefaultPatterns = $("pol-replace").checked;
