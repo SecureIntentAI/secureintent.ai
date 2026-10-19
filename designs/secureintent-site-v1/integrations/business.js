@@ -28,6 +28,7 @@
       if (!response.ok || data.ok !== true) throw new Error(response.status === 429 ? 'Please wait a moment before trying again.' : 'Your request could not be sent. Please try again.');
       status.textContent = 'Thank you. Your interest in Business Pro has been registered. Check your email for our welcome message.';
       form.reset();
+      window.SI_TRACK?.('generate_lead', {form: form.id, page: location.pathname});
     } catch (err) {
       error.hidden = false;
       error.textContent = window.SI.config ? (err.message === 'Failed to fetch' ? 'Could not reach the service. Please try again.' : err.message) : 'Test services are not configured for this preview.';

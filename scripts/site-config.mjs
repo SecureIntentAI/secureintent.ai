@@ -112,7 +112,8 @@ export function resourcePolicy(config, hashes, production) {
   const active = production ? config.production : config.preview;
   const clerk = active ? new URL(active.clerkScriptUrl).origin : '';
   const api = active ? new URL(active.apiBase).origin : '';
-  const analyticsScript = production ? 'https://www.googletagmanager.com' : '';
-  const analyticsConnect = production ? 'https://*.google-analytics.com https://www.googletagmanager.com' : '';
+  // Google Analytics (after consent) plus the cookieless Cloudflare Web Analytics beacon.
+  const analyticsScript = production ? 'https://www.googletagmanager.com https://static.cloudflareinsights.com' : '';
+  const analyticsConnect = production ? 'https://*.google-analytics.com https://www.googletagmanager.com https://cloudflareinsights.com' : '';
   return `default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' ${[...hashes].join(' ')} ${clerk} https://cdn.paddle.com ${analyticsScript} https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data: blob: https://img.clerk.com https://*.paddle.com${production ? ' https://www.google-analytics.com' : ''}; media-src 'self' blob:; connect-src 'self' ${api} ${clerk} https://*.paddle.com ${analyticsConnect}; frame-src 'self' ${clerk} https://*.paddle.com https://challenges.cloudflare.com; form-action 'self'`.replace(/ +/g, ' ');
 }

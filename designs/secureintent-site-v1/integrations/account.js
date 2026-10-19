@@ -25,11 +25,16 @@ const CFG = SI.config;
           try { return m ? decodeURIComponent(m[1]) : null; }
           catch { return null; }
         };
+        // Optional storage: nothing is read or written without analytics consent.
+        // If the visitor accepts on this page, site.js stores the arrival link.
+        const consented = () => Boolean(window.SI_CONSENT && window.SI_CONSENT.granted());
         const get = (name) => {
+          if (!consented()) return null;
           try { return localStorage.getItem(name) || readCookie(name); }
           catch (e) { return readCookie(name); }
         };
         const set = (name, value) => {
+          if (!consented()) return;
           try { localStorage.setItem(name, value); } catch (e) {}
           // Domain attribute only on the real domain; a local copy on localhost
           // writes a host-only cookie so the same flow can be tested end to end.
@@ -46,9 +51,9 @@ const CFG = SI.config;
           set(KEY + "_campaign", (p.get("utm_campaign") || "").trim());
         }
         return {
-          creator: get(KEY) || null,
-          medium: get(KEY + "_medium") || null,
-          campaign: get(KEY + "_campaign") || null,
+          get creator() { return get(KEY) || null; },
+          get medium() { return get(KEY + "_medium") || null; },
+          get campaign() { return get(KEY + "_campaign") || null; },
           markSent() { try { localStorage.setItem(KEY + "_sent", "1"); } catch (e) {} },
           get sent() { try { return localStorage.getItem(KEY + "_sent") === "1"; } catch (e) { return false; } },
         };
