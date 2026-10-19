@@ -236,7 +236,7 @@ const CFG = SI.config;
         ghost: "Strip secrets, IPs and emails from large logs before you paste them.",
         session_lock: "PIN-lock high-risk cloud consoles after inactivity or tab-away.",
         team_policy: "Push shared detection rules and settings across your whole team.",
-        team_alerts: "Coming with the SecureIntent desktop app: notify your security team when a teammate pastes a secret.",
+        team_alerts: "Notify your security team in Slack, Teams or any HTTPS endpoint when a teammate's secret is caught, in the browser or the desktop app.",
       };
 
       function featureRows(plan) {
@@ -250,7 +250,7 @@ const CFG = SI.config;
             : { key, label, state: "active", detail: "Active" };
         // Team Policy Sync is shipped, so a Business Pro account has it now. Lower
         // tiers see it locked, the same way the Pro toolkit reads on Free.
-        // Security-Team Alerts arrive with the desktop app: "Coming soon" for all.
+        // Team Policy Sync and Security-Team Alerts are both live for Business Pro.
         const team = (key, label) =>
           plan === "business_pro"
             ? { key, label, state: "active", detail: "Active" }
@@ -262,7 +262,7 @@ const CFG = SI.config;
           toolkit("ghost", "Ghost Log Sanitiser"),
           toolkit("session_lock", "Session Lock"),
           team("team_policy", "Team Policy Sync"),
-          { key: "team_alerts", label: "Security-Team Alerts", state: "soon", detail: "Coming soon" },
+          team("team_alerts", "Security-Team Alerts"),
         ];
       }
 

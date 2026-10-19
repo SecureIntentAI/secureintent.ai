@@ -435,7 +435,7 @@ export const docs = [
       {
         id: "team-availability",
         title: "Team feature availability",
-        body: `<p>Business Pro includes team policies. Security alerts are coming with the SecureIntent desktop app; the team console shows a preview of them. Team administrators manage seats, invitations and rules in the team console.</p>`,
+        body: `<p>Business Pro includes team policies and security alerts: your security team can get a message in Slack, Teams or any HTTPS endpoint when a member's secret is caught, in the browser or the desktop app. Team administrators manage seats, invitations, rules and alerts in the team console.</p>`,
       },
       {
         id: "local-preview",
