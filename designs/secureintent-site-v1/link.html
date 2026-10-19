@@ -4,14 +4,14 @@
   <meta charset="utf-8"><script src="integrations/config.js"></script><script src="integrations/runtime.js"></script><script>(function(){try{document.documentElement.dataset.theme=localStorage.getItem('si_site_theme')==='light'?'light':'dark';}catch(_){}})();</script>
   <meta name="theme-color" content="#050608" id="theme-color"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Approve desktop sign-in · SecureIntent</title><base href="/designs/secureintent-site-v1/">
   <link rel="icon" href="../../favicon-32x32.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="how-it-works.css"><link rel="stylesheet" href="site-pages.css"><script src="how-it-works.js?v=20260915-menu-cleanup" defer></script>
-<link rel="stylesheet" href="integrations/account.css?v=20261008-one-code"><link rel="stylesheet" href="integrations/app.css"><link rel="stylesheet" href="integrations/link.css?v=20261016"><script src="integrations/link.js?v=20261016" defer></script><script src="integrations/site.js" defer></script></head>
+<link rel="stylesheet" href="integrations/account.css?v=20261008-one-code"><link rel="stylesheet" href="integrations/app.css"><link rel="stylesheet" href="integrations/link.css?v=20261019"><script src="integrations/link.js?v=20261019" defer></script><script src="integrations/site.js" defer></script></head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
   <header class="site-header"><div class="container header-inner"><a href="index.html" class="brand"><span aria-hidden="true" class="brand-dot">●</span><span>SecureIntent<span class="brand-suffix">.ai</span></span></a><div class="header-actions"><div class="theme-switch" role="group" aria-label="Colour theme"><button class="theme-option" type="button" data-set-theme="dark" aria-pressed="true">Dark</button><button class="theme-option" type="button" data-set-theme="light" aria-pressed="false">Light</button></div><a class="text-action" href="index.html">Back to site →</a></div></div></header>
   <main id="main" tabindex="-1" class="utility-page"><section class="account-app"><div>
       <div id="loading">Loading…</div>
 
-      <!-- Signed out: sign in first, then come back to the same code. -->
+      <!-- Signed out: sign in (or create an account) first, right here. -->
       <div id="auth" class="utility-panel" hidden><div class="eyebrow">SecureIntent desktop</div>
         <div class="auth-head">
           <h1>Sign in to approve</h1>
@@ -20,13 +20,28 @@
         <div id="clerk-auth"></div>
       </div>
 
-      <!-- Signed in: what is asking, and the two answers. -->
+      <!-- Signed in: type the code the desktop app shows. It is never taken from
+           the link, so a link someone else sends cannot carry a code to approve. -->
+      <div id="enter" class="utility-panel link-panel" hidden><div class="eyebrow">SecureIntent desktop</div>
+        <h1>Enter the code from the desktop app</h1>
+        <p class="link-lead">Type the code SecureIntent desktop is showing on your computer.</p>
+        <form id="code-form" class="link-form" novalidate>
+          <label for="code-input" class="visually-hidden">Code from the desktop app</label>
+          <input id="code-input" class="link-code-input" name="code" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" inputmode="text" maxlength="9" placeholder="XXXX-XXXX" aria-describedby="code-help code-error">
+          <button class="upgrade" id="code-continue" type="submit">Continue</button>
+        </form>
+        <p class="link-help" id="code-help">Only continue if you just pressed Sign in in SecureIntent desktop yourself. Never enter a code someone sent you.</p>
+        <p class="link-error" id="code-error" role="alert" hidden></p>
+      </div>
+
+      <!-- What is asking, and the two answers. -->
       <div id="approve" class="utility-panel link-panel" hidden><div class="eyebrow">SecureIntent desktop</div>
         <h1 id="approve-title">Approve this device?</h1>
-        <p class="link-lead" id="approve-lead">Check that this code matches the one in the desktop app.</p>
+        <p class="link-warning" id="approve-warning">Only approve if you just pressed Sign in in SecureIntent desktop.</p>
         <div class="link-code" id="link-code" aria-label="Sign-in code">…</div>
         <dl class="link-facts">
-          <dt>Device</dt><dd id="link-device">…</dd>
+          <dt>Device</dt><dd><span id="link-device">…</span> <span class="link-note">(as reported by the app)</span></dd>
+          <dt>Requested</dt><dd id="link-started">…</dd>
           <dt>Account</dt><dd id="link-email">…</dd>
         </dl>
         <div class="link-actions">
@@ -36,7 +51,7 @@
         <p class="link-error" id="link-error" role="alert" hidden></p>
       </div>
 
-      <!-- Every ending: approved, denied, expired, used, no code. -->
+      <!-- Every ending: approved, refused, or a problem with the account. -->
       <div id="result" class="utility-panel link-panel" hidden><div class="eyebrow">SecureIntent desktop</div>
         <h1 id="result-title">Done</h1>
         <p class="link-lead" id="result-body"></p>
