@@ -34,6 +34,10 @@
         paste_anonymously: "Pasted anonymised",
         paste_anyway: "Pasted anyway",
         sanitised: "Sanitised & pasted",
+        // Desktop app, secrets caught on copy.
+        auto_redacted: "Redacted on the desktop",
+        unlocked: "Restored on the desktop (Undo)",
+        purged: "Cleared from the desktop clipboard",
       };
       const TYPE_LABEL = {
         "high-entropy": "Credential-like string",
@@ -404,7 +408,15 @@
           bars($("p-actions"), m.byAction, ACTION_LABEL);
           $("export").disabled = false;
           $("overview-export-pdf").disabled = false;
-          status.textContent = `${m.source === 'shadow_events' ? 'AI destinations only · Counts match the Shadow AI event ledger. ' : ''}Updated ${new Date().toLocaleTimeString()}`;
+          // Where detections came from, once the desktop app reports them too. A
+          // secret copied on the desktop and then pasted in the browser is
+          // caught by both, so it is counted in both.
+          const byClient = new Map((m.byClient || []).map((r) => [r.key, Number(r.n) || 0]));
+          const fromDesktop = byClient.get("desktop") || 0;
+          const split = fromDesktop
+            ? `Browser ${fmt(byClient.get("extension") || 0)} · Desktop ${fmt(fromDesktop)}. A secret copied on the desktop and pasted in the browser counts in both. `
+            : "";
+          status.textContent = `${m.source === 'shadow_events' ? 'AI destinations only · Counts match the Shadow AI event ledger. ' : ''}${split}Updated ${new Date().toLocaleTimeString()}`;
         } catch (error) {
           if (error.name === 'AbortError') return;
           status.textContent = 'Overview data is temporarily unavailable. Retrying automatically.';

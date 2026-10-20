@@ -60,7 +60,8 @@ const metrics = {
     byDay: Array.from({ length: 30 }, (_, i) => ({ day: `2026-07-${String(i + 1).padStart(2, "0")}`, n: [2, 9, 4, 0, 7, 13, 5, 1, 8, 3][i % 10] })),
     byType: [{ key: "known-key", n: 71 }, { key: "env-credential", n: 44 }, { key: "private-key", n: 21 }, { key: "pii", n: 12 }],
     bySite: [{ key: "chatgpt.com", n: 63 }, { key: "claude.ai", n: 41 }, { key: "gemini.google.com", n: 26 }, { key: "perplexity.ai", n: 18 }],
-    byAction: [{ key: "cancelled", n: 88 }, { key: "paste_anonymously", n: 47 }, { key: "paste_anyway", n: 13 }],
+    byAction: [{ key: "cancelled", n: 88 }, { key: "paste_anonymously", n: 47 }, { key: "paste_anyway", n: 13 }, { key: "auto_redacted", n: 14 }],
+    byClient: [{ key: "extension", n: 134 }, { key: "desktop", n: 14 }],
   },
 };
 
@@ -130,6 +131,13 @@ const state = () => ({
     check("nothing locked", s.locked.length === 0, s);
     check("topbar gives way to the sidebar", s.topbarHidden === true, s);
     check("no page errors", errs.length === 0, errs);
+    const ov = await p.evaluate(() => ({
+      actions: document.getElementById("p-actions").textContent,
+      status: document.getElementById("metrics-status").textContent,
+    }));
+    check("desktop catches have a label", ov.actions.includes("Redacted on the desktop"), ov);
+    check("Overview says where detections came from", ov.status.includes("Browser 134 · Desktop 14"), ov);
+    check("and that a desktop copy pasted in the browser counts in both", ov.status.includes("counts in both"), ov);
     await p.screenshot({ path: OUT + "c-overview.png", fullPage: false });
 
     for (const [view, shot] of [["people", "c-people"], ["policy", "c-policy"], ["alerts", "c-alerts"]]) {

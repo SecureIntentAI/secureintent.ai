@@ -31,7 +31,8 @@ const metrics = { metrics:{ days:30, total:263, activeActors:5,
   previousTotal:188,
   byType:[{key:'known-key',n:112},{key:'env-credential',n:74},{key:'private-key',n:48},{key:'pii',n:29}],
   bySite:[{key:'chatgpt.com',n:104},{key:'claude.ai',n:73},{key:'gemini.google.com',n:52},{key:'perplexity.ai',n:34}],
-  byAction:[{key:'cancelled',n:121},{key:'paste_anonymously',n:62},{key:'blocked',n:30},{key:'paste_anyway',n:30},{key:'sanitised',n:20}] } };
+  byAction:[{key:'cancelled',n:121},{key:'paste_anonymously',n:62},{key:'blocked',n:30},{key:'paste_anyway',n:30},{key:'sanitised',n:20},{key:'auto_redacted',n:14}],
+  byClient:[{key:'extension',n:249},{key:'desktop',n:14}] } };
 const shadowDashboard = {
   organization:{name:'Northstar Engineering',email:'maya@northstar.example'},
   generatedAt: Date.now(), dataAsOf: Date.now(), policyVersion: 3, canManagePolicy: true,
