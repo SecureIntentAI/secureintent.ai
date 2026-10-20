@@ -87,6 +87,11 @@ const path = require('node:path');
     await expect(page.locator('#result-again')).toBeVisible();
     console.log('PASS: an admin unlock that needs a fresh sign-in offers "Sign in again"');
 
+    // The address the app opens is the clean one; Netlify serves link.html there.
+    await open(`${origin}/link`);
+    await expect(page.locator('#enter')).toBeVisible();
+    console.log('PASS: secureintent.ai/link (no .html) opens the page');
+
     await open(`${origin}/link.html?preview_signed_out=1`);
     await expect(page.locator('#auth')).toBeVisible();
     await expect(page.locator('#enter')).toBeHidden();

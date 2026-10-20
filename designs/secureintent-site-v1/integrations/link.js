@@ -1,4 +1,4 @@
-/* Approve a desktop sign-in (link.html).
+/* Approve a desktop sign-in (secureintent.ai/link, served from link.html).
  *
  * The desktop app cannot run Clerk, so it opens this page and shows a short code.
  * The person signs in here as usual, types the code the app is showing, and
@@ -55,7 +55,7 @@
     finish(title, body, !!again);
   }
   // A fresh sign-in, back to this page.
-  $('result-again').addEventListener('click', () => void window.Clerk.signOut({ redirectUrl: SI.authReturn('link.html') }));
+  $('result-again').addEventListener('click', () => void window.Clerk.signOut({ redirectUrl: SI.authReturn('link') }));
 
   let CFG;
   try {
@@ -190,7 +190,7 @@
     if (mounted) return;
     // Signing in or creating an account both come back here, so a new user
     // never loses the flow.
-    const back = SI.authReturn('link.html');
+    const back = SI.authReturn('link');
     const common = {
       appearance: SI.appearance(),
       forceRedirectUrl: back,
@@ -202,7 +202,7 @@
       window.Clerk.mountSignUp($('clerk-auth'), { ...common, signInUrl: back });
     } else {
       mounted = 'signin';
-      window.Clerk.mountSignIn($('clerk-auth'), { ...common, afterSignInUrl: back, signUpUrl: SI.authReturn('link.html?mode=signup') });
+      window.Clerk.mountSignIn($('clerk-auth'), { ...common, afterSignInUrl: back, signUpUrl: SI.authReturn('link?mode=signup') });
     }
   }
   window.Clerk.addListener(render);
