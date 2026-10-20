@@ -1,0 +1,43 @@
+/* Approve desktop sign-in (link.html). Layout comes from account.css. */
+.link-panel h1 { margin: 6px 0 8px; }
+.link-lead { color: var(--body); margin: 0 0 20px; }
+.link-code {
+  font-family: "Fira Code", ui-monospace, Menlo, monospace;
+  font-size: clamp(28px, 7vw, 40px);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+  padding: 18px 20px;
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.08));
+  border-radius: 12px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+.link-facts { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 0 0 24px; }
+.link-facts dt { color: var(--body); }
+.link-facts dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+.link-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.link-error { color: #ff8a80; margin: 16px 0 0; }
+.link-form { display: flex; gap: 12px; flex-wrap: wrap; align-items: stretch; margin: 0 0 12px; }
+.link-code-input {
+  flex: 1 1 220px;
+  min-width: 0;
+  font-family: "Fira Code", ui-monospace, Menlo, monospace;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: transparent;
+  padding: 12px 16px;
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.16));
+  border-radius: 12px;
+}
+.link-code-input:focus { outline: 2px solid var(--accent, #7aa2ff); outline-offset: 2px; }
+.link-help { color: var(--body); margin: 0; font-size: 14px; }
+.link-warning { color: var(--ink); margin: 0 0 20px; font-weight: 500; }
+.link-note { color: var(--body); font-size: 13px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* "Not me" is a text button, as on the onboarding pages. */
+.link-actions button.text-action { background: none; border: 0; padding: 6px 2px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 600; }
+.link-actions button.text-action:hover { text-decoration: underline; text-underline-offset: 4px; }
