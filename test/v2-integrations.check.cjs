@@ -58,6 +58,8 @@ async function context(browser, options = {}) {
       const response = await options.respond?.(path, req.method(), body);
       if (response) return route.fulfill({status: response.status || 200, json:response.body});
       if (path === '/v1/entitlement') return route.fulfill({json: {entitlement: {plan:'developer', source:'free', features:[]}}});
+      // The admin console opens only after this unlock (live since 6 Oct, admin-access.js).
+      if (path === '/v1/business-access/unlock/clerk') return route.fulfill({json: {accessToken:'a'.repeat(64), expiresAt:Date.now()+30*60000, orgId:'org_fixture'}});
       if (path === '/v1/team') return route.fulfill({json: options.teamBody || team()});
       if (path === '/v1/team/settings') {
         if (req.method() === 'PUT') savedSettings = {settings: {...savedSettings.settings, ...body}};
@@ -156,22 +158,20 @@ async function run() {
   await test('pending team cannot invite or edit policies', {teamBody:team({seats:0,seatsUsed:0})}, async ({page})=>{
     await page.goto(BASE+DESIGN+'team.html#/policy'); await expect(page.locator('#pending')).toBeVisible(); await expect(page.locator('#invite')).toBeDisabled(); await expect(page.locator('[data-view="policy"]')).toHaveAttribute('aria-disabled','true');
   });
-  await test('team checkout request and return URL', {teamBody:{team:null},respond:p=>p==='/v1/team/checkout'?{body:{transactionId:'txn_team'}}:null}, async ({page,requests})=>{
-    await page.goto(BASE+DESIGN+'team.html'); await expect(page.locator('#company')).toBeVisible(); await page.fill('#company','New Company'); await page.click('#buy');
-    await expect.poll(()=>page.evaluate(()=>calls.filter(c=>c[0]==='checkout').length)).toBe(1);
-    const args=await page.evaluate(()=>calls.find(c=>c[0]==='checkout')[1]); assert.equal(args.settings.successUrl,BASE+DESIGN+'team.html?welcome=1&claim=txn_team');
-    assert.deepEqual(requests.find(r=>r.path==='/v1/team/checkout').body,{companyName:'New Company',seats:5});
+  // Business is invitation-only since 2 Oct: no team means no seat purchase, only the invitation note.
+  await test('no team: invitation required, nothing to buy', {teamBody:{team:null}}, async ({page,requests})=>{
+    await page.goto(BASE+DESIGN+'team.html'); await expect(page.locator('#gate-title')).toHaveText('Business invitation required');
+    await expect(page.locator('#gate-actions')).toBeHidden(); await expect(page.locator('#console')).toBeHidden();
+    assert.ok(!requests.some(r=>r.path==='/v1/team/checkout'));
   });
-  await test('team SDK failure does not create a transaction', {paddleFailed:true,teamBody:{team:null}}, async ({page,requests})=>{
-    await page.goto(BASE+DESIGN+'team.html'); await expect(page.locator('#company')).toBeVisible(); await page.fill('#company','New Company'); await page.click('#buy'); await expect(page.locator('#gate-err')).toContainText('payment service'); assert.ok(!requests.some(r=>r.path==='/v1/team/checkout'));
+  // Sign-in and sign-up come back to the admin unlock (admin_return=1), not a checkout.
+  await test('team sign-up comes back to the admin console', {signedIn:false}, async ({page})=>{
+    await page.goto(BASE+DESIGN+'team.html?mode=signup'); await expect(page.locator('#clerk-auth')).toContainText('Test sign-up');
+    const args=await page.evaluate(()=>calls.find(c=>c[0]==='signup')[1]); assert.equal(args.forceRedirectUrl,DESIGN+'team.html?admin_return=1');
   });
-  await test('team sign-up preserves a pending transaction', {signedIn:false}, async ({page})=>{
-    await page.goto(BASE+DESIGN+'team.html?mode=signup&_ptxn=txn_team'); await expect(page.locator('#clerk-auth')).toContainText('Test sign-up');
-    const args=await page.evaluate(()=>calls.find(c=>c[0]==='signup')[1]); assert.equal(args.forceRedirectUrl,DESIGN+'team.html?_ptxn=txn_team');
-  });
-  await test('seat changes and invitation revocation send the expected payloads', {}, async ({page,requests})=>{
-    await page.goto(BASE+DESIGN+'team.html#/people'); await expect(page.locator('#view-people')).toBeVisible(); await page.click('#seats-btn'); await page.fill('#seats-input','6'); await page.click('#seats-save');
-    await expect.poll(()=>requests.filter(r=>r.path==='/v1/team/seats').length).toBe(1); assert.deepEqual(requests.find(r=>r.path==='/v1/team/seats').body,{seats:6});
+  // Pilot teams have fixed seats since 2 Oct, so Change seats stays hidden.
+  await test('invitation revocation sends the expected payload; seats are fixed', {}, async ({page,requests})=>{
+    await page.goto(BASE+DESIGN+'team.html#/people'); await expect(page.locator('#view-people')).toBeVisible(); await expect(page.locator('#seats-btn')).toBeHidden();
     await page.click('[data-revoke="inv_fixture"]'); await page.click('[data-revoke="inv_fixture"][data-confirmed="1"]');
     await expect.poll(()=>requests.filter(r=>r.path==='/v1/team/invite/revoke').length).toBe(1); assert.deepEqual(requests.find(r=>r.path==='/v1/team/invite/revoke').body,{invitationId:'inv_fixture'});
   });
@@ -202,7 +202,13 @@ async function run() {
   await test('team-controlled text cannot inject script into the page', {teamBody:team({name:'<img src=x onerror="window.xss=1">',members:[{userId:'u2',name:'<img src=x onerror="window.xss=1">',email:'bad@example.test',role:'org:member'}]})}, async ({page})=>{
     await page.goto(BASE+DESIGN+'team.html#/people');await expect(page.locator('#team-name')).toContainText('<img');assert.equal(await page.evaluate(()=>window.xss),undefined);assert.equal(await page.locator('#people img').count(),0);
   });
+  // Attribution is optional analytics: only after Accept (cookie consent, 19 Oct).
+  await test('creator attribution is not sent before analytics are accepted', {}, async ({page,requests})=>{
+    await page.goto(BASE+DESIGN+'index.html?utm_source=test-creator&utm_medium=creator&utm_campaign=test-launch');await page.goto(BASE+DESIGN+'account.html');await expect(page.locator('#account')).toBeVisible();
+    await page.waitForTimeout(500); assert.ok(!requests.some(r=>r.path==='/v1/attribution'));
+  });
   await test('creator attribution survives landing-to-account navigation', {}, async ({page,requests})=>{
+    await page.context().addCookies([{name:'si_consent', value:'v1.granted', url:BASE}]);
     await page.goto(BASE+DESIGN+'index.html?utm_source=test-creator&utm_medium=creator&utm_campaign=test-launch');await page.goto(BASE+DESIGN+'account.html');await expect(page.locator('#account')).toBeVisible();
     await expect.poll(()=>requests.filter(r=>r.path==='/v1/attribution').length).toBe(1);assert.deepEqual(requests.find(r=>r.path==='/v1/attribution').body,{creator:'test-creator',medium:'creator',campaign:'test-launch'});
   });

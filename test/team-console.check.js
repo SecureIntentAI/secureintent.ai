@@ -19,7 +19,8 @@
 const { chromium } = require(
   process.env.PW ? require("path").resolve(process.cwd(), process.env.PW) : "@playwright/test",
 );
-const BASE = process.env.BASE || "http://localhost:3000";
+// The console lives under the design folder; the root team.html is the old page.
+const BASE = process.env.BASE || "http://localhost:3000/designs/secureintent-site-v1";
 const OUT = (process.env.OUT || require("os").tmpdir()) + "/";
 
 const team = (over = {}) => ({
