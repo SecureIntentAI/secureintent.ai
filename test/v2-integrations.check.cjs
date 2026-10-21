@@ -111,7 +111,7 @@ async function run() {
     const checkout=await page.evaluate(()=>calls.find(c=>c[0]==='checkout')[1]);
     assert.deepEqual(checkout.customData,{clerk_user_id:'user_fixture'}); assert.equal(checkout.items[0].priceId,'pri_fixture');
     assert.ok(requests.find(r=>r.path==='/v1/entitlement'&&r.authorization==='Bearer fixture_token'));
-    assert.ok(await page.evaluate(()=>calls.some(c=>c[0]==='token'&&c[1].template==='secureintent')));
+    assert.ok(await page.evaluate(()=>calls.some(c=>c[0]==='token'&&c[1]?.template==='secureintent')));
     await page.click('#signout'); await expect(page.locator('#account')).toBeHidden(); await expect(page.locator('#auth')).toBeVisible();
   });
   await test('billing failure never presents a paid user as Free', {respond:p=>p==='/v1/entitlement'?{status:503,body:{}}:null}, async ({page}) => {
