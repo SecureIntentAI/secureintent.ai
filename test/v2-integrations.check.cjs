@@ -135,7 +135,7 @@ async function run() {
     await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#overlap-cancel')).toBeVisible(); await page.click('#overlap-cancel'); await expect(page.locator('#overlap-cancel')).toBeHidden();
     assert.ok(requests.some(r=>r.path==='/v1/billing/cancel'&&r.method==='POST'));
   });
-  await test('team admin invites, saves policy, and sees alerts as a preview', {}, async ({page,requests})=>{
+  await test('team admin invites, saves policy, and can set up alerts', {}, async ({page,requests})=>{
     await page.goto(BASE+DESIGN+'team.html'); await expect(page.locator('#console')).toBeVisible(); await expect(page.locator('#nav-seats')).toHaveText('2/5');
     await page.click('[data-view="people"]'); await page.fill('#invite-email','colleague@example.test'); await page.click('#invite');
     await expect.poll(()=>requests.filter(r=>r.path==='/v1/team/invite').length).toBe(1);
@@ -144,11 +144,11 @@ async function run() {
     await page.click('#policy-save'); await expect.poll(()=>requests.filter(r=>r.path==='/v1/team/settings'&&r.method==='PUT').length).toBe(1);
     const put=requests.find(r=>r.path==='/v1/team/settings'&&r.method==='PUT').body;
     assert.equal(put.policy.requireSessionLock,true);
-    // Policy saves send the policy only; alerts are a preview (desktop app).
+    // Policy saves send the policy only; alerts save from their own page.
     assert.ok(!('alertWebhook' in put) && !('alertMinType' in put));
-    await page.click('[data-view="alerts"]'); await expect(page.locator('.preview-banner')).toContainText('desktop app');
-    for (const id of ['#alert-webhook','#alert-min','#alerts-save','#alerts-test']) await expect(page.locator(id)).toBeDisabled();
-    assert.ok(!requests.some(r=>r.path==='/v1/team/settings/test-alert'));
+    // Alerts are live (browser and desktop catches): no preview banner, controls usable.
+    await page.click('[data-view="alerts"]'); await expect(page.locator('#view-alerts .preview-banner')).toHaveCount(0);
+    for (const id of ['#alert-webhook','#alert-min','#alerts-save']) await expect(page.locator(id)).toBeEnabled();
   });
   await test('team members cannot access the admin console', {teamBody:team({role:'org:member'})}, async ({page,requests})=>{
     await page.goto(BASE+DESIGN+'team.html'); await expect(page.locator('#member-actions')).toBeVisible(); await expect(page.locator('#console')).toBeHidden(); assert.ok(!requests.some(r=>r.path==='/v1/team/settings'));
