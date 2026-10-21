@@ -81,7 +81,7 @@ const listeners=[];
 window.Clerk={user:inviting?null:USER,organization:{id:'org_demo_northstar',name:'Northstar Engineering'},session:inviting?null:SESSION,
 client:{signIn:{create:async(o)=>({status:o&&o.strategy==='ticket'&&o.ticket?'complete':'needs_identifier',createdSessionId:'session_fixture'}),authenticateWithRedirect:async(o)=>{sessionStorage.setItem('preview-joined','1');sessionStorage.setItem('preview-google','1');location.assign(o.redirectUrl);}}},
 setActive:async()=>{sessionStorage.setItem('preview-joined','1');window.Clerk.user=USER;window.Clerk.session=SESSION;listeners.forEach(f=>f());},
-handleRedirectCallback:async()=>{},load:async()=>{},addListener:(f)=>{listeners.push(f);},signOut:()=>{},mountSignIn:()=>{},mountSignUp:()=>{},mountUserProfile:()=>{},unmountUserProfile:()=>{}};})();`);
+handleRedirectCallback:async()=>{},load:async()=>{},addListener:(f)=>{listeners.push(f);},signOut:()=>{},mountSignIn:()=>{},mountSignUp:()=>{},mountUserProfile:(el)=>{const box=document.createElement('div');box.style.cssText='margin-top:14px;padding:22px;border:1px dashed var(--field-border);border-radius:14px;color:var(--muted);font-size:13px;line-height:1.6';box.textContent='Clerk profile goes here on the live site: name, photo, email addresses, password, connected Google account, active devices. (The local preview has no real Clerk.)';el.replaceChildren(box);},unmountUserProfile:()=>{}};})();`);
     return;
   }
   if (url.pathname.startsWith('/mock-api/')) {
