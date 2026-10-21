@@ -353,6 +353,9 @@
       .account-app .card-facts dt { color: var(--muted); }
       .account-app .card-facts dd { margin: 3px 0 0; color: var(--text); }
       .account-app .card-facts-wide { grid-column: span 2; }
+      /* Two facts: one at each edge, the right one under the role tag. */
+      .account-app .card-facts--split { display: flex; justify-content: space-between; gap: 16px; }
+      .account-app .card-facts--split > div:last-child { text-align: right; }
       .account-app .facts-link { color: var(--cyan); }
       .account-app .team-policy.is-applied::before {
         content: "✓";
