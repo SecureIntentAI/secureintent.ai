@@ -52,19 +52,30 @@
           </div>
         </div>
 
+        <!-- Account card, laid out like the desktop app's Team page. -->
         <div class="plan">
-          <div class="plan-info">
-            <span class="plan-who" id="plan-who">—</span>
-            <span class="plan-label"
-              >Plan · <span class="plan-name" id="plan-name">—</span></span
-            >
-            <span class="plan-sub" id="plan-sub" hidden></span>
+          <div class="card-top">
+            <span class="avatar" id="plan-avatar" aria-hidden="true"></span>
+            <div class="plan-info">
+              <span class="plan-display" id="plan-display">—</span>
+              <span class="plan-who" id="plan-who">—</span>
+            </div>
+            <div class="plan-actions">
+              <button class="upgrade" id="upgrade" hidden>Upgrade · $8/mo</button>
+              <button class="manage" id="manage" hidden>Manage subscription</button>
+              <span class="lifetime-badge" id="lifetime-badge" hidden>Lifetime Pro</span>
+            </div>
           </div>
-          <div class="plan-actions">
-            <button class="upgrade" id="upgrade" hidden>Upgrade · $8/mo</button>
-            <button class="manage" id="manage" hidden>Manage subscription</button>
-            <span class="lifetime-badge" id="lifetime-badge" hidden>Lifetime Pro</span>
-          </div>
+          <dl class="card-facts">
+            <div>
+              <dt>Plan</dt>
+              <dd><span class="plan-name" id="plan-name">—</span><span class="plan-sub" id="plan-sub" hidden></span></dd>
+            </div>
+            <div class="card-facts-wide">
+              <dt>Profile</dt>
+              <dd>Change your name, photo and password <a href="#clerk-profile" class="facts-link">below</a>.</dd>
+            </div>
+          </dl>
         </div>
 
         <!-- Billing couldn't be read, or an action against it failed. A failed
@@ -99,13 +110,36 @@
         </div>
 
         <div class="team-card" id="team-card" hidden>
-          <div class="team-info">
-            <span class="team-name" id="team-name">—</span>
-            <span class="team-sub" id="team-sub">—</span>
+          <div class="card-top">
+            <span class="team-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none"><circle cx="9" cy="8" r="3" stroke="currentColor" stroke-width="1.7"/><path d="M3 20v-1a6 6 0 0 1 12 0v1M16 5.2a3 3 0 0 1 0 5.6M21 20v-1a6 6 0 0 0-3-5.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+            <div class="team-info">
+              <span class="team-name" id="team-name">—</span>
+              <span class="team-sub" id="team-sub">—</span>
+            </div>
+            <span class="team-role" id="team-role" hidden></span>
+            <a class="team-cta" id="team-cta" href="team.html#/overview">Manage team</a>
+            <button class="overlap-cta team-retry" id="team-retry" type="button" hidden>Retry</button>
           </div>
-          <a class="team-cta" id="team-cta" href="team.html#/overview">Manage team</a>
-          <button class="overlap-cta team-retry" id="team-retry" type="button" hidden>Retry</button>
+          <dl class="card-facts" id="team-facts" hidden>
+            <div>
+              <dt>Team policy</dt>
+              <dd class="team-policy" id="team-policy">—</dd>
+            </div>
+            <div>
+              <dt>Your devices</dt>
+              <dd id="team-devices">—</dd>
+            </div>
+          </dl>
         </div>
+
+        <!-- What the team policy turns on, one row per control, with where it applies. -->
+        <section class="enforced" id="enforced" hidden>
+          <h2 class="enforced-head">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            What your team enforces
+          </h2>
+          <ul class="enforced-list" id="enforced-list"></ul>
+        </section>
 
         <details class="features" id="features" open>
           <summary class="features-head">

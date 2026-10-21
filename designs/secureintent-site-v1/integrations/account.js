@@ -115,6 +115,80 @@ const CFG = SI.config;
       let policyNoticeBusy = false;
       let policyNoticeKey = "";
 
+      // Where this account's devices are with the current revision, for the team card.
+      const DEVICE_STATE = {
+        applied: "Up to date",
+        offline: "Not checked in recently",
+        not_connected: "None signed in yet",
+        pending: "Updating",
+      };
+
+      /** One row of "What your team enforces": name, detail, status word and where it applies. */
+      function enforcedRow({ name, detail, state, on, scopes }) {
+        const li = document.createElement("li");
+        const text = document.createElement("div");
+        text.className = "enforced-text";
+        const strong = document.createElement("strong");
+        strong.textContent = name;
+        const p = document.createElement("p");
+        p.textContent = detail;
+        text.append(strong, p);
+        const side = document.createElement("div");
+        side.className = "enforced-side";
+        const pill = document.createElement("span");
+        pill.className = on ? "enforced-state is-on" : "enforced-state";
+        pill.textContent = state;
+        const where = document.createElement("div");
+        where.className = "enforced-scopes";
+        where.append(...scopes.map((label) => {
+          const tag = document.createElement("span");
+          tag.textContent = label;
+          return tag;
+        }));
+        side.append(pill, where);
+        li.append(text, side);
+        return li;
+      }
+
+      /**
+       * The team card's policy line and the "What your team enforces" panel, from
+       * the same policy-status reply the notice uses. `null` hides both.
+       */
+      function renderTeamPolicy(policy) {
+        if (!policy) {
+          $("team-facts").hidden = true;
+          $("enforced").hidden = true;
+          return;
+        }
+        const version = policy.version || 0;
+        const applied = policy.status === "applied";
+        $("team-policy").textContent = !version ? "No policy saved yet"
+          : applied ? `Applied, revision ${version}` : `Revision ${version}`;
+        $("team-policy").classList.toggle("is-applied", Boolean(version) && applied);
+        $("team-devices").textContent = DEVICE_STATE[policy.status] || "Waiting to confirm";
+        $("team-facts").hidden = false;
+        const c = policy.controls;
+        if (!version || !c) {
+          $("enforced").hidden = true;
+          return;
+        }
+        const both = ["Browser", "Desktop app"];
+        const sites = Array.isArray(c.blockedSites) ? c.blockedSites.slice(0, 3) : [];
+        const siteCount = c.blockedSiteCount || 0;
+        const aiRules = c.aiServiceRuleCount || 0;
+        $("enforced-list").replaceChildren(...[
+          { name: "Sensitive pastes", on: !!c.blockInsteadOfWarn, state: c.blockInsteadOfWarn ? "Blocked" : "Warning", scopes: both,
+            detail: c.blockInsteadOfWarn ? "Every detected secret is stopped; there is no way to paste it anyway." : "You are warned and can choose what to do." },
+          { name: "AI tool rules", on: aiRules > 0, state: aiRules ? `${aiRules} ${aiRules === 1 ? "tool" : "tools"}` : "None", scopes: ["Browser"],
+            detail: aiRules ? "Some AI tools have paste rules of their own." : "No AI tool has a paste rule of its own." },
+          { name: "Session Lock", on: !!c.requireSessionLock, state: c.requireSessionLock ? "Required" : "Optional", scopes: ["Browser"],
+            detail: c.requireSessionLock ? "The browser extension asks you to unlock it." : "Up to you in the browser extension." },
+          { name: "Restricted sites", on: siteCount > 0, state: siteCount ? `${siteCount} ${siteCount === 1 ? "site" : "sites"}` : "None", scopes: ["Browser"],
+            detail: siteCount ? `${sites.join(", ")}${siteCount > sites.length ? ", and more" : ""}` : "No sites are restricted." },
+        ].map(enforcedRow));
+        $("enforced").hidden = false;
+      }
+
       async function loadPolicyNotice() {
         if (policyNoticeBusy || !window.Clerk.user || !window.Clerk.session) return;
         policyNoticeBusy = true;
@@ -126,14 +200,19 @@ const CFG = SI.config;
             headers: { Authorization: `Bearer ${token}` }, cache: "no-store",
           });
           if (!response.ok) {
-            if (response.status === 403 || response.status === 401) $("policy-update").hidden = true;
+            if (response.status === 403 || response.status === 401) {
+              $("policy-update").hidden = true;
+              renderTeamPolicy(null);
+            }
             return;
           }
           const policy = await response.json();
           if (window.Clerk.user?.id !== userId || !policy.orgId || !policy.version) {
             $("policy-update").hidden = true;
+            if (window.Clerk.user?.id === userId) renderTeamPolicy(policy.orgId ? policy : null);
             return;
           }
+          renderTeamPolicy(policy);
           const key = `si:policy-notice:${userId}:${policy.orgId}:${policy.version}`;
           policyNoticeKey = key;
           if (localStorage.getItem(key) === "seen" && policy.status === "applied") {
@@ -384,6 +463,8 @@ const CFG = SI.config;
         $("nav-team").hidden = !isAdmin;
         card.hidden = false;
         retry.hidden = true;
+        $("team-role").hidden = !team;
+        if (!team) $("team-facts").hidden = true;
         if (!team) {
           $("team-name").textContent = "Protecting a team?";
           $("team-sub").textContent =
@@ -396,14 +477,18 @@ const CFG = SI.config;
         const n = Number(team.seats);
         const seats = n > 0 ? `${n.toLocaleString()} ${n === 1 ? "seat" : "seats"} · ` : "";
         $("team-sub").textContent = isAdmin
-          ? `${seats}Business Pro · you manage this organisation`
-          : "Developer Pro · provided by your organization";
+          ? `You manage this team${n > 0 ? ` · ${seats.replace(/ · $/, "")}` : ""}`
+          : `Your plan is provided by ${team.name || "your organisation"}`;
+        $("team-role").textContent = isAdmin ? "Admin" : "Member";
         cta.textContent = "Manage team";
         cta.classList.toggle("hide", !isAdmin);
       }
 
       function showTeamUnavailable() {
         $("team-card").hidden = false;
+        $("team-role").hidden = true;
+        $("team-facts").hidden = true;
+        $("enforced").hidden = true;
         $("team-name").textContent = "Couldn't load your team";
         $("team-sub").textContent = "We couldn't confirm your account right now. Please retry.";
         $("team-cta").classList.add("hide");
@@ -628,7 +713,10 @@ const CFG = SI.config;
           renderTeam(data?.entitlement);
           renderInvitation(data?.entitlement);
           if (data?.entitlement?.source === "org_seat") void loadPolicyNotice();
-          else $("policy-update").hidden = true;
+          else {
+            $("policy-update").hidden = true;
+            renderTeamPolicy(null);
+          }
           lastGoodUserId = userId;
           planRetryDelay = 2000;
         } catch (e) {
@@ -989,6 +1077,18 @@ const CFG = SI.config;
             window.Clerk.user.fullName ??
             "Your account";
           $("foot-who").textContent = $("plan-who").textContent;
+          const user = window.Clerk.user;
+          $("plan-display").textContent = user.fullName || $("plan-who").textContent;
+          $("plan-who").hidden = !user.fullName;
+          const avatar = $("plan-avatar");
+          if (user.hasImage && user.imageUrl) {
+            const img = document.createElement("img");
+            img.src = user.imageUrl;
+            img.alt = "";
+            avatar.replaceChildren(img);
+          } else {
+            avatar.textContent = ($("plan-display").textContent.trim().charAt(0) || "?").toUpperCase();
+          }
           if (mounted !== "in" || profileUser !== window.Clerk.user.id) {
             if (mounted === "signin") window.Clerk.unmountSignIn?.($("clerk-auth"));
             if (mounted === "signup") window.Clerk.unmountSignUp?.($("clerk-auth"));
