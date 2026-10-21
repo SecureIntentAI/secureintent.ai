@@ -112,6 +112,16 @@ const CFG = SI.config;
       };
       const inviteErrorText = (code) => INVITE_ERRORS[code] ||
         "We couldn't confirm the invitation. Retry the account check or contact your administrator.";
+      // The desktop app's Manage profile opens /account?section=profile: once the
+      // profile is mounted, scroll to it. A query, not a #hash, because Clerk's
+      // profile component routes on the hash.
+      let openProfile = new URLSearchParams(location.search).get("section") === "profile";
+      if (openProfile) {
+        const clean = new URL(location.href);
+        clean.searchParams.delete("section");
+        history.replaceState(null, "", clean.pathname + clean.search + clean.hash);
+      }
+      const showProfile = () => $("clerk-profile").scrollIntoView({ behavior: "smooth", block: "start" });
       let policyNoticeBusy = false;
       let policyNoticeKey = "";
 
@@ -1097,6 +1107,11 @@ const CFG = SI.config;
             profileUser = window.Clerk.user.id;
             mounted = "in";
             window.Clerk.mountUserProfile($("clerk-profile"), { appearance: SI.appearance() });
+            if (openProfile) {
+              openProfile = false;
+              // Clerk draws the profile a moment after mounting.
+              setTimeout(showProfile, 400);
+            }
             resumePendingTxn();
           }
           if (fromInvitation) {
@@ -1179,6 +1194,7 @@ const CFG = SI.config;
           $("team-retry").addEventListener("click", loadPlan);
           $("overlap-cancel").addEventListener("click", cancelPersonal);
           $("signout").addEventListener("click", () => window.Clerk.signOut());
+          $("profile-jump").addEventListener("click", showProfile);
           $("policy-update-dismiss").addEventListener("click", () => {
             if (policyNoticeKey) localStorage.setItem(policyNoticeKey, "seen");
             $("policy-update").hidden = true;

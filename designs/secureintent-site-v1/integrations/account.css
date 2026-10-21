@@ -356,7 +356,6 @@
       /* Two facts: one at each edge, the right one under the role tag. */
       .account-app .card-facts--split { display: flex; justify-content: space-between; gap: 16px; }
       .account-app .card-facts--split > div:last-child { text-align: right; }
-      .account-app .facts-link { color: var(--cyan); }
       .account-app .team-policy.is-applied::before {
         content: "✓";
         margin-right: 6px;
@@ -367,6 +366,9 @@
         .account-app .card-facts { grid-template-columns: 1fr; }
         .account-app .card-facts-wide { grid-column: auto; }
       }
+
+      /* Scrolled to by Manage profile: clear the sticky site header. */
+      .account-app #clerk-profile { scroll-margin-top: 100px; }
 
       /* What the team policy turns on. */
       .account-app .enforced {
