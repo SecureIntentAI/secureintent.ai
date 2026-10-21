@@ -224,8 +224,6 @@
       }
       .account-app .joined[hidden], .account-app .joined-cta[hidden] { display: none; }
       .account-app .joined strong { font-weight: 600; }
-      .account-app .policy-update { margin-top: 12px; }
-      .account-app .policy-update .text-action { align-self: flex-start; margin-top: 6px; }
       .account-app .joined span { color: var(--muted); }
       .account-app .joined-cta {
         margin-left: auto;
@@ -479,17 +477,89 @@
         display: flex;
         justify-content: center;
       }
-      .account-app .sync-note {
-        margin: 4px 0 0;
-        padding: 12px 14px;
+      /* The policy notice: title, short bullet lines, then status and one action.
+         Laid out like the notice on the desktop app's Team page. */
+      .account-app .policy-update {
+        margin: 12px 0 14px;
+        padding: 16px 18px;
+        border: 1px solid rgba(114, 255, 255, 0.3);
+        border-radius: 14px;
+        background: rgba(114, 255, 255, 0.06);
+        font-size: 13.5px;
+      }
+      .account-app .policy-update-head {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px 10px;
+      }
+      .account-app .policy-update-head svg { color: var(--cyan); flex: none; }
+      .account-app .policy-update-head strong { font-weight: 600; }
+      .account-app .policy-update-rev {
+        padding: 2px 8px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        font-size: 11.5px;
+        color: var(--muted);
+      }
+      .account-app .policy-update-list {
+        margin: 10px 0 0;
+        padding-left: 44px;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+      .account-app .policy-update-list li::marker { color: var(--cyan); }
+      .account-app .policy-update-list:empty { display: none; }
+      .account-app .policy-update-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 12px;
+        padding-left: 26px;
+      }
+      .account-app .policy-update-state { color: var(--muted); font-size: 12.5px; }
+      .account-app .policy-update-state.is-applied { color: var(--text); }
+      .account-app .policy-update-state.is-applied::before {
+        content: "✓";
+        margin-right: 6px;
+        color: var(--ok);
+        font-weight: 700;
+      }
+      .account-app button.policy-update-ok {
+        padding: 8px 16px;
+        border: 0;
+        border-radius: 10px;
+        background: var(--button);
+        color: var(--button-text);
+        font: 600 12.5px/1 var(--sans);
+        cursor: pointer;
+      }
+      .account-app button.policy-update-ok:hover { filter: brightness(1.08); }
+      .account-app button.policy-update-ok:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
+      /* Who is signed in and the way out, at the foot of the page. */
+      .account-app .account-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 8px;
+        padding-top: 18px;
+        border-top: 1px solid var(--border);
+      }
+      .account-app .account-foot-note {
+        margin: 0;
         font-size: 12.5px;
         line-height: 1.5;
         color: var(--muted);
-        background: rgba(114, 255, 255, 0.05);
-        border: 1px solid rgba(114, 255, 255, 0.16);
-        border-radius: 10px;
-        text-align: center;
       }
+      .account-app .account-foot-note strong { color: var(--text); font-weight: 500; }
+
+      /* No page nav here, so the header actions sit at the right edge. */
+      .site-header .header-actions { margin-left: auto; }
       .account-app [hidden] {
         display: none !important;
       }

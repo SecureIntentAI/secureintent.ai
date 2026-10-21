@@ -112,7 +112,7 @@ async function run() {
     assert.deepEqual(checkout.customData,{clerk_user_id:'user_fixture'}); assert.equal(checkout.items[0].priceId,'pri_fixture');
     assert.ok(requests.find(r=>r.path==='/v1/entitlement'&&r.authorization==='Bearer fixture_token'));
     assert.ok(await page.evaluate(()=>calls.some(c=>c[0]==='token'&&c[1].template==='secureintent')));
-    await page.click('#signout-top'); await expect(page.locator('#account')).toBeHidden(); await expect(page.locator('#auth')).toBeVisible();
+    await page.click('#signout'); await expect(page.locator('#account')).toBeHidden(); await expect(page.locator('#auth')).toBeVisible();
   });
   await test('billing failure never presents a paid user as Free', {respond:p=>p==='/v1/entitlement'?{status:503,body:{}}:null}, async ({page}) => {
     await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Unavailable'); await expect(page.locator('#upgrade')).toBeHidden(); await expect(page.locator('#plan-retry')).toBeVisible();

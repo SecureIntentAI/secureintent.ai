@@ -141,21 +141,33 @@ const CFG = SI.config;
             return;
           }
           const controls = policy.controls || {};
-          const parts = [controls.blockInsteadOfWarn ? "Sensitive pastes are blocked" : "Sensitive pastes show a warning",
+          // Short lines, worded like the desktop app's notice.
+          const lines = [controls.blockInsteadOfWarn ? "Sensitive pastes are blocked" : "Sensitive pastes show a warning",
             controls.requireSessionLock ? "Session Lock is required" : "Session Lock is optional"];
           if (controls.blockedSiteCount) {
-            const sites = Array.isArray(controls.blockedSites) ? controls.blockedSites.slice(0, 3).join(", ") : "";
-            parts.push(`${controls.blockedSiteCount} destination${controls.blockedSiteCount === 1 ? " is" : "s are"} restricted${sites ? `, including ${sites}` : ""}`);
+            const n = controls.blockedSiteCount;
+            const sites = Array.isArray(controls.blockedSites) ? controls.blockedSites.slice(0, 3) : [];
+            lines.push(`${n} site${n === 1 ? " is" : "s are"} restricted${sites.length ? `: ${sites.join(", ")}${n > sites.length ? ", and more" : ""}` : ""}`);
           }
-          if (controls.aiServiceRuleCount) parts.push(`${controls.aiServiceRuleCount} AI tool${controls.aiServiceRuleCount === 1 ? "" : "s"} have paste rules`);
+          if (controls.aiServiceRuleCount) {
+            const n = controls.aiServiceRuleCount;
+            lines.push(`${n} AI tool${n === 1 ? " has" : "s have"} paste rules`);
+          }
           $("policy-update-title").textContent = `${policy.orgName || "Your organisation"} updated its protection policy`;
-          const when = policy.updatedAt && !Number.isNaN(Date.parse(policy.updatedAt))
-            ? ` on ${new Date(policy.updatedAt).toLocaleString()}` : "";
-          const state = policy.status === "applied" ? "Your connected extensions reported the current revision."
-            : policy.status === "offline" ? "Your extensions have not checked in recently; they will update when connected."
-            : policy.status === "not_connected" ? "Sign in to the extension with this account to apply the policy."
-            : "Your extension has not confirmed this revision yet.";
-          $("policy-update-body").textContent = `Revision ${policy.version}${when}. ${parts.length ? `Current controls: ${parts.join("; ")}. ` : ""}${state}`;
+          const updated = policy.updatedAt && !Number.isNaN(Date.parse(policy.updatedAt))
+            ? new Date(policy.updatedAt).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
+          $("policy-update-rev").textContent = `Revision ${policy.version}${updated ? ` · ${updated}` : ""}`;
+          $("policy-update-list").replaceChildren(...(policy.controls ? lines : []).map((line) => {
+            const li = document.createElement("li");
+            li.textContent = line;
+            return li;
+          }));
+          const state = policy.status === "applied" ? "Applied on your connected devices"
+            : policy.status === "offline" ? "Your devices have not checked in recently. They update when they reconnect."
+            : policy.status === "not_connected" ? "Sign in to the browser extension with this account to apply it."
+            : "Waiting for your devices to confirm this revision.";
+          $("policy-update-body").textContent = state;
+          $("policy-update-body").classList.toggle("is-applied", policy.status === "applied");
           $("policy-update-dismiss").hidden = policy.status !== "applied";
           $("policy-update").hidden = false;
         } catch {
@@ -969,7 +981,6 @@ const CFG = SI.config;
         const signedIn = !!window.Clerk.user;
         $("account").hidden = !signedIn;
         document.querySelector(".account-app").classList.toggle("is-signed-in", signedIn);
-        $("signout-top").hidden = !signedIn;
         $("auth").hidden = signedIn;
 
         if (signedIn) {
@@ -977,6 +988,7 @@ const CFG = SI.config;
             window.Clerk.user.primaryEmailAddress?.emailAddress ??
             window.Clerk.user.fullName ??
             "Your account";
+          $("foot-who").textContent = $("plan-who").textContent;
           if (mounted !== "in" || profileUser !== window.Clerk.user.id) {
             if (mounted === "signin") window.Clerk.unmountSignIn?.($("clerk-auth"));
             if (mounted === "signup") window.Clerk.unmountSignUp?.($("clerk-auth"));
@@ -1066,7 +1078,7 @@ const CFG = SI.config;
           $("plan-retry").addEventListener("click", loadPlan);
           $("team-retry").addEventListener("click", loadPlan);
           $("overlap-cancel").addEventListener("click", cancelPersonal);
-          $("signout-top").addEventListener("click", () => window.Clerk.signOut());
+          $("signout").addEventListener("click", () => window.Clerk.signOut());
           $("policy-update-dismiss").addEventListener("click", () => {
             if (policyNoticeKey) localStorage.setItem(policyNoticeKey, "seen");
             $("policy-update").hidden = true;
