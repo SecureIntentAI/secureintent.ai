@@ -47,7 +47,8 @@
   // Headers/footers can insert links after main's unchanged installer script ran.
   new MutationObserver(links).observe(document.body, {childList: true, subtree: true});
   // Authentication tickets and workspace activity must never enter marketing analytics.
-  const privatePage = /\/(account|team|shadow|business_promo|lifetime_promo)(?:\.html)?\/?$/.test(location.pathname);
+  // Pages that carry sign-in, approval, invitation or install state never load analytics.
+  const privatePage = /\/(account|team|shadow|business_promo|lifetime_business_promo|lifetime_promo|uninstall|link)(?:\.html)?\/?$/.test(location.pathname);
   if (privatePage || !window.SI_IS_PROD || window.SI_DISABLE_ANALYTICS) return;
   const GA = 'G-PSSL40SRTR';
   let loaded = false;
@@ -66,7 +67,14 @@
     const script = document.createElement('script'); script.async = true;
     script.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA; document.head.append(script);
     gtag('js', new Date());
-    gtag('config', GA, {allow_google_signals: false, allow_ad_personalization_signals: false,
+    // Report the page and referrer by path only. Fragments and query strings are
+    // never sent, except the campaign parameters that creator links rely on.
+    const bare = raw => { try { const url = new URL(raw); return url.origin + url.pathname; } catch { return ''; } };
+    const campaign = new URLSearchParams();
+    for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term']) if (query.get(key)) campaign.set(key, query.get(key).slice(0, 100));
+    const page = {page_location: bare(location.href) + (String(campaign) ? '?' + campaign : ''), page_referrer: bare(document.referrer)};
+    gtag('set', page);
+    gtag('config', GA, {allow_google_signals: false, allow_ad_personalization_signals: false, ...page,
       user_properties: {creator: window.SI_ATTR.creator || '(none)'}});
     const pricing = document.getElementById('tiers');
     if (pricing && 'IntersectionObserver' in window) {
