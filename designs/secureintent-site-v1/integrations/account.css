@@ -137,11 +137,7 @@
       }
 
       .account-app .plan {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        flex-wrap: wrap;
+        display: block;
         padding: 18px 20px;
         background: rgba(255, 255, 255, 0.03);
         border: 1px solid var(--border);
@@ -150,12 +146,20 @@
       .account-app .plan-info {
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 2px;
+        flex: 1;
         min-width: 0;
       }
-      .account-app .plan-who {
+      .account-app .plan-display {
         font-size: 15px;
         font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .account-app .plan-who {
+        font-size: 12.5px;
+        color: var(--muted);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -173,6 +177,8 @@
         color: var(--cyan);
       }
       .account-app .plan-sub {
+        display: block;
+        margin-top: 2px;
         font-size: 12px;
         color: var(--faint);
         font-family: var(--mono);
@@ -224,8 +230,6 @@
       }
       .account-app .joined[hidden], .account-app .joined-cta[hidden] { display: none; }
       .account-app .joined strong { font-weight: 600; }
-      .account-app .policy-update { margin-top: 12px; }
-      .account-app .policy-update .text-action { align-self: flex-start; margin-top: 6px; }
       .account-app .joined span { color: var(--muted); }
       .account-app .joined-cta {
         margin-left: auto;
@@ -272,21 +276,17 @@
       }
 
       .account-app .team-card {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        flex-wrap: wrap;
-        padding: 15px 17px;
+        display: block;
+        padding: 18px 20px;
         margin-top: 14px;
         border: 1px solid var(--border);
         border-radius: 16px;
         background: var(--panel);
       }
-      .account-app .team-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+      .account-app .team-info { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
       .account-app .team-name { font-weight: 600; font-size: 14.5px; }
       .account-app .team-sub { color: var(--muted); font-size: 12.5px; }
       .account-app .team-cta {
-        margin-left: auto;
         padding: 9px 15px;
         border-radius: 11px;
         border: 1px solid rgba(114, 255, 255, 0.35);
@@ -299,7 +299,129 @@
       .account-app .team-cta:hover { background: rgba(114, 255, 255, 0.08); }
       .account-app .team-cta.hide { display: none; }
       /* Stands in for the CTA when the team couldn't be read. */
-      .account-app .team-retry { margin-left: auto; }
+      .account-app .team-retry { margin-left: 0; }
+
+      /* Shared by the account and team cards: a header row, then label/value facts
+         under a hairline, as on the desktop app's Team page. */
+      .account-app .card-top {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px 14px;
+      }
+      .account-app .avatar,
+      .account-app .team-icon {
+        display: grid;
+        place-items: center;
+        flex: none;
+        width: 40px;
+        height: 40px;
+        overflow: hidden;
+      }
+      .account-app .avatar {
+        border-radius: 999px;
+        background: rgba(114, 255, 255, 0.12);
+        box-shadow: inset 0 0 0 1px rgba(114, 255, 255, 0.3);
+        color: var(--cyan);
+        font-size: 15px;
+        font-weight: 600;
+      }
+      .account-app .avatar img { width: 100%; height: 100%; object-fit: cover; }
+      .account-app .team-icon {
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.05);
+        box-shadow: inset 0 0 0 1px var(--border);
+        color: var(--text);
+      }
+      .account-app .team-role {
+        padding: 3px 10px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        font-size: 11.5px;
+        font-weight: 600;
+      }
+      .account-app .card-facts {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+        margin: 16px 0 0;
+        padding-top: 14px;
+        border-top: 1px solid var(--border);
+        font-size: 12.5px;
+      }
+      .account-app .card-facts[hidden] { display: none; }
+      .account-app .card-facts dt { color: var(--muted); }
+      .account-app .card-facts dd { margin: 3px 0 0; color: var(--text); }
+      .account-app .card-facts-wide { grid-column: span 2; }
+      /* Two facts: one at each edge, the right one under the role tag. */
+      .account-app .card-facts--split { display: flex; justify-content: space-between; gap: 16px; }
+      .account-app .card-facts--split > div:last-child { text-align: right; }
+      .account-app .team-policy.is-applied::before {
+        content: "✓";
+        margin-right: 6px;
+        color: var(--ok);
+        font-weight: 700;
+      }
+      @media (max-width: 640px) {
+        .account-app .card-facts { grid-template-columns: 1fr; }
+        .account-app .card-facts-wide { grid-column: auto; }
+      }
+
+      /* Scrolled to by Manage profile: clear the sticky site header. */
+      .account-app #clerk-profile { scroll-margin-top: 100px; }
+
+      /* What the team policy turns on. */
+      .account-app .enforced {
+        margin-top: 14px;
+        padding: 18px 20px;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.03);
+      }
+      .account-app .enforced-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .account-app .enforced-head svg { color: var(--cyan); }
+      .account-app .enforced-list { margin: 12px 0 0; padding: 0; list-style: none; }
+      .account-app .enforced-list li {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px 24px;
+        padding: 12px 0;
+        border-top: 1px solid var(--border);
+      }
+      .account-app .enforced-list li:first-child { border-top: 0; padding-top: 4px; }
+      .account-app .enforced-list li:last-child { padding-bottom: 0; }
+      .account-app .enforced-text { flex: 1; min-width: 0; }
+      .account-app .enforced-text strong { font-size: 13px; font-weight: 500; }
+      .account-app .enforced-text p { margin: 3px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+      .account-app .enforced-side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+      .account-app .enforced-state {
+        padding: 2px 9px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--muted);
+        font-size: 11.5px;
+        font-weight: 600;
+      }
+      .account-app .enforced-state.is-on { background: rgba(52, 211, 153, 0.15); color: var(--ok); }
+      .account-app .enforced-scopes { display: flex; gap: 4px; }
+      .account-app .enforced-scopes span {
+        padding: 1px 6px;
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        font-size: 10.5px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
 
       .account-app button.upgrade {
         padding: 10px 18px;
@@ -479,17 +601,89 @@
         display: flex;
         justify-content: center;
       }
-      .account-app .sync-note {
-        margin: 4px 0 0;
-        padding: 12px 14px;
+      /* The policy notice: title, short bullet lines, then status and one action.
+         Laid out like the notice on the desktop app's Team page. */
+      .account-app .policy-update {
+        margin: 12px 0 14px;
+        padding: 16px 18px;
+        border: 1px solid rgba(114, 255, 255, 0.3);
+        border-radius: 14px;
+        background: rgba(114, 255, 255, 0.06);
+        font-size: 13.5px;
+      }
+      .account-app .policy-update-head {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px 10px;
+      }
+      .account-app .policy-update-head svg { color: var(--cyan); flex: none; }
+      .account-app .policy-update-head strong { font-weight: 600; }
+      .account-app .policy-update-rev {
+        padding: 2px 8px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        font-size: 11.5px;
+        color: var(--muted);
+      }
+      .account-app .policy-update-list {
+        margin: 10px 0 0;
+        padding-left: 44px;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+      .account-app .policy-update-list li::marker { color: var(--cyan); }
+      .account-app .policy-update-list:empty { display: none; }
+      .account-app .policy-update-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 12px;
+        padding-left: 26px;
+      }
+      .account-app .policy-update-state { color: var(--muted); font-size: 12.5px; }
+      .account-app .policy-update-state.is-applied { color: var(--text); }
+      .account-app .policy-update-state.is-applied::before {
+        content: "✓";
+        margin-right: 6px;
+        color: var(--ok);
+        font-weight: 700;
+      }
+      .account-app button.policy-update-ok {
+        padding: 8px 16px;
+        border: 0;
+        border-radius: 10px;
+        background: var(--button);
+        color: var(--button-text);
+        font: 600 12.5px/1 var(--sans);
+        cursor: pointer;
+      }
+      .account-app button.policy-update-ok:hover { filter: brightness(1.08); }
+      .account-app button.policy-update-ok:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
+      /* Who is signed in and the way out, at the foot of the page. */
+      .account-app .account-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 8px;
+        padding-top: 18px;
+        border-top: 1px solid var(--border);
+      }
+      .account-app .account-foot-note {
+        margin: 0;
         font-size: 12.5px;
         line-height: 1.5;
         color: var(--muted);
-        background: rgba(114, 255, 255, 0.05);
-        border: 1px solid rgba(114, 255, 255, 0.16);
-        border-radius: 10px;
-        text-align: center;
       }
+      .account-app .account-foot-note strong { color: var(--text); font-weight: 500; }
+
+      /* No page nav here, so the header actions sit at the right edge. */
+      .site-header .header-actions { margin-left: auto; }
       .account-app [hidden] {
         display: none !important;
       }

@@ -5,9 +5,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../../dist/', import.meta.url));
-const host = '127.0.0.1';
+const host = process.env.BUSINESS_PREVIEW_HOST || '127.0.0.1';
 const port = Number(process.env.BUSINESS_PREVIEW_PORT || 3004);
 const origin = `http://${host}:${port}`;
+// BUSINESS_PREVIEW_MEMBER=1: signed in as a team member rather than the admin.
+const member = process.env.BUSINESS_PREVIEW_MEMBER === '1';
 const types = { '.html':'text/html; charset=utf-8', '.css':'text/css; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.json':'application/json', '.svg':'image/svg+xml', '.png':'image/png', '.woff2':'font/woff2' };
 const people = [
   { userId:'user_demo_admin', email:'maya@northstar.example', name:'Maya Chen', role:'org:admin', createdAt:1 },
@@ -79,7 +81,7 @@ const listeners=[];
 window.Clerk={user:inviting?null:USER,organization:{id:'org_demo_northstar',name:'Northstar Engineering'},session:inviting?null:SESSION,
 client:{signIn:{create:async(o)=>({status:o&&o.strategy==='ticket'&&o.ticket?'complete':'needs_identifier',createdSessionId:'session_fixture'}),authenticateWithRedirect:async(o)=>{sessionStorage.setItem('preview-joined','1');sessionStorage.setItem('preview-google','1');location.assign(o.redirectUrl);}}},
 setActive:async()=>{sessionStorage.setItem('preview-joined','1');window.Clerk.user=USER;window.Clerk.session=SESSION;listeners.forEach(f=>f());},
-handleRedirectCallback:async()=>{},load:async()=>{},addListener:(f)=>{listeners.push(f);},signOut:()=>{},mountSignIn:()=>{},mountSignUp:()=>{},mountUserProfile:()=>{},unmountUserProfile:()=>{}};})();`);
+handleRedirectCallback:async()=>{},load:async()=>{},addListener:(f)=>{listeners.push(f);},signOut:()=>{},mountSignIn:()=>{},mountSignUp:()=>{},mountUserProfile:(el)=>{const box=document.createElement('div');box.style.cssText='margin-top:14px;padding:22px;border:1px dashed var(--field-border);border-radius:14px;color:var(--muted);font-size:13px;line-height:1.6';box.textContent='Clerk profile goes here on the live site: name, photo, email addresses, password, connected Google account, active devices. (The local preview has no real Clerk.)';el.replaceChildren(box);},unmountUserProfile:()=>{}};})();`);
     return;
   }
   if (url.pathname.startsWith('/mock-api/')) {
@@ -121,7 +123,9 @@ handleRedirectCallback:async()=>{},load:async()=>{},addListener:(f)=>{listeners.
       if (url.pathname.endsWith('/start')) return body.firstName ? json(res, { ok: true, email: 'maya@northstar.example', retryAfter: 30 }) : fail(400, 'name_required');
       if (url.pathname.endsWith('/verify')) return body.code === '123456' ? json(res, { ok: true, orgId: 'org_demo_northstar', seats: 150, ticket: 'preview_ticket' }) : fail(400, 'invalid_code');
     }
-    if (url.pathname === '/mock-api/v1/entitlement' && req.method === 'GET') return json(res, { entitlement: { clerkUserId:'user_demo_admin', email:'maya@northstar.example', plan:'business_pro', source:'org_seat', pro:true, features:['rehydrate','ghost','session_lock'], status:'active', businessDomain:null, org:{ id:'org_demo_northstar', name:'Northstar Engineering', role:'org:admin', seats:150 }, issuedAt:0, exp:9999999999 }, signature:null, personalSubscription:null });
+    if (url.pathname === '/mock-api/v1/entitlement' && req.method === 'GET') return json(res, { entitlement: { clerkUserId:'user_demo_admin', email:'maya@northstar.example', plan:'business_pro', source:'org_seat', pro:true, features:['rehydrate','ghost','session_lock'], status:'active', businessDomain:null, org:{ id:'org_demo_northstar', name:'Northstar Engineering', role:member?'org:member':'org:admin', seats:150 }, issuedAt:0, exp:9999999999 }, signature:null, personalSubscription:null });
+    // A member's policy notice (BUSINESS_PREVIEW_MEMBER=1 only, so the admin checks are unchanged).
+    if (member && url.pathname === '/mock-api/v1/business/connection/policy-status') return json(res, { orgId:'org_demo_northstar', orgName:'Northstar Engineering', version:3, updatedAt:new Date(Date.now()-25*60_000).toISOString(), status:'applied', controls:{ blockInsteadOfWarn:true, requireSessionLock:false, blockedSiteCount:2, blockedSites:['chatgpt.com','deepseek.com'], aiServiceRuleCount:1 } });
     // The admin pass: the real server opens it for a session started in the last 12 hours.
     if (url.pathname === '/mock-api/v1/business-access/unlock/clerk' && req.method === 'POST')
       return json(res, { accessToken: 'a'.repeat(64), expiresAt: Date.now() + 30 * 60000, orgId: 'org_demo_northstar' });

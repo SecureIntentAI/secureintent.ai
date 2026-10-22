@@ -4,11 +4,11 @@
   <meta charset="utf-8"><script src="integrations/consent.js"></script><script src="integrations/config.js"></script><script src="integrations/runtime.js"></script><script>(function(){try{document.documentElement.dataset.theme=localStorage.getItem('si_site_theme')==='light'?'light':'dark';}catch(_){}})();</script>
   <meta name="theme-color" content="#050608" id="theme-color"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Account · SecureIntent</title><base href="/designs/secureintent-site-v1/">
   <link rel="icon" href="/designs/secureintent-site-v1/favicon.ico" sizes="32x32"><link rel="icon" href="/designs/secureintent-site-v1/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/designs/secureintent-site-v1/apple-touch-icon.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="how-it-works.css"><link rel="stylesheet" href="site-pages.css"><script src="how-it-works.js?v=20260915-menu-cleanup" defer></script>
-<link rel="stylesheet" href="integrations/account.css?v=20261008-one-code"><link rel="stylesheet" href="integrations/app.css"><script src="../../install-links.js" defer></script><script src="integrations/account.js?v=20261008-one-code" defer></script><script src="integrations/site.js" defer></script></head>
+<link rel="stylesheet" href="integrations/account.css?v=20261022-member-view"><link rel="stylesheet" href="integrations/app.css"><script src="../../install-links.js" defer></script><script src="integrations/account.js?v=20261022-member-view" defer></script><script src="integrations/site.js" defer></script></head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
-  <header class="site-header"><div class="container header-inner"><a href="index.html" class="brand"><span aria-hidden="true" class="brand-dot">●</span><span>SecureIntent<span class="brand-suffix">.ai</span></span></a><div class="header-actions"><div class="theme-switch" role="group" aria-label="Colour theme"><button class="theme-option" type="button" data-set-theme="dark" aria-pressed="true">Dark</button><button class="theme-option" type="button" data-set-theme="light" aria-pressed="false">Light</button></div><a class="text-action" href="index.html">Back to site →</a></div></div></header>
-  <main id="main" tabindex="-1" class="utility-page"><section class="account-app"><div class="app-actions"><a id="nav-team" href="team.html#/overview" hidden>Team</a><button class="text-action" id="signout-top" type="button" hidden>Sign out</button></div><div>
+  <header class="site-header"><div class="container header-inner"><a href="index.html" class="brand"><span aria-hidden="true" class="brand-dot">●</span><span>SecureIntent<span class="brand-suffix">.ai</span></span></a><div class="header-actions"><a class="text-action" href="index.html">Back to site →</a><div class="theme-switch" role="group" aria-label="Colour theme"><button class="theme-option" type="button" data-set-theme="dark" aria-pressed="true">Dark</button><button class="theme-option" type="button" data-set-theme="light" aria-pressed="false">Light</button></div></div></div></header>
+  <main id="main" tabindex="-1" class="utility-page"><section class="account-app"><div class="app-actions"><a id="nav-team" href="team.html#/overview" hidden>Team</a></div><div>
       <div id="loading">Loading…</div>
 
       <!-- Signed-out -->
@@ -38,25 +38,45 @@
           <button class="joined-cta" id="joined-accept" type="button" hidden>Join</button>
         </div>
 
-        <div class="joined policy-update" id="policy-update" role="status" aria-live="polite" hidden>
-          <strong id="policy-update-title">Team policy update</strong>
-          <span id="policy-update-body"></span>
-          <button class="text-action" id="policy-update-dismiss" type="button" hidden>Got it</button>
+        <!-- Same layout as the policy notice on the desktop app's Team page. -->
+        <div class="policy-update" id="policy-update" role="status" aria-live="polite" hidden>
+          <div class="policy-update-head">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <strong id="policy-update-title">Team policy update</strong>
+            <span class="policy-update-rev" id="policy-update-rev"></span>
+          </div>
+          <ul class="policy-update-list" id="policy-update-list"></ul>
+          <div class="policy-update-foot">
+            <span class="policy-update-state" id="policy-update-body"></span>
+            <button class="policy-update-ok" id="policy-update-dismiss" type="button" hidden>Got it</button>
+          </div>
         </div>
 
+        <!-- Account card, laid out like the desktop app's Team page. -->
         <div class="plan">
-          <div class="plan-info">
-            <span class="plan-who" id="plan-who">—</span>
-            <span class="plan-label"
-              >Plan · <span class="plan-name" id="plan-name">—</span></span
-            >
-            <span class="plan-sub" id="plan-sub" hidden></span>
+          <div class="card-top">
+            <span class="avatar" id="plan-avatar" aria-hidden="true"></span>
+            <div class="plan-info">
+              <span class="plan-display" id="plan-display">—</span>
+              <span class="plan-who" id="plan-who">—</span>
+            </div>
+            <div class="plan-actions">
+              <button class="manage" id="profile-jump" type="button">Manage profile</button>
+              <button class="upgrade" id="upgrade" hidden>Upgrade · $8/mo</button>
+              <button class="manage" id="manage" hidden>Manage subscription</button>
+              <span class="lifetime-badge" id="lifetime-badge" hidden>Lifetime Pro</span>
+            </div>
           </div>
-          <div class="plan-actions">
-            <button class="upgrade" id="upgrade" hidden>Upgrade · $8/mo</button>
-            <button class="manage" id="manage" hidden>Manage subscription</button>
-            <span class="lifetime-badge" id="lifetime-badge" hidden>Lifetime Pro</span>
-          </div>
+          <dl class="card-facts">
+            <div>
+              <dt>Plan</dt>
+              <dd><span class="plan-name" id="plan-name">—</span><span class="plan-sub" id="plan-sub" hidden></span></dd>
+            </div>
+            <div class="card-facts-wide">
+              <dt>Profile</dt>
+              <dd>Name, photo and password are changed in the profile section below.</dd>
+            </div>
+          </dl>
         </div>
 
         <!-- Billing couldn't be read, or an action against it failed. A failed
@@ -91,13 +111,36 @@
         </div>
 
         <div class="team-card" id="team-card" hidden>
-          <div class="team-info">
-            <span class="team-name" id="team-name">—</span>
-            <span class="team-sub" id="team-sub">—</span>
+          <div class="card-top">
+            <span class="team-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none"><circle cx="9" cy="8" r="3" stroke="currentColor" stroke-width="1.7"/><path d="M3 20v-1a6 6 0 0 1 12 0v1M16 5.2a3 3 0 0 1 0 5.6M21 20v-1a6 6 0 0 0-3-5.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+            <div class="team-info">
+              <span class="team-name" id="team-name">—</span>
+              <span class="team-sub" id="team-sub">—</span>
+            </div>
+            <span class="team-role" id="team-role" hidden></span>
+            <a class="team-cta" id="team-cta" href="team.html#/overview">Manage team</a>
+            <button class="overlap-cta team-retry" id="team-retry" type="button" hidden>Retry</button>
           </div>
-          <a class="team-cta" id="team-cta" href="team.html#/overview">Manage team</a>
-          <button class="overlap-cta team-retry" id="team-retry" type="button" hidden>Retry</button>
+          <dl class="card-facts card-facts--split" id="team-facts" hidden>
+            <div>
+              <dt>Team policy</dt>
+              <dd class="team-policy" id="team-policy">—</dd>
+            </div>
+            <div>
+              <dt>Your devices</dt>
+              <dd id="team-devices">—</dd>
+            </div>
+          </dl>
         </div>
+
+        <!-- What the team policy turns on, one row per control, with where it applies. -->
+        <section class="enforced" id="enforced" hidden>
+          <h2 class="enforced-head">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            What your team enforces
+          </h2>
+          <ul class="enforced-list" id="enforced-list"></ul>
+        </section>
 
         <details class="features" id="features" open>
           <summary class="features-head">
@@ -123,9 +166,12 @@
         </details>
 
         <div id="clerk-profile"></div>
-        <p class="sync-note">
-          Signing in here syncs automatically to the SecureIntent browser extension.
-        </p>
+        <div class="account-foot">
+          <p class="account-foot-note">
+            Signed in as <strong id="foot-who">your account</strong>. The browser extension uses this sign-in automatically.
+          </p>
+          <button class="signout" id="signout" type="button">Sign out</button>
+        </div>
       </section>
     </div></section></main>
 </body></html>
