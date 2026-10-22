@@ -78,7 +78,7 @@ files.set('404.html', Buffer.from('<!doctype html><html lang="en"><meta charset=
 const aliases = [...files.keys()].filter(name => name.endsWith('.html') && !name.includes('/') && name !== 'index.html' && name !== '404.html');
 files.set('_redirects', Buffer.from(aliases.map(name => `/${name.slice(0,-5)} /${name} 200`).join('\n') + '\n/index.html / 301\n'));
 const csp = resourcePolicy(config, hashes, production);
-let headers = `/*\n  X-Content-Type-Options: nosniff\n  X-Frame-Options: DENY\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=()\n  Content-Security-Policy: base-uri 'self'; object-src 'none'; frame-ancestors 'none'; upgrade-insecure-requests; block-all-mixed-content\n  Content-Security-Policy-Report-Only: ${csp}\n  Cache-Control: public, max-age=0, must-revalidate\n`;
+let headers = `/*\n  Strict-Transport-Security: max-age=31536000\n  X-Content-Type-Options: nosniff\n  X-Frame-Options: DENY\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=()\n  Content-Security-Policy: base-uri 'self'; object-src 'none'; frame-ancestors 'none'; upgrade-insecure-requests; block-all-mixed-content\n  Content-Security-Policy-Report-Only: ${csp}\n  Cache-Control: public, max-age=0, must-revalidate\n`;
 if (!production) headers += '  X-Robots-Tag: noindex, nofollow\n';
 for (const name of ['account','team','shadow','business_promo','lifetime_business_promo','lifetime_promo','uninstall','link']) headers += `\n/${name}*\n  Cache-Control: no-store\n  X-Robots-Tag: noindex, nofollow\n  Referrer-Policy: no-referrer\n`;
 files.set('_headers', Buffer.from(headers));

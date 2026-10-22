@@ -22,7 +22,7 @@
     const api = new URL(config.apiBase, location.origin);
     const loopback = host => ['localhost', '127.0.0.1', '[::1]'].includes(host);
     const pilot = !isProduction && config.pilot === true && loopback(location.hostname) &&
-      api.hostname === 'secureintent-backend-business-pilot.john-ja-wright.workers.dev';
+      api.protocol === 'https:' && /^[a-z0-9-]+\.[a-z0-9-]+\.workers\.dev$/.test(api.hostname);
     if (!['http:', 'https:'].includes(api.protocol) || api.username || api.password) throw new Error('Invalid API configuration.');
     if (!isProduction && !pilot && (/^(?:www\.|api\.|clerk\.)?secureintent\.ai\.?$/i.test(api.hostname) || config.paddleEnv === 'production' || config.paddleToken?.startsWith('live_') || config.clerkPublishableKey?.startsWith('pk_live_'))) {
       throw new Error('This preview needs test services; production credentials are disabled here.');

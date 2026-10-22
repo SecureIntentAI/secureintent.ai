@@ -122,6 +122,25 @@ const path = require('node:path');
     await page.addScriptTag({ url: `${origin}/integrations/site.js?privacy-check=1` });
     await expect(page.locator('script[src*="googletagmanager"]')).toHaveCount(0);
     console.log('PASS: invitation signup component and private-page analytics exclusion');
+
+    // Install, approval and promo pages carry ids, tokens or codes in the URL: analytics never loads there.
+    const consentStub = () => { window.SI_IS_PROD = true; window.SI_DISABLE_ANALYTICS = false; window.SI_CONSENT = { granted: () => true, onChange() {} }; };
+    for (const target of ['uninstall.html?id=synthetic-id&t=synthetic-token', 'link.html?code=synthetic-code', 'lifetime_business_promo.html#campaign=synthetic']) {
+      await page.goto(`${origin}/${target}`);
+      await page.evaluate(consentStub);
+      await page.addScriptTag({ url: `${origin}/integrations/site.js?privacy-check=1` });
+      await expect(page.locator('script[src*="googletagmanager"]')).toHaveCount(0);
+      expect(await page.evaluate(() => typeof window.gtag)).toBe('undefined');
+    }
+    // Public pages report the path only; arbitrary query values and fragments never reach analytics.
+    await page.goto(`${origin}/privacy.html?utm_source=creator&token=synthetic-secret#frag`);
+    await page.evaluate(consentStub);
+    await page.addScriptTag({ url: `${origin}/integrations/site.js?privacy-check=1` });
+    await expect(page.locator('script[src*="googletagmanager"]')).toHaveCount(1);
+    const sent = await page.evaluate(() => JSON.stringify(window.dataLayer.map(entry => Array.from(entry))));
+    if (sent.includes('synthetic-secret') || sent.includes('frag')) throw Error('analytics received query or fragment values: ' + sent);
+    if (!sent.includes(`"page_location":"${origin}/privacy.html?utm_source=creator"`)) throw Error('analytics page_location not normalised: ' + sent);
+    console.log('PASS: analytics excluded on install, approval and promo pages; page location sent without tokens');
     if (errors.length) throw Error(errors.join('\n'));
     console.log('PASS: public Business offer redirects to invitation-only onboarding; no browser errors');
   } finally {
