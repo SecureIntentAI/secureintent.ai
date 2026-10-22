@@ -36,13 +36,20 @@ test('Netlify main production context is accepted', () => {
 test('local pilot uses only the isolated API and Clerk development configuration', () => {
   const result = publicConfig(production, {
     SI_PILOT_SITE_ORIGIN: 'http://127.0.0.1:3003',
-    SI_PILOT_API_BASE: 'https://secureintent-backend-business-pilot.john-ja-wright.workers.dev',
+    SI_PILOT_API_BASE: 'https://business-pilot.example.workers.dev',
     SI_PILOT_CLERK_PUBLISHABLE_KEY: testClerkKey,
   }, 'pilot');
   assert.equal(result.production, null);
   assert.equal(result.preview.pilot, true);
   assert.equal(result.preview.clerkPublishableKey, testClerkKey);
   assert.equal(result.preview.paddleToken, '');
+});
+test('local pilot rejects an API outside an HTTPS workers.dev origin', () => {
+  for (const api of ['https://api.secureintent.ai', 'http://business-pilot.example.workers.dev', 'https://pilot.example.test']) {
+    assert.throws(() => publicConfig(production, {
+      SI_PILOT_SITE_ORIGIN: 'http://127.0.0.1:3003', SI_PILOT_API_BASE: api, SI_PILOT_CLERK_PUBLISHABLE_KEY: testClerkKey,
+    }, 'pilot'));
+  }
 });
 test('only the approved Netlify branch can use connected staging', () => {
   assert.equal(buildMode({NETLIFY: 'true', CONTEXT: 'branch-deploy', BRANCH: 'SecureintnentV2', SI_DEPLOY_ENV: 'staging'}), 'staging');

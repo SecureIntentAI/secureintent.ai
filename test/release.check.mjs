@@ -30,10 +30,12 @@ function resolveLocal(raw, from, base) {
 }
 for(const name of files){
   assert.ok(!/(^|\/)(\.env|node_modules|test|scripts|CLAUDE|README|INTEGRATIONS|netlify\.toml)/.test(name),'only public assets: '+name);
+  assert.ok(!/(^|\/)(todo|STAGING|helpers|package(-lock)?\.json|staging-guard\.js)|\.(md|mjs|cjs|toml|ya?ml|map)$/i.test(name),'no internal notes or tooling: '+name);
   if(!/\.(html|js|css)$/.test(name)) continue;
   const s=await readFile(path.join(dir,name),'utf8');
   assert.ok(!s.includes('/designs/secureintent-site-v1'),'no preview route: '+name);
   assert.ok(!s.includes('$12'),'no $12 price: '+name);
+  assert.ok(!/\.workers\.dev\b/.test(s),'no internal Worker hosts: '+name);
   assert.ok(!/\bsk_(live|test)_[A-Za-z0-9]{16,}|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----/.test(s),'no secret keys: '+name);
   if(name.endsWith('.html')) {
     pages++;
@@ -76,4 +78,21 @@ if(manifest.mode==='production') {
 }
 const headers=await readFile(path.join(dir,'_headers'),'utf8');
 for(const expected of ['X-Content-Type-Options: nosniff','X-Frame-Options: DENY','Cache-Control: no-store',"frame-ancestors 'none'",'upgrade-insecure-requests','block-all-mixed-content']) assert.ok(headers.includes(expected));
+const globalHeaders=headers.split(/\n\n/)[0];
+for(const expected of ['Strict-Transport-Security: max-age=31536000','X-Content-Type-Options: nosniff','X-Frame-Options: DENY','Referrer-Policy: strict-origin-when-cross-origin','Permissions-Policy: camera=(), microphone=(), geolocation=()','Content-Security-Policy: ','Content-Security-Policy-Report-Only: ']) assert.ok(globalHeaders.includes(expected),'site-wide header: '+expected);
+const reportOnly=globalHeaders.match(/Content-Security-Policy-Report-Only: (.*)/)[1];
+for(const expected of ["default-src 'self'","object-src 'none'","frame-ancestors 'none'",'https://cdn.paddle.com','https://*.paddle.com','https://fonts.googleapis.com','https://fonts.gstatic.com','https://img.clerk.com','https://challenges.cloudflare.com']) assert.ok(reportOnly.includes(expected),'resource policy allows '+expected);
+if(manifest.mode==='production') for(const expected of ['https://clerk.secureintent.ai','https://api.secureintent.ai','https://www.googletagmanager.com','https://*.google-analytics.com']) assert.ok(reportOnly.includes(expected),'resource policy allows '+expected);
+// Pages that carry sign-in, approval, invitation or install state: no caching,
+// no referrer, no indexing and no analytics.
+const siteScript=await readFile(path.join(dir,'integrations/site.js'),'utf8');
+const analyticsExcluded=siteScript.match(/const privatePage = \/\\\/\(([^)]+)\)/)?.[1].split('|');
+assert.ok(analyticsExcluded,'analytics exclusion list is readable');
+for(const name of ['account','team','shadow','business_promo','lifetime_business_promo','lifetime_promo','uninstall','link']) {
+  assert.ok(files.has(name+'.html'),'private page exists: '+name);
+  const block=headers.split(/\n\n/).find(part=>part.startsWith('/'+name+'*\n'));
+  assert.ok(block&&block.includes('Cache-Control: no-store')&&block.includes('Referrer-Policy: no-referrer')&&block.includes('X-Robots-Tag: noindex'),'private headers: '+name);
+  assert.ok(analyticsExcluded.includes(name),'analytics excluded on '+name);
+}
+assert.ok(/page_location: bare\(location\.href\)/.test(siteScript)&&/page_referrer: bare\(document\.referrer\)/.test(siteScript),'analytics page and referrer drop query strings and fragments');
 console.log(`Release checks passed: ${pages} HTML pages, ${links} local link/asset references, main integration identifiers, public-file whitelist and security headers.`);

@@ -65,8 +65,10 @@ export function publicConfig(production, env = {}, mode = buildMode(env)) {
     if (!['localhost', '127.0.0.1', '[::1]'].includes(new URL(siteOrigin).hostname)) {
       throw new Error('Pilot website must use a local loopback origin.');
     }
-    if (new URL(apiBase).hostname !== 'secureintent-backend-business-pilot.john-ja-wright.workers.dev') {
-      throw new Error('Pilot API must use the isolated Business pilot Worker.');
+    // The pilot Worker host is supplied locally; it is never part of the published site.
+    const pilotApi = new URL(apiBase);
+    if (pilotApi.protocol !== 'https:' || !/^[a-z0-9-]+\.[a-z0-9-]+\.workers\.dev$/.test(pilotApi.hostname)) {
+      throw new Error('Pilot API must use the isolated Business pilot Worker (an HTTPS workers.dev origin).');
     }
     if (!/^pk_test_[A-Za-z0-9+/=_-]+$/.test(clerkPublishableKey)) {
       throw new Error('Pilot requires a Clerk development publishable key.');
@@ -114,6 +116,6 @@ export function resourcePolicy(config, hashes, production) {
   const api = active ? new URL(active.apiBase).origin : '';
   // Google Analytics (after consent) plus the cookieless Cloudflare Web Analytics beacon.
   const analyticsScript = production ? 'https://www.googletagmanager.com https://static.cloudflareinsights.com' : '';
-  const analyticsConnect = production ? 'https://*.google-analytics.com https://www.googletagmanager.com https://cloudflareinsights.com' : '';
-  return `default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' ${[...hashes].join(' ')} ${clerk} https://cdn.paddle.com ${analyticsScript} https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data: blob: https://img.clerk.com https://*.paddle.com${production ? ' https://www.google-analytics.com' : ''}; media-src 'self' blob:; connect-src 'self' ${api} ${clerk} https://*.paddle.com ${analyticsConnect}; frame-src 'self' ${clerk} https://*.paddle.com https://challenges.cloudflare.com; form-action 'self'`.replace(/ +/g, ' ');
+  const analyticsConnect = production ? 'https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://cloudflareinsights.com' : '';
+  return `default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' ${[...hashes].join(' ')} ${clerk} https://cdn.paddle.com ${analyticsScript} https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data: blob: https://img.clerk.com https://*.paddle.com${production ? ' https://www.google-analytics.com' : ''}; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' ${api} ${clerk} https://*.paddle.com ${analyticsConnect}; frame-src 'self' ${clerk} https://*.paddle.com https://challenges.cloudflare.com; form-action 'self'`.replace(/ +/g, ' ');
 }
