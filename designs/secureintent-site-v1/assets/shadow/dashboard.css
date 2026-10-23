@@ -93,6 +93,10 @@
   .chart-topline .legend { display: flex !important; justify-content: flex-start; width: 100%; }
 }
 
+/* Inventory cards for tools the desktop app found: classification plus a Desktop marker. */
+.service-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.dialog-desktop-note { margin-top: 10px; }
+
 /* AI on members' computers: desktop app inventory, by member or by tool. */
 .desktop-panel { margin-top: 22px; }
 .desktop-panel .panel-heading { align-items: center; }
