@@ -1664,6 +1664,10 @@
       const mr = { userId: null, data: null, controller: null };
       const REPORT_OUTCOME = { blocked: "Blocked", cancelled: "Cancelled", sanitised: "Sanitised & pasted", warning_bypassed: "Pasted anyway" };
       const ROLLOUT_LABEL = { applied: "Up to date", updating: "Updating", attention: "Needs attention", offline: "Offline" };
+      // AI tools the desktop app found on this person's computer (same labels as the Shadow AI page).
+      const DESKTOP_KIND_LABEL = { local_model: "Local AI model", editor_extension: "AI editor extension", desktop_app: "AI desktop app" };
+      // Older APIs send no desktopTools; the section is then left out.
+      const reportDesktopTools = (d) => (Array.isArray(d.desktopTools) ? d.desktopTools : null);
       const msDate = (ms) => (Number(ms) > 0 ? new Date(Number(ms)) : null);
       // The PDF can only print Latin text, so it pins an English locale.
       const shortDate = (ms, locale) => msDate(ms)?.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" }) || "Unknown";
@@ -1705,6 +1709,11 @@
         const tools = d.aiTools.length
           ? `<ul class="mr-tools-list">${d.aiTools.map((t) => `<li><span>${esc(t.name)}</span><small>${fmt(t.visits)} visits · ${fmt(t.pastes)} pastes${t.sensitiveEvents ? ` · <em>${fmt(t.sensitiveEvents)} sensitive</em>` : ""}</small></li>`).join("")}</ul>`
           : `<p class="mr-empty">No AI tool activity in this period.</p>`;
+        const deskTools = reportDesktopTools(d);
+        const desktop = !deskTools ? ""
+          : deskTools.length
+            ? `<ul class="mr-tools-list">${deskTools.map((t) => `<li><span>${esc(t.name)}</span><small>${esc(DESKTOP_KIND_LABEL[t.kind] || "AI tool")} · last seen ${esc(shortDate(t.lastSeen))}</small></li>`).join("")}</ul>`
+            : `<p class="mr-empty">No AI tools found on this person's computer in this period.</p>`;
         const recent = d.recentSensitive.length
           ? `<ul class="mr-recent">${d.recentSensitive.map((r) => `<li><span>${esc(shortTime(r.timestamp))}</span><span>${esc(r.hostname)}</span><span class="mr-outcome mr-outcome--${esc(r.action)}">${esc(REPORT_OUTCOME[r.action] || r.action)}</span><small>${esc(r.reason)}${r.findingCount ? ` · ${fmt(r.findingCount)} ${r.findingCount === 1 ? "finding" : "findings"}` : ""}</small></li>`).join("")}</ul>`
           : `<p class="mr-empty">No sensitive pastes into AI tools in this period.</p>`;
@@ -1716,7 +1725,8 @@
           ${a ? `<section class="mr-sec"><h3>What they chose</h3>${mrBars(a.byAction, ACTION_LABEL)}</section>
           <section class="mr-sec"><h3>What was caught</h3>${mrBars(a.byType, TYPE_LABEL)}</section>
           <section class="mr-sec"><h3>Where it was going</h3>${mrBars(a.bySite)}</section>` : ""}
-          <section class="mr-sec"><h3>AI tools used</h3>${tools}</section>
+          <section class="mr-sec"><h3>AI tools used</h3>${tools}</section>${deskTools ? `
+          <section class="mr-sec mr-desktop-tools"><h3>Desktop AI tools</h3>${desktop}</section>` : ""}
           <section class="mr-sec"><h3>Recent sensitive pastes</h3>${recent}</section>
           ${removable ? `<section class="mr-sec mr-danger"><div id="mr-remove-zone"><button class="btn btn--sm" type="button" data-mr-remove>Remove from team</button></div></section>` : ""}`;
         $("mr-pdf").disabled = false;
@@ -1810,6 +1820,13 @@
         if (!d.aiTools.length) row("No AI tool activity in this period.", undefined, C.muted);
         for (const t of d.aiTools) row(`${t.name} | ${count(t.visits)} visits | ${count(t.pastes)} pastes`, `${count(t.sensitiveEvents)} sensitive`);
         y += 4;
+        const deskTools = reportDesktopTools(d);
+        if (deskTools) {
+          section("Desktop AI tools");
+          if (!deskTools.length) row("No AI tools found on this person's computer in this period.", undefined, C.muted);
+          for (const t of deskTools) row(`${t.name} | ${DESKTOP_KIND_LABEL[t.kind] || "AI tool"}`, `last seen ${shortDate(t.lastSeen, "en-GB")}`);
+          y += 4;
+        }
         section("Recent sensitive pastes");
         if (!d.recentSensitive.length) row("No sensitive pastes into AI tools in this period.", undefined, C.muted);
         for (const r of d.recentSensitive) row(`${shortTime(r.timestamp, "en-GB")} | ${r.hostname} | ${r.reason}`, REPORT_OUTCOME[r.action] || r.action);
