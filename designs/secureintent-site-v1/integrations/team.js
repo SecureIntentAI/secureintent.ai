@@ -45,6 +45,8 @@
         "private-key": "Private key",
         "env-credential": "Env credential",
         pii: "Personal data",
+        // A rule a member added in the desktop app; only that it fired is sent.
+        custom: "Custom rule",
       };
       // The four detector types, most severe first — the order the alert
       // threshold reads down.
@@ -1696,11 +1698,13 @@
         $("mr-sub").textContent = [m.email, role, m.seatNumber ? `Seat ${m.seatNumber}` : null].filter(Boolean).join(" · ");
         const a = d.activity;
         const byAction = new Map((a?.byAction || []).map((r) => [r.key, Number(r.n) || 0]));
+        // Browser and desktop outcomes counted together, as the Overview chart does.
+        const sumOf = (map, ...keys) => keys.reduce((t, k) => t + (map.get(k) || 0), 0);
         const devices = d.devices.length
           ? `<ul class="mr-devices">${d.devices.map((dev) => `<li class="tone-${esc(dev.rollout)}"><span class="mr-dot" aria-hidden="true"></span><span>v${esc(dev.extensionVersion)}</span><b>${esc(ROLLOUT_LABEL[dev.rollout] || dev.rollout)}${dev.rollout === "applied" || dev.rollout === "updating" ? ` · revision ${esc(dev.appliedPolicyVersion)}` : ""}</b><small>${esc(agoMs(dev.lastSeenAt) ? `checked in ${agoMs(dev.lastSeenAt)}` : "")}</small></li>`).join("")}</ul>`
           : `<p class="mr-empty">The extension hasn't checked in from this person's browser yet.</p>`;
         const stats = a
-          ? `<div class="mr-stats"><div><b>${fmt(a.total)}</b><span>detections</span></div><div><b>${fmt((byAction.get("cancelled") || 0) + (byAction.get("blocked") || 0))}</b><span>stopped</span></div><div><b>${fmt((byAction.get("paste_anonymously") || 0) + (byAction.get("sanitised") || 0))}</b><span>anonymised</span></div><div class="${byAction.get("paste_anyway") ? "is-warn" : ""}"><b>${fmt(byAction.get("paste_anyway") || 0)}</b><span>pasted anyway</span></div></div>${mrSpark(a.byDay, d.days)}`
+          ? `<div class="mr-stats"><div><b>${fmt(a.total)}</b><span>detections</span></div><div><b>${fmt(sumOf(byAction, "cancelled", "blocked", "purged"))}</b><span>stopped</span></div><div><b>${fmt(sumOf(byAction, "paste_anonymously", "sanitised", "auto_redacted"))}</b><span>anonymised</span></div><div class="${sumOf(byAction, "paste_anyway", "unlocked") ? "is-warn" : ""}"><b>${fmt(sumOf(byAction, "paste_anyway", "unlocked"))}</b><span>pasted anyway</span></div></div>${mrSpark(a.byDay, d.days)}`
           : `<p class="mr-empty">Detection activity is unavailable right now. The rest of the report is current.</p>`;
         const tools = d.aiTools.length
           ? `<ul class="mr-tools-list">${d.aiTools.map((t) => `<li><span>${esc(t.name)}</span><small>${fmt(t.visits)} visits · ${fmt(t.pastes)} pastes${t.sensitiveEvents ? ` · <em>${fmt(t.sensitiveEvents)} sensitive</em>` : ""}</small></li>`).join("")}</ul>`

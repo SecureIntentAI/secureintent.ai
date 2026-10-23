@@ -8,9 +8,11 @@
   // Bottom to top. "Pasted anyway" sits on top, in the warning colour: it is
   // the one outcome where the data actually left.
   const GROUPS = [
-    { key: "stopped", label: "Blocked or cancelled", actions: ["blocked", "cancelled"] },
-    { key: "anon", label: "Anonymised or sanitised", actions: ["paste_anonymously", "sanitised"] },
-    { key: "anyway", label: "Pasted anyway", actions: ["paste_anyway"] },
+    // The desktop app acts on the copy: cleared counts as stopped, redacted as
+    // anonymised, and restored with Undo as pasted anyway.
+    { key: "stopped", label: "Blocked or cancelled", actions: ["blocked", "cancelled", "purged"] },
+    { key: "anon", label: "Anonymised or sanitised", actions: ["paste_anonymously", "sanitised", "auto_redacted"] },
+    { key: "anyway", label: "Pasted anyway", actions: ["paste_anyway", "unlocked"] },
     { key: "other", label: "Other", actions: [] },
   ];
   const groupOf = (action) => (GROUPS.find((g) => g.actions.includes(action)) || GROUPS[3]).key;
@@ -76,7 +78,9 @@
     const busiest = s.buckets.reduce((best, b) => (b.total > (best?.total || 0) ? b : best), null);
     // Without the per-day outcome split the buckets carry no outcomes, so take
     // "pasted anyway" from the period's outcome totals instead of reporting 0.
-    const fromTotals = num((m?.byAction || []).find((r) => r.key === "paste_anyway")?.n);
+    const fromTotals = (m?.byAction || [])
+      .filter((r) => r.key === "paste_anyway" || r.key === "unlocked")
+      .reduce((t, r) => t + num(r.n), 0);
     const anyway = s.split ? s.buckets.reduce((t, b) => t + b.anyway, 0) : Math.min(fromTotals, total);
     const previous = Number.isFinite(Number(m?.previousTotal)) ? num(m.previousTotal) : null;
     let change = null;
