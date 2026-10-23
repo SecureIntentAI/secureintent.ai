@@ -127,6 +127,13 @@
         <section class="panel activity-panel" id="activity" aria-labelledby="activity-title"><div class="panel-heading"><div><h2 id="activity-title">Recent activity</h2><p>Latest DLP outcomes.</p></div><span class="pulse-label" id="activity-label">Live</span></div><ol class="timeline" id="timeline"></ol><div class="privacy-note"><svg class="icon"><use href="#i-shield"/></svg><span>Metadata only.<br>No prompts or pasted content collected.</span></div></section>
       </div>
 
+      <section class="panel desktop-panel" id="desktop" aria-labelledby="desktop-title" hidden>
+        <div class="panel-heading"><div><h2 id="desktop-title">AI on members' computers</h2><p>Local AI models, AI editor extensions and AI desktop apps found by the SecureIntent desktop app. Tool names only; no prompts or files.</p></div><div class="segmented compact" id="desktop-views" role="group" aria-label="Desktop inventory view"><button class="selected" data-desktop-view="members" aria-pressed="true">By member</button><button data-desktop-view="tools" aria-pressed="false">By tool</button></div></div>
+        <div class="desktop-summary" id="desktop-summary" aria-label="Desktop app summary"></div>
+        <div class="ledger-scroll" id="desktop-table"></div>
+        <p id="desktop-empty" class="empty-state" hidden>No desktop app data yet. Members appear here once they sign in to the SecureIntent desktop app.</p>
+      </section>
+
       <section class="panel reviews-panel" id="reviews" aria-labelledby="reviews-title">
         <div class="panel-heading"><div><div class="title-with-count"><h2 id="reviews-title">Review queue</h2><span class="count-badge" id="queue-count">—</span></div><p>Review service classifications and team paste policies.</p></div><button class="button primary" id="review-policy"><svg class="icon"><use href="#i-shield"/></svg>Review services</button></div>
         <div class="review-toolbar"><div class="filter-row" role="group" aria-label="Review status filter"><button class="selected" data-review-filter="all" aria-pressed="true">All reviews</button><button data-review-filter="open" aria-pressed="false">Unsanctioned</button><button data-review-filter="done" aria-pressed="false">Sanctioned</button></div><div class="segmented" role="group" aria-label="Review layout"><button class="selected" data-view="list" aria-pressed="true"><svg class="icon small"><use href="#i-list"/></svg>List</button><button data-view="board" aria-pressed="false"><svg class="icon small"><use href="#i-board"/></svg>Board</button></div></div>
@@ -134,8 +141,8 @@
         <div class="queue-footer"><span id="queue-summary">Loading service policies…</span><span id="policy-status">Policies apply across your organisation</span></div>
       </section>
       <section class="panel ledger-panel" id="ledger" aria-labelledby="ledger-title">
-        <div class="panel-heading"><div><h2 id="ledger-title">DLP event ledger</h2><p>Detection reasons and outcomes. Hostnames only; no pasted content.</p></div><button class="button" id="refresh">Refresh data</button></div>
-        <div class="ledger-scroll"><table class="ledger-table"><caption class="sr-only">Sensitive paste activity</caption><thead><tr><th scope="col">Time</th><th scope="col">Member</th><th scope="col">Destination</th><th scope="col">Detection reason</th><th scope="col">Resolution</th><th scope="col">Findings</th></tr></thead><tbody id="ledger-body"></tbody></table></div>
+        <div class="panel-heading"><div><h2 id="ledger-title">DLP event ledger</h2><p id="ledger-subtitle">Detection reasons and outcomes from the browser and the desktop app. Hostnames and app names only; no pasted content.</p></div><button class="button" id="refresh">Refresh data</button></div>
+        <div class="ledger-scroll"><table class="ledger-table"><caption class="sr-only">Sensitive paste activity</caption><thead><tr><th scope="col">Time</th><th scope="col">Member</th><th scope="col">Source</th><th scope="col">Destination</th><th scope="col">Detection reason</th><th scope="col">Resolution</th><th scope="col">Findings</th></tr></thead><tbody id="ledger-body"></tbody></table></div>
         <div class="queue-footer"><span id="ledger-count">Loading events…</span><div class="pager"><button class="button" id="prev" disabled>Previous</button><button class="button" id="next" disabled>Next</button></div></div>
       </section>
       <footer class="page-footer" id="design-info"><span>SecureIntent <span class="footer-slash">/</span> Shadow AI</span><span id="updated">Waiting for data</span></footer>

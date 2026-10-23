@@ -21,11 +21,11 @@
 .export-menu button:hover, .export-menu button:focus-visible { background: var(--surface-raised); outline: none; }
 .ledger-panel { margin-top: 22px; }
 .ledger-scroll { overflow-x: auto; margin-top: 24px; }
-.ledger-table { width: 100%; min-width: 660px; border-collapse: collapse; text-align: left; }
-.ledger-table th { background: var(--inset); font-size: 12px; font-weight: 500; color: var(--faint); }
-.ledger-table td { font-size: 13px; }
-.ledger-table th, .ledger-table td { padding: 16px 22px; border-bottom: 1px solid var(--line-soft); }
-.ledger-table td small { display: block; color: var(--faint); font-size: 11px; margin-top: 4px; }
+.ledger-table, .desktop-table { width: 100%; min-width: 760px; border-collapse: collapse; text-align: left; }
+.ledger-table th, .desktop-table th { background: var(--inset); font-size: 12px; font-weight: 500; color: var(--faint); }
+.ledger-table td, .desktop-table td { font-size: 13px; }
+.ledger-table th, .ledger-table td, .desktop-table th, .desktop-table td { padding: 16px 22px; border-bottom: 1px solid var(--line-soft); }
+.ledger-table td small, .desktop-table td small { display: block; color: var(--faint); font-size: 11px; margin-top: 4px; }
 .dialog-meta dd .seat-names { display: block; color: var(--muted); font-size: 12px; font-weight: 500; margin-top: 4px; }
 .pager { display: flex; gap: 8px; }
 .review-policy-name { color: var(--muted); font-size: 12px; }
@@ -41,7 +41,7 @@
 #policy-message { margin-top: 12px; color: var(--green); font-size: 12px; }
 #dashboard-shell[aria-busy="true"] .sample-dot { background: var(--peach); }
 .toast { background: var(--surface-raised); }
-@media (max-width: 600px) { .ledger-panel .panel-heading { flex-wrap: wrap; } .auth-gate { padding: 24px; } }
+@media (max-width: 600px) { .ledger-panel .panel-heading, .desktop-panel .panel-heading { flex-wrap: wrap; } .auth-gate { padding: 24px; } }
 
 .demo-controls { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 16px; margin-bottom: 24px; border: 1px solid var(--accent-line); background: var(--accent-soft); border-radius: 10px; }
 .demo-controls strong { font-size: 13px; }
@@ -92,3 +92,17 @@
 @media (max-width: 640px) {
   .chart-topline .legend { display: flex !important; justify-content: flex-start; width: 100%; }
 }
+
+/* AI on members' computers: desktop app inventory, by member or by tool. */
+.desktop-panel { margin-top: 22px; }
+.desktop-panel .panel-heading { align-items: center; }
+.desktop-summary { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin: 20px 22px 0; }
+.desktop-summary > div { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--inset); min-width: 0; }
+.desktop-summary strong { font-size: 20px; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.desktop-summary span { color: var(--faint); font-size: 11px; line-height: 1.4; }
+.desktop-panel .ledger-scroll { margin-top: 18px; }
+.desktop-table td { overflow-wrap: anywhere; }
+.desktop-table tbody tr:last-child td { border-bottom: 0; }
+.desktop-panel > .empty-state { margin: 0 22px; }
+@media (max-width: 1100px) { .desktop-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .desktop-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-inline: 16px; } }
