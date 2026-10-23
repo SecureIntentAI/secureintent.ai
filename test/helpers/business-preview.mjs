@@ -39,7 +39,8 @@ const shadowDashboard = {
   organization:{name:'Northstar Engineering',email:'maya@northstar.example'},
   generatedAt: Date.now(), dataAsOf: Date.now(), policyVersion: 3, canManagePolicy: true,
   policyRollout: { observedDevices: 5, activeDevices: 4, confirmedDevices: 3, pendingDevices: 1, attentionDevices: 0, offlineDevices: 1, pageGuardsConfirmed: 2, lastReceiptAt: Date.now() - 30000 },
-  summary: { totalTools: 5, totalVisits: 486, unsanctionedUsagePercent: 61.1, pasteAttempts: 132, pasteBytes: 284910, sensitiveEvents: 9, highRiskDestinations: 2, outcomes: { blocked: 3, cancelled: 2, sanitised: 3, warning_bypassed: 1 } },
+  // totalTools counts the two desktop-only tools (desktopOnlyTools) at the end of tools.
+  summary: { totalTools: 7, desktopOnlyTools: 2, totalVisits: 486, unsanctionedUsagePercent: 61.1, pasteAttempts: 132, pasteBytes: 284910, sensitiveEvents: 9, highRiskDestinations: 2, outcomes: { blocked: 3, cancelled: 2, sanitised: 3, warning_bypassed: 1 } },
   // Varied days with weekend dips; the nine sensitive pastes match summary.outcomes.
   trends: Array.from({length:30},(_,i)=>{
     const day=new Date(Date.now()-(29-i)*86400000);
@@ -48,12 +49,19 @@ const shadowDashboard = {
     const sensitiveEvents=Object.values(outcomes).reduce((a,b)=>a+b,0);
     return {day:day.toISOString().slice(0,10),visits:weekend?6+(i%3):14+(i*7)%9,pastes:weekend?1+(i%2):3+(i*5)%5,sensitiveEvents,outcomes};
   }),
+  // Desktop app catches per day, aligned with trends: the four in the desktop summary.
+  desktopTrends: Array.from({length:30},(_,i)=>({day:new Date(Date.now()-(29-i)*86400000).toISOString().slice(0,10),catches:[4,12,20].includes(i)?1:i===27?1:0})),
   tools: [
-    {serviceId:'chatgpt',name:'ChatGPT',hostname:'chatgpt.com',classification:'sanctioned',visits:189,pastes:54,sensitiveEvents:2,activeSeats:3,seatNumbers:[1,2,4],lastSeen:Date.now()-240000},
-    {serviceId:'claude',name:'Claude',hostname:'claude.ai',classification:'recognized',visits:121,pastes:36,sensitiveEvents:3,activeSeats:2,seatNumbers:[3,9],lastSeen:Date.now()-900000},
-    {serviceId:'deepseek',name:'DeepSeek',hostname:'chat.deepseek.com',classification:'review',visits:82,pastes:23,sensitiveEvents:2,lastSeen:Date.now()-7200000},
-    {serviceId:'gemini',name:'Gemini',hostname:'gemini.google.com',classification:'sanctioned',visits:61,pastes:14,sensitiveEvents:1,lastSeen:Date.now()-3600000},
-    {serviceId:'perplexity',name:'Perplexity',hostname:'perplexity.ai',classification:'review',visits:33,pastes:5,sensitiveEvents:1,lastSeen:Date.now()-86400000},
+    {serviceId:'chatgpt',name:'ChatGPT',hostname:'chatgpt.com',source:'web',classification:'sanctioned',visits:189,pastes:54,sensitiveEvents:2,activeSeats:3,seatNumbers:[1,2,4],lastSeen:Date.now()-240000},
+    // Also found on members' computers by the desktop app.
+    {serviceId:'claude',name:'Claude',hostname:'claude.ai',source:'web',classification:'recognized',visits:121,pastes:36,sensitiveEvents:3,activeSeats:2,seatNumbers:[3,9],lastSeen:Date.now()-900000,
+      desktop:{memberCount:2,seatNumbers:[2,3],lastSeen:Date.now()-600000,kinds:['desktop_app','editor_extension']}},
+    {serviceId:'deepseek',name:'DeepSeek',hostname:'chat.deepseek.com',source:'web',classification:'review',visits:82,pastes:23,sensitiveEvents:2,lastSeen:Date.now()-7200000},
+    {serviceId:'gemini',name:'Gemini',hostname:'gemini.google.com',source:'web',classification:'sanctioned',visits:61,pastes:14,sensitiveEvents:1,lastSeen:Date.now()-3600000},
+    {serviceId:'perplexity',name:'Perplexity',hostname:'perplexity.ai',source:'web',classification:'review',visits:33,pastes:5,sensitiveEvents:1,lastSeen:Date.now()-86400000},
+    // Found only by the desktop app: no hostname, visits or paste rule.
+    {serviceId:'desktop-ollama',name:'Ollama',hostname:'',source:'desktop',kind:'local_model',classification:'review',pasteMode:null,visits:0,pastes:0,sensitiveEvents:0,activeSeats:1,seatNumbers:[2],lastSeen:Date.now()-600000,observedHostnames:[]},
+    {serviceId:'desktop-lm-studio',name:'LM Studio',hostname:'',source:'desktop',kind:'local_model',classification:'recognized',pasteMode:null,visits:0,pastes:0,sensitiveEvents:0,activeSeats:1,seatNumbers:[3],lastSeen:Date.now()-7200000,observedHostnames:[]},
   ]
 };
 // One desktop app catch (source 'desktop': no hostname, the app it was copied in);
@@ -209,6 +217,11 @@ handleRedirectCallback:async()=>{},load:async()=>{},addListener:(f)=>{listeners.
           { serviceId: 'claude', name: 'Claude', visits: n(12), pastes: n(5), sensitiveEvents: n(2), lastSeen: Date.now() - 7_200_000 },
           { serviceId: 'deepseek', name: 'DeepSeek', visits: n(3), pastes: 0, sensitiveEvents: 0, lastSeen: Date.now() - 86_400_000 },
         ],
+        // What the desktop app found on this person's computer (Sam: Ollama and Cursor).
+        desktopTools: idx === 1 ? [
+          { name: 'Ollama', kind: 'local_model', firstSeen: Date.now() - 20 * 86_400_000, lastSeen: Date.now() - 600_000 },
+          { name: 'Cursor', kind: 'desktop_app', firstSeen: Date.now() - 3 * 86_400_000, lastSeen: Date.now() - 600_000 },
+        ] : [],
         recentSensitive: idx === 0 ? [] : [
           { timestamp: Date.now() - 600_000, hostname: 'claude.ai', serviceId: 'claude', action: 'blocked', reason: 'Credential detected', findingCount: 1 },
           { timestamp: Date.now() - 900_000, hostname: 'chatgpt.com', serviceId: 'chatgpt', action: 'sanitised', reason: 'Personal information detected', findingCount: 42 },
@@ -226,7 +239,9 @@ handleRedirectCallback:async()=>{},load:async()=>{},addListener:(f)=>{listeners.
       const body = JSON.parse(Buffer.concat(chunks).toString() || '{}');
       const tool = shadowDashboard.tools.find(t => t.serviceId === body.serviceId);
       if (!tool) return json(res, { error: 'invalid_service' });
-      Object.assign(tool, { classification: body.classification, pasteMode: body.pasteMode });
+      // As the real API: a desktop-only tool takes a classification only.
+      if (tool.source === 'desktop' && body.pasteMode !== undefined && body.pasteMode !== 'normal') { res.writeHead(400, {'Content-Type':'application/json'}); res.end(JSON.stringify({ error: 'invalid_paste_mode' })); return; }
+      Object.assign(tool, { classification: body.classification }, tool.source === 'desktop' ? {} : { pasteMode: body.pasteMode });
       shadowDashboard.policyVersion += 1;
       // One shared revision, as in the real API.
       settings.settings.policyVersion = shadowDashboard.policyVersion;
@@ -238,7 +253,9 @@ handleRedirectCallback:async()=>{},load:async()=>{},addListener:(f)=>{listeners.
       const tool = shadowDashboard.tools.find(t => t.serviceId === body.serviceId);
       if (!tool) return json(res, { error: 'invalid_service' });
       const seatsUsed = tool.seatNumbers || [];
-      if (body.kind === 'seats') return json(res, { serviceId: tool.serviceId, seats: seatsUsed.map((seatNumber, i) => ({ seatNumber, visits: 14 - i * 5, pastes: 9 - i * 4, sensitiveEvents: i ? 0 : 3, lastSeen: Date.now() - (i + 1) * 3_600_000 })) });
+      // Members who have the tool only on their computer come back as desktop rows.
+      const desktopSeats = (tool.desktop?.seatNumbers || []).filter(n => !seatsUsed.includes(n)).map(seatNumber => ({ seatNumber, source: 'desktop', lastSeen: tool.desktop.lastSeen }));
+      if (body.kind === 'seats') return json(res, { serviceId: tool.serviceId, seats: [...seatsUsed.map((seatNumber, i) => ({ seatNumber, visits: 14 - i * 5, pastes: 9 - i * 4, sensitiveEvents: i ? 0 : 3, lastSeen: Date.now() - (i + 1) * 3_600_000 })), ...desktopSeats] });
       const outcomesCycle = ['blocked', 'sanitised', null, 'warning_bypassed', null, 'cancelled'];
       const all = Array.from({ length: tool.pastes }, (_, i) => ({ eventId: `p${i}`, seatNumber: seatsUsed[i % Math.max(1, seatsUsed.length)] ?? null, timestamp: Date.now() - i * 2_700_000, byteSize: 300 + (i * 977) % 6000, outcome: outcomesCycle[i % outcomesCycle.length], reason: null }));
       const offset = Number(body.offset) || 0, limit = Number(body.limit) || 25;

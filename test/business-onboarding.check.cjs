@@ -49,7 +49,8 @@ const path = require('node:path');
 
     await page.locator('#shadow-nav').click();
     await expect(page.locator('#dashboard-shell')).toBeVisible();
-    await expect(page.locator('#nav-service-count')).toHaveText('5');
+    // Five browser services and two tools found only by the desktop app.
+    await expect(page.locator('#nav-service-count')).toHaveText('7');
     await expect(page).toHaveURL(`${origin}/team.html#/shadow`);
     await expect(page.locator('iframe')).toHaveCount(0);
     await page.locator('#console-nav [data-view="alerts"]').click();
