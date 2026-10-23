@@ -56,11 +56,32 @@ const shadowDashboard = {
     {serviceId:'perplexity',name:'Perplexity',hostname:'perplexity.ai',classification:'review',visits:33,pastes:5,sensitiveEvents:1,lastSeen:Date.now()-86400000},
   ]
 };
-const shadowLedger = { total:3, nextOffset:null, events:[
-  {eventId:'evt_preview_1',seat:'Seat 2',seatNumber:2,timestamp:Date.now()-240000,hostname:'claude.ai',serviceId:'claude',reason:'OpenAI API key',action:'blocked',findingCount:1},
+// One desktop app catch (source 'desktop': no hostname, the app it was copied in);
+// the last row has no source, as from an older API, and counts as the browser.
+const shadowLedger = { total:4, nextOffset:null, events:[
+  {eventId:'evt_preview_1',source:'browser',seat:'Seat 2',seatNumber:2,timestamp:Date.now()-240000,hostname:'claude.ai',serviceId:'claude',reason:'OpenAI API key',action:'blocked',findingCount:1},
+  {eventId:'evt_preview_4',source:'desktop',seat:'Seat 3',seatNumber:3,timestamp:Date.now()-1800000,hostname:'',serviceId:'',sourceApp:'Visual Studio Code',reason:'AWS access key',action:'auto_redacted',findingCount:1},
   {eventId:'evt_preview_2',seat:'Seat 9',seatNumber:9,timestamp:Date.now()-3600000,hostname:'chat.deepseek.com',serviceId:'deepseek',reason:'Email address',action:'sanitised',findingCount:2},
   {eventId:'evt_preview_3',timestamp:Date.now()-7200000,hostname:'perplexity.ai',serviceId:'perplexity',reason:'High-entropy token',action:'warning_bypassed',findingCount:1},
 ] };
+// AI on members' computers, as the desktop app reports it (POST /v1/shadow/admin/desktop).
+const shadowDesktop = { available:true,
+  summary:{ membersWithDesktop:2, membersWithLocalModel:2, toolsFound:5, newThisPeriod:1, desktopCatches:4 },
+  members:[
+    { seatNumber:2, name:'Sam Rivera', email:'sam@northstar.example', devices:[{ os:'windows', appVersion:'0.2.10', lastSeen:Date.now()-5*86400000 },{ os:'macos', appVersion:'0.2.12', lastSeen:Date.now()-600000 }],
+      tools:[{ name:'Ollama', kind:'local_model', firstSeen:Date.now()-20*86400000, lastSeen:Date.now()-600000 },{ name:'GitHub Copilot', kind:'editor_extension', firstSeen:Date.now()-25*86400000, lastSeen:Date.now()-600000 },{ name:'Cursor', kind:'desktop_app', firstSeen:Date.now()-3*86400000, lastSeen:Date.now()-600000 }],
+      catches:3, lastSeen:Date.now()-600000 },
+    { seatNumber:3, name:'Lee Morgan', email:'lee@northstar.example', devices:[{ os:'linux', appVersion:'0.2.12', lastSeen:Date.now()-7200000 }],
+      tools:[{ name:'LM Studio', kind:'local_model', firstSeen:Date.now()-12*86400000, lastSeen:Date.now()-7200000 },{ name:'Continue', kind:'editor_extension', firstSeen:Date.now()-12*86400000, lastSeen:Date.now()-7200000 }],
+      catches:1, lastSeen:Date.now()-7200000 },
+  ],
+  tools:[
+    { name:'Ollama', kind:'local_model', seatNumbers:[2], memberCount:1, firstSeen:Date.now()-20*86400000, lastSeen:Date.now()-600000 },
+    { name:'LM Studio', kind:'local_model', seatNumbers:[3], memberCount:1, firstSeen:Date.now()-12*86400000, lastSeen:Date.now()-7200000 },
+    { name:'GitHub Copilot', kind:'editor_extension', seatNumbers:[2], memberCount:1, firstSeen:Date.now()-25*86400000, lastSeen:Date.now()-600000 },
+    { name:'Continue', kind:'editor_extension', seatNumbers:[3], memberCount:1, firstSeen:Date.now()-12*86400000, lastSeen:Date.now()-7200000 },
+    { name:'Cursor', kind:'desktop_app', seatNumbers:[2], memberCount:1, firstSeen:Date.now()-3*86400000, lastSeen:Date.now()-600000 },
+  ] };
 const json = (res, body) => { res.writeHead(200, {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'}); res.end(JSON.stringify(body)); };
 
 http.createServer(async (req,res) => {
@@ -199,6 +220,7 @@ handleRedirectCallback:async()=>{},load:async()=>{},addListener:(f)=>{listeners.
     if (url.pathname === '/mock-api/v1/team/member/remove' && req.method === 'POST') return json(res, { ok: true });
     if (url.pathname === '/mock-api/v1/shadow/admin/dashboard' && req.method === 'POST') return json(res, shadowDashboard);
     if (url.pathname === '/mock-api/v1/shadow/admin/ledger' && req.method === 'POST') return json(res, shadowLedger);
+    if (url.pathname === '/mock-api/v1/shadow/admin/desktop' && req.method === 'POST') return json(res, shadowDesktop);
     if (url.pathname === '/mock-api/v1/shadow/admin/policy' && req.method === 'POST') {
       const chunks = []; for await (const chunk of req) chunks.push(chunk);
       const body = JSON.parse(Buffer.concat(chunks).toString() || '{}');
