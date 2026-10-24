@@ -395,7 +395,7 @@ function serviceCard(tool) {
   // Desktop-only: no hostname or page visits, so the kind, who has it and when it was last seen.
   if (desktopOnly(tool)) return `<button class="service-card" data-service="${esc(tool.serviceId)}" aria-label="View ${esc(tool.name)} details and classification">${logo}<strong>${esc(tool.name)}</strong><span class="service-domain">${esc(kindLabel(tool.kind))}</span><span class="service-meta">${plural(desktopCount(tool), 'member')} <span>·</span> last seen ${esc(shortDay(tool.lastSeen))}</span><span class="service-badges">${badge(tool)}${DESKTOP_BADGE}</span></button>`;
   const both = alsoOnDesktop(tool);
-  const meta = `${fmt(tool.visits)} visits <span>·</span> ${tool.activeSeats == null ? `${fmt(tool.pastes)} pastes` : `${fmt(tool.activeSeats)} seats`}${both ? ` <span>·</span> ${fmt(both.memberCount)} on desktop` : ''}`;
+  const meta = `${fmt(tool.visits)} visits <span>·</span> ${tool.activeSeats == null ? `${fmt(tool.pastes)} pastes` : `${fmt(tool.activeSeats)} ${tool.activeSeats === 1 ? 'seat' : 'seats'}`}${both ? ` <span>·</span> ${fmt(both.memberCount)} on desktop` : ''}`;
   return `<button class="service-card" data-service="${esc(tool.serviceId)}" aria-label="View ${esc(tool.name)} details and policy">${logo}<strong>${esc(tool.name)}</strong><span class="service-domain">${esc(tool.hostname)}</span><span class="service-meta">${meta}</span>${both ? `<span class="service-badges">${badge(tool)}${BOTH_BADGE}</span>` : badge(tool)}</button>`;
 }
 function renderServices() {
