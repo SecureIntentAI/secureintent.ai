@@ -123,6 +123,31 @@ function makeReport(snapshot) {
     const str = plain(value);
     return str.length > maxChars ? `${str.slice(0, Math.max(1, maxChars - 3))}...` : str;
   };
+  /** Text cut with "..." to fit `room` points, measured. */
+  const fit = (value, room, size = 7) => {
+    let str = plain(value);
+    if (measure(str, size) <= room) return str;
+    while (str.length > 1 && measure(`${str}...`, size) > room) str = str.slice(0, -1);
+    return `${str.trimEnd()}...`;
+  };
+  /** A table row: each cell on one line, or two when it does not fit (the second cut to fit). */
+  const tableRow = (values, widths, height) => {
+    let x = LEFT;
+    values.forEach((value, i) => {
+      const room = widths[i] - 10;
+      const str = plain(value);
+      let lines = [str];
+      if (measure(str, 7) > room) {
+        const words = str.split(' ');
+        let first = words.shift();
+        while (words.length && measure(`${first} ${words[0]}`, 7) <= room) first += ` ${words.shift()}`;
+        lines = measure(first, 7) > room || !words.length ? [fit(str, room)] : [first, fit(words.join(' '), room)];
+      }
+      if (lines.length === 1) text(lines[0], x + 5, y + height / 2 + 3, 7, COLORS.ink);
+      else { text(lines[0], x + 5, y + height / 2 - 1.5, 7, COLORS.ink); text(lines[1], x + 5, y + height / 2 + 7.5, 7, COLORS.ink); }
+      x += widths[i];
+    });
+  };
 
   beginPage();
   const dashboard = snapshot.dashboard;
@@ -318,6 +343,39 @@ function makeReport(snapshot) {
   }
   y += 14;
 
+  // AI on members' computers (desktop app). Left out when the API has none.
+  const desktop = snapshot.desktop;
+  if (desktop) {
+    const ds = desktop.summary || {};
+    section("AI on members' computers");
+    ensure(20);
+    text(`${count(ds.membersWithDesktop)} members with the desktop app  |  ${count(ds.membersWithLocalModel)} running a local AI model  |  ${count(ds.toolsFound)} AI tools found  |  ${count(ds.newThisPeriod)} new this period  |  ${count(ds.desktopCatches)} desktop catches`, LEFT, y + 6, 7.5, COLORS.muted);
+    y += 18;
+    const deskTools = Array.isArray(desktop.tools) ? desktop.tools : [];
+    if (!desktop.memberCount || !deskTools.length) {
+      text(desktop.memberCount ? "No AI tools found on members' computers in this period." : 'No desktop app data yet. Members appear once they sign in to the SecureIntent desktop app.', LEFT, y + 12, 8, COLORS.muted);
+      y += 27;
+    } else {
+      const deskWidths = [118, 96, 183, 110];
+      const deskHeaders = ['Tool', 'Kind', 'Members', 'Last seen'];
+      const drawDeskHeader = () => {
+        rect(LEFT, y, WIDTH, 22, COLORS.panel);
+        let x = LEFT;
+        deskHeaders.forEach((label, i) => { text(label, x + 5, y + 14, 7, COLORS.muted, true); x += deskWidths[i]; });
+        y += 22;
+      };
+      drawDeskHeader();
+      deskTools.forEach((tool, index) => {
+        if (y + 26 > BOTTOM) { beginPage(); section("AI on members' computers (continued)"); drawDeskHeader(); }
+        if (index % 2 === 1) rect(LEFT, y, WIDTH, 26, [0.985, 0.988, 0.992]);
+        tableRow([tool.name, tool.kind, tool.members, reportDate(tool.lastSeen)], deskWidths, 26);
+        line(LEFT, y + 26, RIGHT, y + 26, COLORS.line, 0.4);
+        y += 26;
+      });
+    }
+    y += 14;
+  }
+
   const ledger = snapshot.ledger || { total: 0, events: [] };
   const events = Array.isArray(ledger.events) ? ledger.events : [];
   section(`Sensitive paste activity (${count(ledger.total)} total)`);
@@ -325,8 +383,8 @@ function makeReport(snapshot) {
     text('No sensitive paste events are available in the current ledger page.', LEFT, y + 12, 8, COLORS.muted);
     y += 27;
   } else {
-    const dlpWidths = [100, 82, 88, 110, 82, 45];
-    const dlpHeaders = ['Time', 'Member', 'Destination', 'Detection reason', 'Resolution', 'Findings'];
+    const dlpWidths = [88, 66, 52, 92, 82, 91, 36];
+    const dlpHeaders = ['Time', 'Member', 'Source', 'Destination', 'Detection reason', 'Resolution', 'Findings'];
     const drawDlpHeader = () => {
       rect(LEFT, y, WIDTH, 22, COLORS.panel);
       let x = LEFT;
@@ -337,10 +395,12 @@ function makeReport(snapshot) {
     events.forEach((event, index) => {
       if (y + 26 > BOTTOM) { beginPage(); section('Sensitive paste activity (continued)'); drawDlpHeader(); }
       if (index % 2 === 1) rect(LEFT, y, WIDTH, 26, [0.985, 0.988, 0.992]);
-      const outcome = { blocked: 'Blocked', cancelled: 'Cancelled', sanitised: 'Sanitised', warning_bypassed: 'Pasted anyway' }[event.action] || 'DLP event';
-      const values = [reportDate(event.timestamp), event.seat || 'Unattributed', event.hostname, event.reason, outcome, count(event.findingCount)];
-      let x = LEFT;
-      values.forEach((value, i) => { text(clipped(value, Math.floor((dlpWidths[i] - 10) / 3.8)), x + 5, y + 16, 7, COLORS.ink); x += dlpWidths[i]; });
+      // Desktop rows (the app a secret was copied in) use the console's desktop wording.
+      const desktopRow = event.source === 'desktop';
+      const outcome = (desktopRow && { auto_redacted: 'Redacted on the desktop', unlocked: 'Restored on the desktop (Undo)', purged: 'Cleared from the desktop clipboard' }[event.action])
+        || { blocked: 'Blocked', cancelled: 'Cancelled', sanitised: 'Sanitised', warning_bypassed: 'Pasted anyway' }[event.action] || 'DLP event';
+      const destination = desktopRow ? (event.sourceApp ? `Copied in ${event.sourceApp} (desktop)` : 'Desktop app') : event.hostname;
+      tableRow([reportDate(event.timestamp), event.seat || 'Unattributed', desktopRow ? 'Desktop app' : 'Browser', destination, event.reason, outcome, count(event.findingCount)], dlpWidths, 26);
       line(LEFT, y + 26, RIGHT, y + 26, COLORS.line, 0.4);
       y += 26;
     });

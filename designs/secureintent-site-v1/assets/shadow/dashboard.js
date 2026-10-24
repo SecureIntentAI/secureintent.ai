@@ -40,6 +40,12 @@ const icon = name => `<svg class="icon" aria-hidden="true"><use href="#i-${name}
 const modes = { normal: 'Normal protection', block_sensitive: 'Block sensitive pastes', block_all: 'Block all pastes' };
 const classifications = { sanctioned: 'Sanctioned', recognized: 'Recognised', review: 'Needs review' };
 const outcomes = { blocked: 'Blocked', cancelled: 'Cancelled', sanitised: 'Sanitised & pasted', warning_bypassed: 'Pasted anyway' };
+// Desktop app, secrets caught on copy. Same wording as the team console (team.js).
+const desktopOutcomes = { auto_redacted: 'Redacted on the desktop', unlocked: 'Restored on the desktop (Undo)', purged: 'Cleared from the desktop clipboard' };
+// Ledger events without a source come from older APIs: browser only.
+const isDesktop = event => event.source === 'desktop';
+const eventOutcome = event => (isDesktop(event) && desktopOutcomes[event.action]) || outcomes[event.action] || 'DLP event';
+const eventDestination = event => isDesktop(event) ? (event.sourceApp ? `Copied in ${event.sourceApp} (desktop)` : 'Desktop app') : event.hostname;
 const marks = { chatgpt: 'G', claude: '✳', gemini: '✧', copilot: 'C', perplexity: 'P', deepseek: 'D' };
 const date = value => {
   if (!value) return 'Not available';
@@ -103,11 +109,14 @@ function reportSnapshot() {
     reportSubject: state.seatNumber === null ? 'Entire organisation' : seatLabel(state.seatNumber),
     reportIdentity: {adminName: window.Clerk?.user?.fullName || [window.Clerk?.user?.firstName,window.Clerk?.user?.lastName].filter(Boolean).join(' ') || 'Not available', organizationName:state.dashboard?.organization?.name || 'Not available', organizationEmail:state.dashboard?.organization?.email || 'Not available'}, exportedAt:Date.now(),
     dashboard: state.dashboard, recent: state.recent,
-    ledger: state.ledger && { ...state.ledger, events: state.ledger.events.map(event => ({ ...event, seat: seatLabel(eventSeat(event)) })) } };
+    ledger: state.ledger && { ...state.ledger, events: state.ledger.events.map(event => ({ ...event, seat: seatLabel(eventSeat(event)) })) },
+    desktop: desktop.data && { summary: desktop.data.summary || {}, memberCount: list(desktop.data.members).length,
+      tools: list(desktop.data.tools).map(tool => ({ name: tool.name, kind: DESKTOP_KINDS[tool.kind] || 'AI tool', members: desktopSeatNames(tool), firstSeen: tool.firstSeen, lastSeen: tool.lastSeen })) } };
 }
 function downloadJsonOverview() {
   if (!state.dashboard) return;
-  const snapshot = { sampleData: PREVIEW, localExtensionDemo: EXTENSION_DEMO, stale: state.stale, periodDays: state.days, ...state.dashboard };
+  const snapshot = { sampleData: PREVIEW, localExtensionDemo: EXTENSION_DEMO, stale: state.stale, periodDays: state.days, ...state.dashboard,
+    ...(desktop.data ? { desktop: desktop.data } : {}) };
   const url = URL.createObjectURL(new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' }));
   const link = document.createElement('a'); link.href = url; link.download = `secureintent-shadow-ai${PREVIEW ? '-sample' : ''}.json`;
   document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -355,16 +364,96 @@ function renderReviews() {
   $('#review-board').hidden = state.view !== 'board';
   $('#queue-summary').textContent = `Showing ${visible.length} of ${tools().length} service reviews`;
 }
-const eventTone = action => ({ blocked: 'high', cancelled: 'review', sanitised: 'done', warning_bypassed: 'medium' })[action] || 'low';
+const eventTone = action => ({ blocked: 'high', cancelled: 'review', sanitised: 'done', warning_bypassed: 'medium', auto_redacted: 'done', purged: 'done', unlocked: 'medium' })[action] || 'low';
 function renderActivity() {
-  $('#timeline').innerHTML = state.recent.length ? state.recent.slice(0, 4).map(event => `<li><span class="timeline-icon ${event.action === 'blocked' ? 'warm' : ''}">${icon(event.action === 'sanitised' ? 'check' : 'shield')}</span><div><strong>${esc(outcomes[event.action] || 'DLP event')}</strong><p>${esc(event.hostname)} · ${esc(event.reason)}</p><time>${esc(date(event.timestamp))}</time></div></li>`).join('') : '<li><div></div><p class="empty-state">No sensitive activity in this period.</p></li>';
+  $('#timeline').innerHTML = state.recent.length ? state.recent.slice(0, 4).map(event => `<li><span class="timeline-icon ${event.action === 'blocked' ? 'warm' : ''}">${icon(['sanitised', 'auto_redacted'].includes(event.action) ? 'check' : 'shield')}</span><div><strong>${esc(eventOutcome(event))}</strong><p>${esc(eventDestination(event))} · ${esc(event.reason)}</p><time>${esc(date(event.timestamp))}</time></div></li>`).join('') : '<li><div></div><p class="empty-state">No sensitive activity in this period.</p></li>';
   const ledger = state.ledger;
-  $('#ledger-body').innerHTML = ledger?.events.length ? ledger.events.map(event => `<tr><td>${esc(date(event.timestamp))}</td><td>${esc(seatLabel(eventSeat(event)))}</td><td>${esc(event.hostname)}<small>${esc(event.serviceId)}</small></td><td>${esc(event.reason)}</td><td><span class="badge ${eventTone(event.action)}">${esc(outcomes[event.action] || 'DLP event')}</span></td><td>${fmt(event.findingCount)}</td></tr>`).join('') : '<tr><td colspan="6" class="empty-state">No sensitive events in this period.</td></tr>';
+  $('#ledger-subtitle').textContent = ledger?.desktopAvailable === false
+    ? 'Detection reasons and outcomes from the browser extension. Hostnames only; no pasted content.'
+    : 'Detection reasons and outcomes from the browser and the desktop app. Hostnames and app names only; no pasted content.';
+  $('#ledger-body').innerHTML = ledger?.events.length ? ledger.events.map(event => `<tr><td>${esc(date(event.timestamp))}</td><td>${esc(seatLabel(eventSeat(event)))}</td><td>${isDesktop(event) ? 'Desktop app' : 'Browser'}</td><td>${esc(eventDestination(event))}${isDesktop(event) ? '' : `<small>${esc(event.serviceId)}</small>`}</td><td>${esc(event.reason)}</td><td><span class="badge ${eventTone(event.action)}">${esc(eventOutcome(event))}</span></td><td>${fmt(event.findingCount)}</td></tr>`).join('') : '<tr><td colspan="7" class="empty-state">No sensitive events in this period.</td></tr>';
   const count = ledger?.events.length || 0;
   $('#ledger-count').textContent = `${fmt(ledger?.total)} events · ${count ? state.offset + 1 : 0} to ${count ? state.offset + count : 0}`;
   state.nextOffset = ledger?.nextOffset ?? null;
   $('#prev').disabled = state.offset === 0;
   $('#next').disabled = state.nextOffset === null;
+}
+// AI on members' computers: what the SecureIntent desktop app found. Optional:
+// a pilot (available: false), an older backend (404) or any failure leaves the
+// section hidden, never an error. Fetched beside the main data, never awaited.
+const DESKTOP_KINDS = { local_model: 'Local AI model', editor_extension: 'AI editor extension', desktop_app: 'AI desktop app' };
+const OS_NAMES = { macos: 'macOS', darwin: 'macOS', windows: 'Windows', win32: 'Windows', linux: 'Linux' };
+const DESKTOP_REFRESH_MS = 60000;
+const desktop = { data: null, key: '', pending: '', fetchedAt: 0, missing: false, controller: null, view: 'members' };
+const list = value => Array.isArray(value) ? value : [];
+/** Seat list name first; else the name the desktop data carries; else "Seat N". */
+function desktopMember(seatNumber) {
+  if (state.seats.some(seat => seat.seatNumber === seatNumber)) return seatLabel(seatNumber);
+  const member = list(desktop.data?.members).find(item => item.seatNumber === seatNumber);
+  return String(member?.email || '').split('@')[0] || member?.name || (seatNumber ? `Seat ${seatNumber}` : 'Unattributed');
+}
+function desktopSeatNames(tool) {
+  const numbers = list(tool.seatNumbers);
+  const names = numbers.slice(0, 5).map(desktopMember).join(', ');
+  return numbers.length > 5 ? `${names} and ${numbers.length - 5} more` : names || `${fmt(tool.memberCount)} ${number(tool.memberCount) === 1 ? 'member' : 'members'}`;
+}
+function desktopComputer(member) {
+  const devices = list(member.devices);
+  const latest = devices.reduce((best, device) => (number(device.lastSeen) > number(best.lastSeen) ? device : best), devices[0] || {});
+  const os = OS_NAMES[String(latest.os || '').toLowerCase()] || String(latest.os || '');
+  const label = [os, latest.appVersion ? `desktop ${latest.appVersion}` : ''].filter(Boolean).join(' · ') || 'Desktop app';
+  return `${esc(label)}${devices.length > 1 ? `<small>${fmt(devices.length)} computers</small>` : ''}`;
+}
+const desktopTools = (member, kind) => list(member.tools).filter(tool => tool.kind === kind).map(tool => tool.name).join(', ') || 'None';
+function renderDesktop() {
+  const data = desktop.data;
+  $('#desktop').hidden = !state.dashboard || data?.available !== true;
+  if ($('#desktop').hidden) return;
+  const members = list(data.members), found = list(data.tools), summary = data.summary || {};
+  const empty = !members.length;
+  $('#desktop-empty').hidden = !empty;
+  for (const selector of ['#desktop-views', '#desktop-summary', '#desktop-table']) $(selector).hidden = empty;
+  if (empty) return;
+  const stats = [
+    ['Members with the desktop app', summary.membersWithDesktop],
+    ['Running a local AI model', summary.membersWithLocalModel],
+    ['AI tools found', summary.toolsFound],
+    ['New this period', summary.newThisPeriod],
+    ['Desktop catches', summary.desktopCatches],
+  ];
+  $('#desktop-summary').innerHTML = stats.map(([label, value]) => `<div><strong>${fmt(value)}</strong><span>${label}</span></div>`).join('');
+  const table = (caption, headers, rows, colspan) => `<table class="desktop-table"><caption class="sr-only">${caption}</caption><thead><tr>${headers.map(header => `<th scope="col">${header}</th>`).join('')}</tr></thead><tbody>${rows.length ? rows.join('') : `<tr><td colspan="${colspan}" class="empty-state">No AI tools found on members' computers in this period.</td></tr>`}</tbody></table>`;
+  $('#desktop-table').innerHTML = desktop.view === 'tools'
+    ? table('AI tools on members\' computers, by tool', ['Tool', 'Kind', 'Members', 'First seen', 'Last seen'],
+      found.map(tool => `<tr><td>${esc(tool.name)}</td><td>${esc(DESKTOP_KINDS[tool.kind] || 'AI tool')}</td><td>${esc(desktopSeatNames(tool))}</td><td>${esc(date(tool.firstSeen))}</td><td>${esc(date(tool.lastSeen))}</td></tr>`), 5)
+    : table('AI tools on members\' computers, by member', ['Member', 'Computer', 'Local AI models', 'AI editor extensions', 'AI desktop apps', 'Desktop catches', 'Last seen'],
+      members.map(member => `<tr><td>${esc(desktopMember(member.seatNumber))}</td><td>${desktopComputer(member)}</td><td>${esc(desktopTools(member, 'local_model'))}</td><td>${esc(desktopTools(member, 'editor_extension'))}</td><td>${esc(desktopTools(member, 'desktop_app'))}</td><td>${fmt(member.catches)}</td><td>${esc(date(member.lastSeen))}</td></tr>`), 7);
+}
+function loadDesktop(scope, force = false) {
+  const key = JSON.stringify(scope);
+  if (desktop.missing || desktop.pending === key || (!force && desktop.key === key && Date.now() - desktop.fetchedAt < DESKTOP_REFRESH_MS)) return;
+  desktop.controller?.abort();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  Object.assign(desktop, { controller, pending: key });
+  api('/v1/shadow/admin/desktop', scope, controller.signal).then(data => {
+    if (desktop.controller !== controller) return;
+    desktop.data = data?.available === true ? data : null;
+  }, error => {
+    if (desktop.controller !== controller) return;
+    // Not deployed yet: stop asking until the page reloads. Any other failure
+    // keeps what this scope already shows (or nothing) and retries later.
+    if (error.status === 404) { desktop.missing = true; desktop.data = null; }
+  }).finally(() => {
+    clearTimeout(timeout);
+    if (desktop.controller !== controller) return;
+    Object.assign(desktop, { controller: null, pending: '', key, fetchedAt: Date.now() });
+    renderAll();
+  });
+}
+function clearDesktop() {
+  desktop.controller?.abort();
+  Object.assign(desktop, { data: null, key: '', pending: '', fetchedAt: 0, controller: null });
 }
 const renderCache = new Map();
 function renderAll() {
@@ -376,6 +465,7 @@ function renderAll() {
     ['services', [state.dashboard !== null, tools()], renderServices],
     ['reviews', tools(), renderReviews],
     ['activity', [state.offset, state.ledger, state.recent, state.seats], renderActivity],
+    ['desktop', [state.dashboard !== null, desktop.data, desktop.view, state.seats], renderDesktop],
   ];
   for (const [key, data, render] of parts) {
     const signature = JSON.stringify(data);
@@ -532,6 +622,7 @@ async function load() {
   if (EXTENSION_DEMO) extensionDemo.beginRefresh(days, offset);
   $('#refresh').disabled = true;
   $('#dashboard-shell').setAttribute('aria-busy', 'true');
+  loadDesktop(scope);
   try {
     const [dashboard, ledger, latest, seatList] = await Promise.all([
       api('/v1/shadow/admin/dashboard', scope, controller.signal),
@@ -613,6 +704,7 @@ function clearWorkspace() {
   requestController?.abort();
   clearTimeout(timer);
   state.dashboard = null; state.ledger = null; state.recent = []; state.offset = 0; state.stale = true;
+  clearDesktop();
   $('#detail-dialog').close();
   $('#toast').hidden = true;
   $('#error').hidden = true;
@@ -680,6 +772,7 @@ root.addEventListener('click', event => {
   if (button.dataset.serviceFilter) { state.filter = button.dataset.serviceFilter; selectedGroup('data-service-filter', state.filter); renderServices(); }
   if (button.dataset.reviewFilter) { state.reviewFilter = button.dataset.reviewFilter; selectedGroup('data-review-filter', state.reviewFilter); renderReviews(); }
   if (button.dataset.view) { state.view = button.dataset.view; selectedGroup('data-view', state.view); renderReviews(); }
+  if (button.dataset.desktopView) { desktop.view = button.dataset.desktopView; selectedGroup('data-desktop-view', desktop.view); renderDesktop(); }
   if (button.dataset.service) showService(button.dataset.service);
   if (button.dataset.drill) showDrill(button.dataset.drillService, button.dataset.drill);
   if (button.dataset.drillBack) {
@@ -720,7 +813,7 @@ $('#report-seat').addEventListener('change', event => {
 });
 $('#review-services').addEventListener('click', reviewServices);
 $('#review-policy').addEventListener('click', reviewServices);
-$('#refresh').addEventListener('click', load);
+$('#refresh').addEventListener('click', () => { desktop.fetchedAt = 0; load(); });
 $('#prev').addEventListener('click', () => { state.offset = Math.max(0, state.offset - LIMIT); load(); });
 $('#next').addEventListener('click', () => { if (state.nextOffset !== null) { state.offset = state.nextOffset; load(); } });
 $('#signout').addEventListener('click', async () => {
