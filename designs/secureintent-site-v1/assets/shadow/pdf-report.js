@@ -345,7 +345,8 @@ function makeReport(snapshot) {
       const values = desktopOnly
         ? [tool.name, `Desktop: ${DESKTOP_KINDS[tool.kind] || 'AI tool'}`, classification,
           count(tool.activeSeats ?? (Array.isArray(tool.seatNumbers) ? tool.seatNumbers.length : 0)), '-', '-', 'Not applied on desktop']
-        : [tool.name, tool.hostname || (tool.observedHostnames || []).join(', '), classification,
+        // A web service also used through its desktop app says so, as the card does.
+        : [tool.name, `${tool.hostname || (tool.observedHostnames || []).join(', ')}${tool.desktop ? ' + desktop app' : ''}`, classification,
           tool.activeSeats == null ? 'N/A' : count(tool.activeSeats), count(tool.visits), count(tool.pastes), pastePolicy];
       let x = LEFT;
       values.forEach((value, i) => {

@@ -500,6 +500,12 @@
         }
       }
 
+      // "Desktop app 0.2.12" or "Extension 1.2.0": which product, and its release
+      // without a test build's suffix. The full version is in the tooltip.
+      function deviceLabel(d) {
+        const full = String(d.extensionVersion || "");
+        return { text: `${d.client === "desktop" ? "Desktop app" : "Extension"} ${full.split("-")[0] || full}`, full };
+      }
       function policyStatusLabel(status) {
         return ({guards_confirmed:"Up to date · confirmed on open pages",applied:"Up to date",downloaded:"Up to date",
           disabled:"Protection disabled",failed:"Policy could not be applied",offline:"Offline · updates when it reconnects",
@@ -587,7 +593,7 @@
               : `last seen ${relTime(msIso(d.lastSeenAt)) || "a while ago"}`;
           const li = document.createElement("li");
           li.className = `rollout-person tone-${tone}`;
-          li.innerHTML = `<span class="rollout-person-icon" aria-hidden="true">${icon}</span><span class="rollout-person-name">${esc(shortName(m))}</span><span class="rollout-person-why">${esc(why)}</span><span class="rollout-person-ver">v${esc(d.extensionVersion)}</span>`;
+          li.innerHTML = `<span class="rollout-person-icon" aria-hidden="true">${icon}</span><span class="rollout-person-name">${esc(shortName(m))}</span><span class="rollout-person-why">${esc(why)}</span><span class="rollout-person-ver" title="${esc(deviceLabel(d).full)}">${esc(deviceLabel(d).text)}</span>`;
           list.appendChild(li);
         }
         if (people.length > shown.length) {
@@ -605,7 +611,9 @@
       function devicePolicyDetails(connection, userId, expanded) {
         if (!connection?.devices?.length) return "";
         return `<details data-policy-user="${esc(userId)}" ${expanded.has(userId) ? "open" : ""}><summary>${connection.devices.length} ${connection.devices.length === 1 ? "device" : "devices"}</summary>${connection.devices.map((d,i)=>
-          `<div>Device ${i+1} · v${esc(d.extensionVersion)}<br>${esc(policyStatusLabel(d.rollout === "applied" && d.policyStatus !== "guards_confirmed" ? "applied" : d.policyStatus))} · revision ${esc(d.appliedPolicyVersion)}<br><small>${esc(d.confirmedGuards)} guards responded · ${esc(d.expectedPages)} web pages checked</small></div>`).join("")}</details>`;
+          `<div>Device ${i+1} · <span title="${esc(deviceLabel(d).full)}">${esc(deviceLabel(d).text)}</span><br>${esc(policyStatusLabel(d.rollout === "applied" && d.policyStatus !== "guards_confirmed" ? "applied" : d.policyStatus))} · revision ${esc(d.appliedPolicyVersion)}${
+            // Page guards are the extension's; the desktop app has none to report.
+            d.client === "desktop" ? "" : `<br><small>${esc(d.confirmedGuards)} guards responded · ${esc(d.expectedPages)} web pages checked</small>`}</div>`).join("")}</details>`;
       }
       function renderPeople(team) {
         if (!team) return;
@@ -1705,7 +1713,7 @@
         // Browser and desktop outcomes counted together, as the Overview chart does.
         const sumOf = (map, ...keys) => keys.reduce((t, k) => t + (map.get(k) || 0), 0);
         const devices = d.devices.length
-          ? `<ul class="mr-devices">${d.devices.map((dev) => `<li class="tone-${esc(dev.rollout)}"><span class="mr-dot" aria-hidden="true"></span><span>v${esc(dev.extensionVersion)}</span><b>${esc(ROLLOUT_LABEL[dev.rollout] || dev.rollout)}${dev.rollout === "applied" || dev.rollout === "updating" ? ` · revision ${esc(dev.appliedPolicyVersion)}` : ""}</b><small>${esc(agoMs(dev.lastSeenAt) ? `checked in ${agoMs(dev.lastSeenAt)}` : "")}</small></li>`).join("")}</ul>`
+          ? `<ul class="mr-devices">${d.devices.map((dev) => `<li class="tone-${esc(dev.rollout)}"><span class="mr-dot" aria-hidden="true"></span><span title="${esc(deviceLabel(dev).full)}">${esc(deviceLabel(dev).text)}</span><b>${esc(ROLLOUT_LABEL[dev.rollout] || dev.rollout)}${dev.rollout === "applied" || dev.rollout === "updating" ? ` · revision ${esc(dev.appliedPolicyVersion)}` : ""}</b><small>${esc(agoMs(dev.lastSeenAt) ? `checked in ${agoMs(dev.lastSeenAt)}` : "")}</small></li>`).join("")}</ul>`
           : `<p class="mr-empty">The extension hasn't checked in from this person's browser yet.</p>`;
         const stats = a
           ? `<div class="mr-stats"><div><b>${fmt(a.total)}</b><span>detections</span></div><div><b>${fmt(sumOf(byAction, "cancelled", "blocked", "purged"))}</b><span>stopped</span></div><div><b>${fmt(sumOf(byAction, "paste_anonymously", "sanitised", "auto_redacted"))}</b><span>anonymised</span></div><div class="${sumOf(byAction, "paste_anyway", "unlocked") ? "is-warn" : ""}"><b>${fmt(sumOf(byAction, "paste_anyway", "unlocked"))}</b><span>pasted anyway</span></div></div>${mrSpark(a.byDay, d.days)}`
@@ -1802,7 +1810,7 @@
         text(`Organisation: ${clip(currentTeam?.name || "Not available", 60)}   Joined: ${m.joinedAt ? shortDate(m.joinedAt, "en-GB") : "Unknown"}   Team policy revision ${d.policyVersion}`, LEFT, y, 8, C.muted); y += 24;
         section("Protection");
         if (!d.devices.length) row("The extension has not checked in from this person's browser yet.", undefined, C.muted);
-        for (const dev of d.devices) row(`Extension v${dev.extensionVersion} | last check-in ${agoMs(dev.lastSeenAt) || "unknown"}`, `${ROLLOUT_LABEL[dev.rollout] || dev.rollout}${dev.rollout === "applied" || dev.rollout === "updating" ? ` (rev ${dev.appliedPolicyVersion})` : ""}`);
+        for (const dev of d.devices) row(`${deviceLabel(dev).text} | last check-in ${agoMs(dev.lastSeenAt) || "unknown"}`, `${ROLLOUT_LABEL[dev.rollout] || dev.rollout}${dev.rollout === "applied" || dev.rollout === "updating" ? ` (rev ${dev.appliedPolicyVersion})` : ""}`);
         y += 6;
         section("Activity");
         const a = d.activity;
