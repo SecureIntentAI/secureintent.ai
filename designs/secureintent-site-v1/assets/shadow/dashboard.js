@@ -389,14 +389,15 @@ function renderChart() {
   $('#chart').innerHTML = svg + '</svg>';
 }
 const DESKTOP_BADGE = '<span class="badge low">Desktop</span>';
-const BOTH_BADGE = '<span class="badge low">Web + desktop app</span>';
+// How a web service was used this period: in the browser too, or only through its desktop app.
+const bothBadge = tool => `<span class="badge low">${tool.visits > 0 || tool.pastes > 0 || tool.activeSeats > 0 ? 'Web + desktop app' : 'Desktop app only'}</span>`;
 function serviceCard(tool) {
   const logo = `<span class="service-card-top"><span class="service-logo">${esc(marks[tool.serviceId] || String(tool.name).slice(0, 1))}</span>${icon('arrow-up')}</span>`;
   // Desktop-only: no hostname or page visits, so the kind, who has it and when it was last seen.
   if (desktopOnly(tool)) return `<button class="service-card" data-service="${esc(tool.serviceId)}" aria-label="View ${esc(tool.name)} details and classification">${logo}<strong>${esc(tool.name)}</strong><span class="service-domain">${esc(kindLabel(tool.kind))}</span><span class="service-meta">${plural(desktopCount(tool), 'member')} <span>·</span> last seen ${esc(shortDay(tool.lastSeen))}</span><span class="service-badges">${badge(tool)}${DESKTOP_BADGE}</span></button>`;
   const both = alsoOnDesktop(tool);
   const meta = `${fmt(tool.visits)} visits <span>·</span> ${tool.activeSeats == null ? `${fmt(tool.pastes)} pastes` : `${fmt(tool.activeSeats)} ${tool.activeSeats === 1 ? 'seat' : 'seats'}`}${both ? ` <span>·</span> ${fmt(both.memberCount)} on desktop` : ''}`;
-  return `<button class="service-card" data-service="${esc(tool.serviceId)}" aria-label="View ${esc(tool.name)} details and policy">${logo}<strong>${esc(tool.name)}</strong><span class="service-domain">${esc(tool.hostname)}</span><span class="service-meta">${meta}</span>${both ? `<span class="service-badges">${badge(tool)}${BOTH_BADGE}</span>` : badge(tool)}</button>`;
+  return `<button class="service-card" data-service="${esc(tool.serviceId)}" aria-label="View ${esc(tool.name)} details and policy">${logo}<strong>${esc(tool.name)}</strong><span class="service-domain">${esc(tool.hostname)}</span><span class="service-meta">${meta}</span>${both ? `<span class="service-badges">${badge(tool)}${bothBadge(tool)}</span>` : badge(tool)}</button>`;
 }
 function renderServices() {
   const matchesFilter = tool => state.filter === 'all' || (state.filter === 'desktop' ? seenOnDesktop(tool) : classification(tool) === state.filter);
