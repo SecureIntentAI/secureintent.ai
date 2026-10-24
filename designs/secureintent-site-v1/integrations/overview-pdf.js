@@ -261,8 +261,9 @@
       y += 24;
     }
     // Privacy wording rides in every page footer; the source line only where it fits.
+    const fromDesktop = (m.byClient || []).some((r) => r.key === "desktop" && Number(r.n) > 0);
     if (y + 12 <= BOTTOM)
-      text(m.source === "shadow_events" ? "Source: Shadow AI event ledger (AI destinations only)." : "Source: SecureIntent extension detections.", LEFT, y + 6, 7, C.faint);
+      text(m.source === "shadow_events" ? "Source: Shadow AI event ledger (AI destinations only)." : `Source: SecureIntent extension${fromDesktop ? " and desktop app" : ""} detections.`, LEFT, y + 6, 7, C.faint);
     return pages;
   }
 
