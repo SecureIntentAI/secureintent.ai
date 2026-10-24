@@ -42,6 +42,7 @@ const longDay = day => {
   return Number.isNaN(d.getTime()) ? '' : `${d.getUTCDate()} ${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 };
 
+const DESKTOP_KINDS = { local_model: 'local AI model', editor_extension: 'AI editor extension', desktop_app: 'AI desktop app' };
 const safeNumber = value => Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0;
 const count = value => Math.round(safeNumber(value)).toLocaleString('en-US');
 const formatBytes = value => safeNumber(value) < 1024 ? `${count(value)} B` : safeNumber(value) < 1048576 ? `${(safeNumber(value) / 1024).toFixed(1)} KB` : `${(safeNumber(value) / 1048576).toFixed(1)} MB`;
@@ -304,8 +305,15 @@ function makeReport(snapshot) {
     return Math.max(safeNumber(row.pastes), Object.values(parts).reduce((a, b) => a + b, 0));
   }, true);
   dailyChart('AI page visits per day', 'Visits', row => safeNumber(row.visits), false);
+  // Secrets the desktop app caught on copy. Older APIs send no desktopTrends.
+  const desktopDays = Array.isArray(dashboard.desktopTrends) ? new Map(dashboard.desktopTrends.map(row => [row.day, safeNumber(row.catches)])) : null;
+  if (desktopDays) dailyChart('Desktop catches per day', 'Desktop catches', row => desktopDays.get(row.day) || 0, false);
   text('Visits show page loads, not AI submissions. Paste counts are attempts, not confirmed submissions.', LEFT, y, 7, COLORS.faint);
-  y += 19;
+  y += desktopDays ? 10 : 19;
+  if (desktopDays) {
+    text('A desktop catch is a secret the SecureIntent desktop app caught when it was copied.', LEFT, y, 7, COLORS.faint);
+    y += 19;
+  }
 
   section('AI service inventory');
   const columnWidths = [74, 100, 82, 45, 45, 45, 116];
@@ -320,6 +328,7 @@ function makeReport(snapshot) {
     y += 22;
   };
   const serviceRows = Array.isArray(dashboard.tools) ? dashboard.tools : [];
+  const desktopOnlyRows = serviceRows.filter(tool => tool.source === 'desktop').length;
   if (!serviceRows.length) {
     text('No AI services were observed in this reporting period.', LEFT, y + 13, 8, COLORS.muted);
     y += 28;
@@ -330,16 +339,27 @@ function makeReport(snapshot) {
       if (index % 2 === 1) rect(LEFT, y, WIDTH, 25, [0.985, 0.988, 0.992]);
       const classification = { sanctioned: 'Sanctioned', recognized: 'Recognised', review: 'Needs review' }[tool.classification] || 'Needs review';
       const pastePolicy = { normal: 'Normal protection', block_sensitive: 'Block sensitive', block_all: 'Block all pastes' }[tool.pasteMode] || (tool.pasteBlocked ? 'Block all pastes' : 'Normal protection');
-      const values = [tool.name, tool.hostname || (tool.observedHostnames || []).join(', '), classification,
-        tool.activeSeats == null ? 'N/A' : count(tool.activeSeats), count(tool.visits), count(tool.pastes), pastePolicy];
+      // A desktop-only tool (found by the desktop app, no website): its kind in place
+      // of a hostname, members as seats, and no visits, pastes or paste rule.
+      const desktopOnly = tool.source === 'desktop';
+      const values = desktopOnly
+        ? [tool.name, `Desktop: ${DESKTOP_KINDS[tool.kind] || 'AI tool'}`, classification,
+          count(tool.activeSeats ?? (Array.isArray(tool.seatNumbers) ? tool.seatNumbers.length : 0)), '-', '-', 'Not applied on desktop']
+        : [tool.name, tool.hostname || (tool.observedHostnames || []).join(', '), classification,
+          tool.activeSeats == null ? 'N/A' : count(tool.activeSeats), count(tool.visits), count(tool.pastes), pastePolicy];
       let x = LEFT;
       values.forEach((value, i) => {
-        text(clipped(value, Math.floor((columnWidths[i] - 10) / 4.2)), x + 5, y + 15, 7, COLORS.ink);
+        text(desktopOnly ? fit(value, columnWidths[i] - 10) : clipped(value, Math.floor((columnWidths[i] - 10) / 4.2)), x + 5, y + 15, 7, COLORS.ink);
         x += columnWidths[i];
       });
       line(LEFT, y + 25, RIGHT, y + 25, COLORS.line, 0.4);
       y += 25;
     });
+    if (desktopOnlyRows) {
+      ensure(18);
+      text(`${count(desktopOnlyRows)} ${desktopOnlyRows === 1 ? 'tool was' : 'tools were'} found only by the desktop app: Seats counts members who have it. Paste rules apply in the browser.`, LEFT, y + 12, 7, COLORS.faint);
+      y += 16;
+    }
   }
   y += 14;
 

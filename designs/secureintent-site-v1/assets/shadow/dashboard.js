@@ -56,6 +56,19 @@ const bytes = value => number(value) < 1024 ? `${fmt(value)} B` : number(value) 
 const pasteMode = tool => Object.hasOwn(modes, tool.pasteMode) ? tool.pasteMode : tool.pasteBlocked ? 'block_all' : 'normal';
 const classification = tool => Object.hasOwn(classifications, tool.classification) ? tool.classification : 'review';
 const badge = tool => `<span class="badge ${classification(tool) === 'recognized' ? 'progress' : classification(tool)}">${classifications[classification(tool)]}</span>`;
+// AI tools the desktop app found with no browser counterpart (source 'desktop'),
+// and browser services also found on members' computers (tool.desktop). Older
+// APIs send neither, and every line below that uses them then stays as it was.
+const desktopOnly = tool => tool?.source === 'desktop';
+const alsoOnDesktop = tool => !desktopOnly(tool) && tool?.desktop && typeof tool.desktop === 'object' ? tool.desktop : null;
+const seenOnDesktop = tool => desktopOnly(tool) || !!alsoOnDesktop(tool);
+const kindLabel = kind => DESKTOP_KINDS[kind] || 'AI tool';
+const desktopCount = tool => number(tool.activeSeats ?? (Array.isArray(tool.seatNumbers) ? tool.seatNumbers.length : 0));
+const plural = (n, one, many = `${one}s`) => `${fmt(n)} ${number(n) === 1 ? one : many}`;
+const shortDay = value => {
+  const parsed = new Date(value || NaN);
+  return Number.isNaN(parsed.getTime()) ? 'not available' : parsed.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+};
 const state = { days: 30, seatNumber: null, seats: [], seatsLoaded: false, seatsRechecked: new Set(), chart: 'visits', search: '', filter: 'all', reviewFilter: 'all', view: 'list', offset: 0, nextOffset: null,
   dashboard: null, ledger: null, recent: [], scope: '', ready: false, saving: false, stale: true };
 let extensionDemo, previewApi, timer, retryDelay = POLL_MS, requestController, requestId = 0, toastTimer, dialogTrigger;
@@ -156,8 +169,15 @@ function renderReviewProgress(summary) {
   const groups = REVIEW_GROUPS.map(group => {
     const members = all.filter(tool => classification(tool) === group.key);
     const visits = members.reduce((n, tool) => n + number(tool.visits), 0);
-    return { ...group, count: members.length, visits, share: totalVisits ? visits / totalVisits : 0 };
+    const desktop = members.filter(desktopOnly).length;
+    return { ...group, count: members.length, desktop, visits, share: totalVisits ? visits / totalVisits : 0 };
   });
+  // Desktop-only tools have no visits, so they get a count rather than a share.
+  const groupNote = g => {
+    const visits = summary && totalVisits ? `${Math.round(g.share * 100)}% of visits` : 'No visits yet';
+    if (!summary || !g.desktop) return visits;
+    return g.count > g.desktop ? `${visits} · ${fmt(g.desktop)} desktop` : `${fmt(g.desktop)} desktop only`;
+  };
   const reviewed = groups[0].count + groups[1].count;
   const fraction = all.length ? reviewed / all.length : 0;
   $('#progress-percent').innerHTML = `${summary ? Math.round(fraction * 100) : '—'}<span>%</span>`;
@@ -175,16 +195,18 @@ function renderReviewProgress(summary) {
     offset += length;
     return arc;
   }).join('') : '';
-  $('#review-legend').innerHTML = groups.map(g => `<li><span class="legend-dot tone-${g.tone}" aria-hidden="true"></span><span class="legend-label">${g.label}</span><strong>${summary ? fmt(g.count) : '—'}</strong><span class="legend-bar" aria-hidden="true"><i class="tone-${g.tone}" style="width:${Math.round(g.share * 100)}%"></i></span><small>${summary && totalVisits ? `${Math.round(g.share * 100)}% of visits` : 'No visits yet'}</small></li>`).join('');
+  $('#review-legend').innerHTML = groups.map(g => `<li><span class="legend-dot tone-${g.tone}" aria-hidden="true"></span><span class="legend-label">${g.label}</span><strong>${summary ? fmt(g.count) : '—'}</strong><span class="legend-bar" aria-hidden="true"><i class="tone-${g.tone}" style="width:${Math.round(g.share * 100)}%"></i></span><small>${esc(groupNote(g))}</small></li>`).join('');
+  // Paste rules apply in the browser, so desktop-only tools are not counted here.
   const rules = { normal: 0, block_sensitive: 0, block_all: 0 };
-  for (const tool of all) rules[pasteMode(tool)] = (rules[pasteMode(tool)] || 0) + 1;
-  $('#review-rules').innerHTML = summary && all.length
+  const webTools = all.filter(tool => !desktopOnly(tool));
+  for (const tool of webTools) rules[pasteMode(tool)] = (rules[pasteMode(tool)] || 0) + 1;
+  $('#review-rules').innerHTML = summary && webTools.length
     ? `<span class="review-rules-title">Paste rules</span>${[['normal', 'normal', ''], ['block_sensitive', 'block sensitive', ' rule-warn'], ['block_all', 'block all', ' rule-block']].map(([key, label, cls]) => `<span class="rule-chip${cls}${rules[key] ? '' : ' is-zero'}">${fmt(rules[key])} ${label}</span>`).join('')}`
     : '';
   const next = all.filter(tool => classification(tool) === 'review').sort((a, b) => number(b.visits) - number(a.visits))[0];
   $('#review-next').hidden = !next;
   $('#review-next').innerHTML = next
-    ? `<div><span class="review-next-title">Next to review</span><strong>${esc(next.name)}</strong><small>${fmt(next.visits)} visits · ${fmt(next.pastes)} pastes</small></div><button class="button small" type="button" data-service="${esc(next.serviceId)}">Review</button>`
+    ? `<div><span class="review-next-title">Next to review</span><strong>${esc(next.name)}</strong><small>${desktopOnly(next) ? `${esc(kindLabel(next.kind))} · ${plural(desktopCount(next), 'member')}` : `${fmt(next.visits)} visits · ${fmt(next.pastes)} pastes`}</small></div><button class="button small" type="button" data-service="${esc(next.serviceId)}">Review</button>`
     : '';
 }
 function renderMetrics() {
@@ -194,8 +216,14 @@ function renderMetrics() {
   // "Needs review" means undecided. Recognised is a decision, so it is not counted here.
   const needsReview = tools().filter(tool => classification(tool) === 'review').length;
   const recognised = tools().filter(tool => classification(tool) === 'recognized').length;
+  // Desktop-only tools get their own count, so the three parts add up to the total.
+  const desktopOnlyTools = tools().filter(desktopOnly);
+  const desktopOnlyCount = Number.isFinite(Number(summary?.desktopOnlyTools)) ? number(summary.desktopOnlyTools) : desktopOnlyTools.length;
+  const webSanctioned = sanctioned - desktopOnlyTools.filter(tool => classification(tool) === 'sanctioned').length;
+  const webUnsanctioned = unsanctioned - desktopOnlyTools.filter(tool => classification(tool) !== 'sanctioned').length;
+  const seenDesktop = tools().filter(seenOnDesktop).length;
   const cards = [
-    ['Discovered services', summary ? fmt(summary.totalTools) : '—', 'layers', summary ? `${sanctioned} sanctioned · ${unsanctioned} unsanctioned` : 'Waiting for activity'],
+    ['Discovered services', summary ? fmt(summary.totalTools) : '—', 'layers', summary ? `${webSanctioned} sanctioned · ${webUnsanctioned} unsanctioned${desktopOnlyCount ? ` · ${fmt(desktopOnlyCount)} desktop only` : ''}` : 'Waiting for activity'],
     ['Observed visits', summary ? fmt(summary.totalVisits) : '—', 'activity', `${state.days}-day reporting period`],
     ['Unsanctioned usage', summary ? `${number(summary.unsanctionedUsagePercent).toFixed(1)}<span class="metric-suffix">%</span>` : '—', 'shield', 'Share of visits to unsanctioned services'],
     ['Paste attempts', summary ? fmt(summary.pasteAttempts) : '—', 'clipboard', 'Attempted pastes, not submissions'],
@@ -207,6 +235,9 @@ function renderMetrics() {
   $('#review-filter-count').textContent = summary ? needsReview : '—';
   $('#recognized-filter-count').textContent = summary ? recognised : '—';
   $('#sanctioned-filter-count').textContent = summary ? sanctioned : '—';
+  $('#desktop-filter-count').textContent = summary ? seenDesktop : '—';
+  $('#desktop-filter').hidden = !summary || !seenDesktop;
+  if ($('#desktop-filter').hidden && state.filter === 'desktop') { state.filter = 'all'; selectedGroup('data-service-filter', 'all'); }
   $('#observed-services').textContent = summary ? `${tools().length} observed services` : 'Waiting for services';
   $('#attention-count').textContent = summary ? needsReview ? `${needsReview} ${needsReview === 1 ? 'service needs' : 'services need'} review.` : tools().length ? 'Every observed service has been reviewed.' : 'No AI services observed yet.' : 'Waiting for service decisions.';
   $('.attention-strip p > span').textContent = summary ? `${fmt(summary.highRiskDestinations)} of ${fmt(summary.totalTools)} AI ${number(summary.totalTools) === 1 ? 'tool' : 'tools'} ${number(summary.highRiskDestinations) === 1 ? 'needs' : 'need'} review · ${fmt(summary.sensitiveEvents)} sensitive events · ${bytes(summary.pasteBytes)} attempted volume` : 'Activity appears after enrolled extensions report it.';
@@ -278,24 +309,35 @@ const dayLabel = (day, opts = {}) => {
   if (opts.weekday && !opts.day) return WEEKDAYS[d.getUTCDay()];
   return [opts.weekday ? WEEKDAYS[d.getUTCDay()] : '', d.getUTCDate(), MONTHS[d.getUTCMonth()], opts.year ? d.getUTCFullYear() : ''].filter(Boolean).join(' ');
 };
+// Desktop catches per day (secrets the desktop app caught on copy). Older APIs
+// send no desktopTrends; the toggle then stays hidden.
+const desktopTrends = () => Array.isArray(state.dashboard?.desktopTrends) ? state.dashboard.desktopTrends : null;
 function renderChart() {
+  const desktopDays = desktopTrends();
+  $('[data-chart="desktop"]').hidden = !desktopDays;
+  if (!desktopDays && state.chart === 'desktop') { state.chart = 'visits'; selectedGroup('data-chart', 'visits'); }
   const rows = state.dashboard?.trends || [];
   const pastes = state.chart === 'pastes';
-  const value = row => pastes ? Math.max(number(row.pastes), Object.values(daySegments(row)).reduce((a, b) => a + b, 0)) : number(row.visits);
+  const catches = state.chart === 'desktop';
+  const caught = new Map((desktopDays || []).map(row => [row.day, number(row.catches)]));
+  const value = row => catches ? caught.get(row.day) || 0 : pastes ? Math.max(number(row.pastes), Object.values(daySegments(row)).reduce((a, b) => a + b, 0)) : number(row.visits);
+  const unit = catches ? 'desktop catches' : pastes ? 'paste attempts' : 'visits';
   const sum = rows.reduce((n, row) => n + value(row), 0);
   $('#chart-total').textContent = state.dashboard ? fmt(sum) : '—';
-  $('#chart-unit').textContent = pastes ? 'paste attempts' : 'observed visits';
+  $('#chart-unit').textContent = catches ? 'desktop catches' : pastes ? 'paste attempts' : 'observed visits';
   const legend = $('.chart-topline .legend');
   const totals = Object.fromEntries(PASTE_SEGMENTS.map(([key]) => [key, rows.reduce((n, row) => n + daySegments(row)[key], 0)]));
   legend.innerHTML = pastes
     ? PASTE_SEGMENTS.filter(([key]) => totals[key]).map(([key, label, color]) => `<span class="legend-item"><span class="legend-dot" style="background:${color}"></span>${esc(label)} ${fmt(totals[key])}</span>`).join('')
+    : catches ? '<span class="legend-item"><span class="legend-dot"></span>Secrets caught on copy</span>'
     : '<span class="legend-item"><span class="legend-dot"></span>AI page visits</span>';
   const active = rows.filter(row => value(row) > 0).length;
   const peak = rows.reduce((best, row) => (value(row) > value(best) ? row : best), rows[0] || {});
-  const explain = pastes ? 'Paste attempts are not submissions. Pasted content is never included.' : 'A visit is an observed page visit, not a submitted AI request.';
+  const explain = catches ? 'A desktop catch is a secret the desktop app caught when it was copied. Copied content is never included.'
+    : pastes ? 'Paste attempts are not submissions. Pasted content is never included.' : 'A visit is an observed page visit, not a submitted AI request.';
   $('#chart-caption').textContent = sum ? `Busiest day ${dayLabel(peak.day, { day: 'numeric', month: 'short' })} (${fmt(value(peak))}) · active on ${fmt(active)} of ${fmt(rows.length)} days. ${explain}` : explain;
   if (!rows.length || !sum) {
-    $('#chart').innerHTML = `<p class="empty-state">${state.dashboard ? 'No activity in this reporting period.' : 'Waiting for activity data…'}</p>`;
+    $('#chart').innerHTML = `<p class="empty-state">${state.dashboard ? catches ? 'No desktop catches in this reporting period.' : 'No activity in this reporting period.' : 'Waiting for activity data…'}</p>`;
     return;
   }
   // One bar per calendar day (UTC), straight from the API. Nothing interpolated.
@@ -304,7 +346,7 @@ function renderChart() {
   const max = axisMax(Math.max(...rows.map(value)));
   const slot = (right - left) / rows.length, barWidth = Math.max(2, Math.min(22, slot * 0.7));
   const yOf = n => bottom - (bottom - top) * n / max;
-  let svg = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${fmt(sum)} ${pastes ? 'paste attempts' : 'visits'} over ${rows.length} days, one bar per day"><title>${PREVIEW ? 'Sample' : 'Observed'} ${pastes ? 'paste attempts' : 'visits'} per day</title>`;
+  let svg = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${fmt(sum)} ${unit} over ${rows.length} days, one bar per day"><title>${PREVIEW ? 'Sample' : 'Observed'} ${unit} per day</title>`;
   // Weekends, lightly shaded, so weekday patterns stand out.
   if (rows.length <= 31) rows.forEach((row, i) => {
     const weekday = new Date(`${row.day}T12:00:00Z`).getUTCDay();
@@ -314,7 +356,7 @@ function renderChart() {
     const n = max * i / 4, y = yOf(n);
     svg += `<line class="chart-gridline" x1="${left}" x2="${right}" y1="${y}" y2="${y}"/><text x="${left - 7}" y="${y + 3}" text-anchor="end">${fmt(n)}</text>`;
   }
-  svg += `<text class="chart-axis-title" transform="translate(11 ${(top + bottom) / 2}) rotate(-90)" text-anchor="middle">${pastes ? 'Paste attempts' : 'Visits'}</text>`;
+  svg += `<text class="chart-axis-title" transform="translate(11 ${(top + bottom) / 2}) rotate(-90)" text-anchor="middle">${catches ? 'Desktop catches' : pastes ? 'Paste attempts' : 'Visits'}</text>`;
   svg += `<text class="chart-axis-title" x="${(left + right) / 2}" y="${height - 2}" text-anchor="middle">Day (UTC)</text>`;
   const labelEvery = Math.max(1, Math.ceil(rows.length / Math.max(2, Math.floor((right - left) / 58))));
   rows.forEach((row, i) => {
@@ -334,7 +376,7 @@ function renderChart() {
     const detail = pastes
       ? PASTE_SEGMENTS.filter(([key]) => segments[key]).map(([key, label]) => `${fmt(segments[key])} ${label.toLowerCase()}`).join(' · ')
       : '';
-    const tip = `${dayLabel(row.day, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}: ${fmt(value(row))} ${pastes ? 'paste attempts' : 'visits'}${detail ? ` (${detail})` : ''}`;
+    const tip = `${dayLabel(row.day, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}: ${fmt(value(row))} ${unit}${detail ? ` (${detail})` : ''}`;
     // A full-height hit area so even an empty day shows its date on hover.
     svg += `<g class="chart-day">${bars}<rect class="chart-hit" x="${left + i * slot}" y="${top}" width="${slot}" height="${bottom - top}"><title>${esc(tip)}</title></rect></g>`;
     if (row === peak && value(row)) svg += `<text class="chart-peak" x="${x + barWidth / 2}" y="${yOf(value(row)) - 4}" text-anchor="middle">${fmt(value(row))}</text>`;
@@ -346,19 +388,37 @@ function renderChart() {
   svg += `<line class="chart-axis" x1="${left}" x2="${right}" y1="${bottom}" y2="${bottom}"/>`;
   $('#chart').innerHTML = svg + '</svg>';
 }
+const DESKTOP_BADGE = '<span class="badge low">Desktop</span>';
+const BOTH_BADGE = '<span class="badge low">Web + desktop app</span>';
+function serviceCard(tool) {
+  const logo = `<span class="service-card-top"><span class="service-logo">${esc(marks[tool.serviceId] || String(tool.name).slice(0, 1))}</span>${icon('arrow-up')}</span>`;
+  // Desktop-only: no hostname or page visits, so the kind, who has it and when it was last seen.
+  if (desktopOnly(tool)) return `<button class="service-card" data-service="${esc(tool.serviceId)}" aria-label="View ${esc(tool.name)} details and classification">${logo}<strong>${esc(tool.name)}</strong><span class="service-domain">${esc(kindLabel(tool.kind))}</span><span class="service-meta">${plural(desktopCount(tool), 'member')} <span>·</span> last seen ${esc(shortDay(tool.lastSeen))}</span><span class="service-badges">${badge(tool)}${DESKTOP_BADGE}</span></button>`;
+  const both = alsoOnDesktop(tool);
+  const meta = `${fmt(tool.visits)} visits <span>·</span> ${tool.activeSeats == null ? `${fmt(tool.pastes)} pastes` : `${fmt(tool.activeSeats)} seats`}${both ? ` <span>·</span> ${fmt(both.memberCount)} on desktop` : ''}`;
+  return `<button class="service-card" data-service="${esc(tool.serviceId)}" aria-label="View ${esc(tool.name)} details and policy">${logo}<strong>${esc(tool.name)}</strong><span class="service-domain">${esc(tool.hostname)}</span><span class="service-meta">${meta}</span>${both ? `<span class="service-badges">${badge(tool)}${BOTH_BADGE}</span>` : badge(tool)}</button>`;
+}
 function renderServices() {
-  const visible = tools().filter(tool => (state.filter === 'all' || classification(tool) === state.filter) && `${tool.name} ${tool.hostname}`.toLowerCase().includes(state.search));
-  $('#service-grid').innerHTML = visible.map(tool => `<button class="service-card" data-service="${esc(tool.serviceId)}" aria-label="View ${esc(tool.name)} details and policy"><span class="service-card-top"><span class="service-logo">${esc(marks[tool.serviceId] || String(tool.name).slice(0, 1))}</span>${icon('arrow-up')}</span><strong>${esc(tool.name)}</strong><span class="service-domain">${esc(tool.hostname)}</span><span class="service-meta">${fmt(tool.visits)} visits <span>·</span> ${tool.activeSeats == null ? `${fmt(tool.pastes)} pastes` : `${fmt(tool.activeSeats)} seats`}</span>${badge(tool)}</button>`).join('');
+  const matchesFilter = tool => state.filter === 'all' || (state.filter === 'desktop' ? seenOnDesktop(tool) : classification(tool) === state.filter);
+  const haystack = tool => `${tool.name} ${tool.hostname}${seenOnDesktop(tool) ? ` desktop ${desktopOnly(tool) ? kindLabel(tool.kind) : ''}` : ''}`.toLowerCase();
+  const visible = tools().filter(tool => matchesFilter(tool) && haystack(tool).includes(state.search));
+  $('#service-grid').innerHTML = visible.map(serviceCard).join('');
   $('#service-empty').hidden = visible.length > 0;
   $('#service-empty').textContent = state.dashboard ? tools().length ? 'No services match. Try another name or status.' : 'No AI tools discovered in this reporting period.' : 'Waiting for service data…';
 }
+// Paste rules apply in the browser; a desktop-only tool takes a classification only.
+const NOT_ON_DESKTOP = 'Not applied on desktop';
 function renderReviews() {
   const visible = tools().filter(tool => state.reviewFilter === 'all' || (state.reviewFilter === 'done' ? classification(tool) === 'sanctioned' : classification(tool) !== 'sanctioned'));
-  const rows = visible.map(tool => `<tr><td><div class="task-name"><span class="service-logo" aria-hidden="true">${esc(marks[tool.serviceId] || String(tool.name).slice(0, 1))}</span><button class="task-open" data-service="${esc(tool.serviceId)}">Review ${esc(tool.name)} policy<small>${esc(tool.hostname)}</small></button></div></td><td><span class="review-policy-name">${modes[pasteMode(tool)]}</span></td><td>${fmt(tool.visits)} visits</td><td>${fmt(tool.pastes)} pastes</td><td>${badge(tool)}</td></tr>`).join('');
+  const rows = visible.map(tool => desktopOnly(tool)
+    ? `<tr><td><div class="task-name"><span class="service-logo" aria-hidden="true">${esc(String(tool.name).slice(0, 1))}</span><button class="task-open" data-service="${esc(tool.serviceId)}">Review ${esc(tool.name)}<small>${esc(kindLabel(tool.kind))} · Desktop</small></button></div></td><td><span class="review-policy-name">${NOT_ON_DESKTOP}</span></td><td>${plural(desktopCount(tool), 'member')}</td><td><span class="review-policy-name">Not collected</span></td><td>${badge(tool)}</td></tr>`
+    : `<tr><td><div class="task-name"><span class="service-logo" aria-hidden="true">${esc(marks[tool.serviceId] || String(tool.name).slice(0, 1))}</span><button class="task-open" data-service="${esc(tool.serviceId)}">Review ${esc(tool.name)} policy<small>${esc(tool.hostname)}</small></button></div></td><td><span class="review-policy-name">${modes[pasteMode(tool)]}</span></td><td>${fmt(tool.visits)} visits</td><td>${fmt(tool.pastes)} pastes</td><td>${badge(tool)}</td></tr>`).join('');
   $('#review-list').innerHTML = visible.length ? `<table class="review-table"><caption class="sr-only">Organisation service policies</caption><thead><tr><th scope="col">Service review</th><th scope="col">Paste policy</th><th scope="col">Usage</th><th scope="col">Paste attempts</th><th scope="col">Classification</th></tr></thead><tbody>${rows}</tbody></table>` : '<p class="empty-state">No services in this view.</p>';
   $('#review-board').innerHTML = ['review', 'recognized', 'sanctioned'].map(status => {
     const column = visible.filter(tool => classification(tool) === status);
-    return `<div class="board-column"><h3>${classifications[status]}<span class="count-badge">${column.length}</span></h3>${column.length ? column.map(tool => `<button class="board-task" data-service="${esc(tool.serviceId)}">${badge(tool)}<strong>${esc(tool.name)}</strong><p>${esc(tool.hostname)}</p><div><span>${modes[pasteMode(tool)]}</span></div></button>`).join('') : '<p class="empty-state">No services.</p>'}</div>`;
+    return `<div class="board-column"><h3>${classifications[status]}<span class="count-badge">${column.length}</span></h3>${column.length ? column.map(tool => desktopOnly(tool)
+      ? `<button class="board-task" data-service="${esc(tool.serviceId)}">${badge(tool)}<strong>${esc(tool.name)}</strong><p>${esc(kindLabel(tool.kind))} · Desktop</p><div><span>${NOT_ON_DESKTOP}</span><span>${plural(desktopCount(tool), 'member')}</span></div></button>`
+      : `<button class="board-task" data-service="${esc(tool.serviceId)}">${badge(tool)}<strong>${esc(tool.name)}</strong><p>${esc(tool.hostname)}</p><div><span>${modes[pasteMode(tool)]}</span></div></button>`).join('') : '<p class="empty-state">No services.</p>'}</div>`;
   }).join('');
   $('#review-list').hidden = state.view !== 'list';
   $('#review-board').hidden = state.view !== 'board';
@@ -461,7 +521,7 @@ function renderAll() {
   const parts = [
     ['metrics', [state.days, state.dashboard?.summary, tools()], renderMetrics],
     ['policy-rollout', [state.dashboard?.policyVersion, state.dashboard?.policyRollout], renderPolicyRollout],
-    ['chart', [state.days, state.chart, state.dashboard?.trends], renderChart],
+    ['chart', [state.days, state.chart, state.dashboard?.trends, state.dashboard?.desktopTrends], renderChart],
     ['services', [state.dashboard !== null, tools()], renderServices],
     ['reviews', tools(), renderReviews],
     ['activity', [state.offset, state.ledger, state.recent, state.seats], renderActivity],
@@ -479,13 +539,34 @@ function seatNames(tool) {
   const names = numbers.slice(0, 5).map(seatLabel).join(', ');
   return `<small class="seat-names">${esc(numbers.length > 5 ? `${names} and ${numbers.length - 5} more` : names)}</small>`;
 }
+/** The desktop endpoint's record of a tool, for a first-seen date the dashboard does not carry. */
+const desktopRecord = tool => list(desktop.data?.tools).find(item => item.name === tool.name && (!tool.kind || item.kind === tool.kind));
+function showDesktopService(tool, editable) {
+  const id = tool.serviceId;
+  const firstSeen = tool.firstSeen ?? desktopRecord(tool)?.firstSeen;
+  const names = seatNames(tool);
+  $('#detail-content').innerHTML = `<span class="service-logo">${esc(String(tool.name).slice(0, 1))}</span><h2 id="detail-title" style="margin-top:14px">${esc(tool.name)}</h2><p class="dialog-subtitle">${esc(kindLabel(tool.kind))} · Desktop · Team classification</p><dl class="dialog-meta"><div><dt>Kind</dt><dd>${esc(kindLabel(tool.kind))}</dd></div><div><dt>Members who have it</dt><dd>${plural(desktopCount(tool), 'member')}${names}</dd></div><div><dt>First seen</dt><dd>${esc(date(firstSeen))}</dd></div><div><dt>Last seen</dt><dd>${esc(date(tool.lastSeen))}</dd></div></dl>
+    <form id="policy-form" class="policy-form" data-service-id="${esc(id)}" data-desktop-only="true"><fieldset ${editable ? '' : 'disabled'}><label>Service classification<select name="classification">${Object.entries(classifications).map(([value, label]) => `<option value="${value}" ${classification(tool) === value ? 'selected' : ''}>${label}</option>`).join('')}</select></label></fieldset><p class="dialog-note">Found by the SecureIntent desktop app. Paste rules apply in the browser, so this tool takes a classification only.</p>${editable ? '' : `<p class="dialog-note">${state.stale ? 'Refresh the dashboard before editing policy.' : 'Only organisation admins can change team policies.'}</p>`}<p id="policy-error" class="error-banner" role="alert" hidden></p><p id="policy-message" role="status" hidden></p><div class="dialog-actions"><button class="button" type="button" data-close-dialog>Close</button>${editable ? '<button class="button primary" id="save-policy" type="submit">Save team policy</button>' : ''}</div></form>`;
+}
+/** "Also on desktop: 2 members (AI desktop app / AI editor extension)" for a browser service the desktop app found too. */
+function desktopAlsoLine(tool) {
+  const both = alsoOnDesktop(tool);
+  if (!both) return '';
+  const kinds = [...new Set(list(both.kinds).map(kindLabel))];
+  return `<p class="dialog-note dialog-desktop-note">Also on desktop: ${plural(both.memberCount, 'member')}${kinds.length ? ` (${esc(kinds.join(' / '))})` : ''}</p>`;
+}
 function showService(id) {
   const tool = toolById(id);
   if (!tool) return;
   drill.controller?.abort();
   const editable = canManage();
+  if (desktopOnly(tool)) {
+    showDesktopService(tool, editable);
+    if (!$('#detail-dialog').open) { dialogTrigger = root.activeElement || document.activeElement; $('#detail-dialog').showModal(); }
+    return;
+  }
   const description = { normal: 'Use the usual DLP warnings and available paste choices.', block_sensitive: 'Stop the whole paste when sensitive content is detected.', block_all: 'Stop every paste into this AI service.' };
-  $('#detail-content').innerHTML = `<span class="service-logo">${esc(marks[id] || String(tool.name).slice(0, 1))}</span><h2 id="detail-title" style="margin-top:14px">${esc(tool.name)}</h2><p class="dialog-subtitle">${esc(tool.hostname)} · Team policy</p><dl class="dialog-meta"><div><dt>Observed visits · ${state.days} days</dt><dd>${fmt(tool.visits)}</dd></div><div><dt>Paste attempts</dt><dd>${fmt(tool.pastes)}${tool.pastes > 0 && !PREVIEW ? `<button class="drill-link" type="button" data-drill="pastes" data-drill-service="${esc(id)}">View</button>` : ''}</dd></div><div><dt>Attempted volume</dt><dd>${bytes(tool.bytes)}</dd></div><div><dt>Active seats</dt><dd>${tool.activeSeats == null ? 'Not collected' : fmt(tool.activeSeats)}${tool.activeSeats > 0 && !PREVIEW ? `<button class="drill-link" type="button" data-drill="seats" data-drill-service="${esc(id)}">View</button>` : ''}${seatNames(tool)}</dd></div></dl>
+  $('#detail-content').innerHTML = `<span class="service-logo">${esc(marks[id] || String(tool.name).slice(0, 1))}</span><h2 id="detail-title" style="margin-top:14px">${esc(tool.name)}</h2><p class="dialog-subtitle">${esc(tool.hostname)} · Team policy</p>${desktopAlsoLine(tool)}<dl class="dialog-meta"><div><dt>Observed visits · ${state.days} days</dt><dd>${fmt(tool.visits)}</dd></div><div><dt>Paste attempts</dt><dd>${fmt(tool.pastes)}${tool.pastes > 0 && !PREVIEW ? `<button class="drill-link" type="button" data-drill="pastes" data-drill-service="${esc(id)}">View</button>` : ''}</dd></div><div><dt>Attempted volume</dt><dd>${bytes(tool.bytes)}</dd></div><div><dt>Active seats</dt><dd>${tool.activeSeats == null ? 'Not collected' : fmt(tool.activeSeats)}${tool.activeSeats > 0 && !PREVIEW ? `<button class="drill-link" type="button" data-drill="seats" data-drill-service="${esc(id)}">View</button>` : ''}${seatNames(tool)}</dd></div></dl>
     <form id="policy-form" class="policy-form" data-service-id="${esc(id)}"><fieldset ${editable ? '' : 'disabled'}><label>Service classification<select name="classification">${Object.entries(classifications).map(([value, label]) => `<option value="${value}" ${classification(tool) === value ? 'selected' : ''}>${label}</option>`).join('')}</select></label><fieldset><legend>How should your team paste here?</legend>${Object.entries(modes).map(([value, label]) => `<label class="policy-option"><input type="radio" name="pasteMode" value="${value}" ${pasteMode(tool) === value ? 'checked' : ''}><span><strong>${label}</strong><small>${description[value]}</small></span></label>`).join('')}</fieldset></fieldset><p class="dialog-note">${EXTENSION_DEMO ? 'Local demo: policy changes apply to this browser’s open AI tabs immediately.' : PREVIEW ? 'Local preview: changes reset when you reload.' : 'Saves the organisation policy. Extension application will be shown only after a confirmed device acknowledgement.'} These controls govern pastes; website access remains available.</p>${editable ? '' : `<p class="dialog-note">${state.stale ? 'Refresh the dashboard before editing policy.' : 'Only organisation admins can change team policies.'}</p>`}<p id="policy-error" class="error-banner" role="alert" hidden></p><p id="policy-message" role="status" hidden></p><div class="dialog-actions"><button class="button" type="button" data-close-dialog>Close</button>${editable ? '<button class="button primary" id="save-policy" type="submit">Save team policy</button>' : ''}</div></form>`;
   if (!$('#detail-dialog').open) {
     dialogTrigger = root.activeElement || document.activeElement;
@@ -508,7 +589,7 @@ function renderDrill() {
   if (!tool) return;
   const title = drill.kind === 'seats' ? 'Active seats' : 'Paste attempts';
   const rows = drill.kind === 'seats'
-    ? drill.rows.map(row => `<li class="drill-row"><div><strong>${esc(seatLabel(row.seatNumber))}</strong>${fullName(row.seatNumber) ? `<small>${esc(fullName(row.seatNumber))}</small>` : ''}</div><div class="drill-meta"><span>${fmt(row.visits)} ${row.visits === 1 ? 'visit' : 'visits'} · ${fmt(row.pastes)} ${row.pastes === 1 ? 'paste' : 'pastes'}${row.sensitiveEvents ? ` · ${fmt(row.sensitiveEvents)} sensitive` : ''}</span><small>Last active ${esc(date(row.lastSeen))}</small></div></li>`)
+    ? drill.rows.map(row => `<li class="drill-row"><div><strong>${esc(seatLabel(row.seatNumber))}</strong>${fullName(row.seatNumber) ? `<small>${esc(fullName(row.seatNumber))}</small>` : ''}</div><div class="drill-meta">${row.source === 'desktop' ? `<span>On their computer (desktop app)</span><small>Last seen ${esc(date(row.lastSeen))}</small>` : `<span>${fmt(row.visits)} ${row.visits === 1 ? 'visit' : 'visits'} · ${fmt(row.pastes)} ${row.pastes === 1 ? 'paste' : 'pastes'}${row.sensitiveEvents ? ` · ${fmt(row.sensitiveEvents)} sensitive` : ''}</span><small>Last active ${esc(date(row.lastSeen))}</small>`}</div></li>`)
     : drill.rows.map(row => `<li class="drill-row"><div><strong>${esc(seatLabel(row.seatNumber))}</strong><small>${esc(date(row.timestamp))}</small></div><div class="drill-meta"><span class="badge ${row.outcome ? eventTone(row.outcome) : 'low'}">${esc(pasteOutcome(row))}</span><small>${esc(bytes(row.byteSize))}</small></div></li>`);
   const status = drill.loading ? 'Loading…' : drill.error ? '' : !drill.rows.length ? 'No activity in this period.' : '';
   $('#detail-content').innerHTML = `<button class="text-button drill-back" type="button" data-drill-back="${esc(drill.serviceId)}">‹ Back to ${esc(tool.name)} policy</button>
@@ -556,7 +637,7 @@ function showDrill(serviceId, kind) {
   // Keep unsaved classification / paste mode choices for when the admin comes Back.
   const form = $('#policy-form');
   drill.unsaved = form && !$('#policy-message').hidden && $('#policy-message').textContent.startsWith('Unsaved') && form.dataset.serviceId === serviceId
-    ? { classification: form.elements.classification.value, pasteMode: form.elements.pasteMode.value }
+    ? { classification: form.elements.classification.value, pasteMode: form.elements.pasteMode?.value }
     : null;
   Object.assign(drill, { serviceId, kind });
   void loadDrill();
@@ -564,8 +645,11 @@ function showDrill(serviceId, kind) {
 async function savePolicy(form) {
   if (state.saving || !canManage()) return;
   const data = new FormData(form);
-  const change = { serviceId: form.dataset.serviceId, classification: data.get('classification'), pasteMode: data.get('pasteMode') };
-  if (!Object.hasOwn(classifications, change.classification) || !Object.hasOwn(modes, change.pasteMode)) return;
+  // A desktop-only tool saves its classification alone: the API refuses a paste mode for it.
+  const classOnly = form.dataset.desktopOnly === 'true';
+  const change = classOnly ? { serviceId: form.dataset.serviceId, classification: data.get('classification') }
+    : { serviceId: form.dataset.serviceId, classification: data.get('classification'), pasteMode: data.get('pasteMode') };
+  if (!Object.hasOwn(classifications, change.classification) || (!classOnly && !Object.hasOwn(modes, change.pasteMode))) return;
   const scope = state.scope;
   const button = $('#save-policy');
   state.saving = true;
@@ -587,7 +671,9 @@ async function savePolicy(form) {
     // The team console's Policy page shares this revision (see team.js).
     window.dispatchEvent(new CustomEvent('si-policy-saved', { detail: { policyVersion: result.policyVersion } }));
     state.dashboard.policyRollout = null;
-    const message = EXTENSION_DEMO ? 'Demo policy saved and sent to open tabs.' : PREVIEW ? 'Preview policy updated. Changes reset on reload.' : `Saved: ${modes[change.pasteMode]} (revision ${result.policyVersion}). Waiting for device confirmation.`;
+    const message = EXTENSION_DEMO ? 'Demo policy saved and sent to open tabs.' : PREVIEW ? 'Preview policy updated. Changes reset on reload.'
+      : classOnly ? `Saved: ${classifications[change.classification]} (revision ${result.policyVersion}).`
+      : `Saved: ${modes[change.pasteMode]} (revision ${result.policyVersion}). Waiting for device confirmation.`;
     $('#policy-status').textContent = message;
     $('#policy-message').textContent = message;
     $('#policy-message').hidden = false;
@@ -643,7 +729,7 @@ async function load() {
     // AI activity. Their events would otherwise show as "Former member" until a
     // reload, so an unseen seat number fetches the list again, once per seat.
     const seen = [...ledger.events, ...(latest?.events || [])].map(eventSeat)
-      .concat(dashboard.tools.flatMap(tool => tool.seatNumbers || []))
+      .concat(dashboard.tools.flatMap(tool => [...(tool.seatNumbers || []), ...list(tool.desktop?.seatNumbers)]))
       .filter(n => Number.isSafeInteger(n) && n > 0);
     const unknown = [...new Set(seen)].filter(n => !state.seats.some(seat => seat.seatNumber === n) && !state.seatsRechecked.has(n));
     if (state.seatsLoaded && unknown.length) {

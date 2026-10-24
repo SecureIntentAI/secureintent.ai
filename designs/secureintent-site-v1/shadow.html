@@ -110,7 +110,7 @@
 
       <div class="dashboard-grid">
         <section class="panel chart-panel" aria-labelledby="chart-title">
-          <div class="panel-heading"><div><h2 id="chart-title">Activity overview</h2><p>Observed visits and paste attempts.</p></div><div class="segmented compact" role="group" aria-label="Chart metric"><button class="selected" data-chart="visits" aria-pressed="true">Visits</button><button data-chart="pastes" aria-pressed="false">Pastes</button></div></div>
+          <div class="panel-heading"><div><h2 id="chart-title">Activity overview</h2><p>Observed visits and paste attempts.</p></div><div class="segmented compact" role="group" aria-label="Chart metric"><button class="selected" data-chart="visits" aria-pressed="true">Visits</button><button data-chart="pastes" aria-pressed="false">Pastes</button><button data-chart="desktop" aria-pressed="false" hidden>Desktop catches</button></div></div>
           <div class="chart-topline"><div><strong id="chart-total">—</strong><span id="chart-unit">observed visits</span></div><div class="legend" aria-label="Chart legend"></div></div>
           <div class="chart" id="chart"></div>
           <div class="chart-caption"><svg class="icon small"><use href="#i-activity"/></svg><span id="chart-caption">A visit is an observed page visit, not a submitted AI request.</span></div>
@@ -120,7 +120,7 @@
 
         <section class="panel services-panel" id="services" aria-labelledby="services-title">
           <div class="panel-heading"><div><div class="title-with-count"><h2 id="services-title">AI service inventory</h2><span class="count-badge" id="inventory-count">—</span></div><p>Service discovery and workspace classifications.</p></div><label class="search-control"><svg class="icon"><use href="#i-search"/></svg><input id="service-search" type="search" placeholder="Find a service…" aria-label="Search AI services"></label></div>
-          <div class="filter-row" role="group" aria-label="Service status filter"><button class="selected" data-service-filter="all" aria-pressed="true">All services</button><button data-service-filter="review" aria-pressed="false">Needs review <span id="review-filter-count">—</span></button><button data-service-filter="recognized" aria-pressed="false">Recognised <span id="recognized-filter-count">—</span></button><button data-service-filter="sanctioned" aria-pressed="false">Sanctioned <span id="sanctioned-filter-count">—</span></button></div>
+          <div class="filter-row" role="group" aria-label="Service status filter"><button class="selected" data-service-filter="all" aria-pressed="true">All services</button><button data-service-filter="review" aria-pressed="false">Needs review <span id="review-filter-count">—</span></button><button data-service-filter="recognized" aria-pressed="false">Recognised <span id="recognized-filter-count">—</span></button><button data-service-filter="sanctioned" aria-pressed="false">Sanctioned <span id="sanctioned-filter-count">—</span></button><button data-service-filter="desktop" id="desktop-filter" aria-pressed="false" hidden>Desktop <span id="desktop-filter-count">—</span></button></div>
           <div class="service-grid" id="service-grid"></div><p id="service-empty" class="empty-state" hidden>No services match. Try another name or status.</p>
         </section>
 
