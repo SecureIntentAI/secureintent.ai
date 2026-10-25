@@ -880,6 +880,10 @@
   .health--bad .line { color: var(--c-danger); font-weight: 600; }
   .subsec { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--c-line); }
   .subsec > p { margin: 0 0 14px; color: var(--c-muted); font-size: 13.5px; line-height: 1.6; max-width: 72ch; }
+  /* A saved custom rule's severity, set on its own (not part of Save changes). */
+  .rule-sev { min-height: 30px; padding: 4px 8px; font-size: 13px; }
+  #rule-sev-status { margin: 10px 0 0; }
+  #rule-sev-note { margin: 8px 0 0; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .chip {
     display: inline-flex;

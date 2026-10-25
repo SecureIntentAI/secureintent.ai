@@ -802,6 +802,8 @@
       // through, and against saving defaults over a record we never read.
       let settings = null;
       let settingsLoaded = false;
+      // Labels of the custom rules the server holds, as last read or saved.
+      let savedRules = new Set();
       let savedWebhook = "";
 
       // The Alerts page is a preview until alerts ship with the desktop app, so
@@ -884,6 +886,12 @@
           // What the extension really runs, as resolved by the server. Absent on
           // an older API, in which case nothing is claimed.
           detection: s.detection && typeof s.detection === "object" ? s.detection : null,
+          // Each saved custom rule's severity, set on its own endpoint. Absent on
+          // an older API, and then the rules show no severity at all.
+          ruleSeverities: Array.isArray(s.ruleSeverities)
+            ? s.ruleSeverities.filter((r) => r && typeof r.label === "string")
+              .map((r) => ({ label: r.label, severityId: SEVERITY[Number(r.severityId)] ? Number(r.severityId) : 3 }))
+            : null,
         };
       }
       function detectionText(d) {
@@ -1054,20 +1062,30 @@
         syncDirty();
       }
 
+      // Severity of a saved rule; one the server has not rated yet is Medium.
+      const ruleSeverity = (label) => settings.ruleSeverities?.find((r) => r.label === label)?.severityId || 3;
       function renderPatterns() {
         const list = settings.policy.extraPatterns;
+        // Only rules the server holds can be rated: an unsaved edit gets no select.
+        const rated = !!settings.ruleSeverities;
+        const isSaved = (p) => !!p.label && savedRules.has(p.label);
+        const severityCell = (p) => !rated ? "" : `<td>${isSaved(p)
+          ? `<select class="rule-sev" data-rule-sev="${esc(p.label)}" aria-label="Severity of ${esc(p.label)}">${[2, 3, 4, 5]
+            .map((id) => `<option value="${id}"${ruleSeverity(p.label) === id ? " selected" : ""}>${SEVERITY[id]}</option>`).join("")}</select>`
+          : ""}</td>`;
         $("pat-list").innerHTML = list.length
-          ? `<table><thead><tr><th>Label</th><th>Pattern</th><th>Treated as</th><th></th></tr></thead><tbody>${list
+          ? `<table><thead><tr><th>Label</th><th>Pattern</th><th>Treated as</th>${rated ? "<th>Severity</th>" : ""}<th></th></tr></thead><tbody>${list
               .map(
                 (p, i) =>
                   `<tr><td>${esc(p.label || "—")}</td><td><code>${esc(
                     p.regex,
                   )}</code></td><td><span class="tag">${esc(
                     TYPE_LABEL[p.type] || p.type,
-                  )}</span></td><td><button class="btn" type="button" data-pattern="${i}">Remove</button></td></tr>`,
+                  )}</span></td>${severityCell(p)}<td><button class="btn" type="button" data-pattern="${i}">Remove</button></td></tr>`,
               )
               .join("")}</tbody></table>`
           : '<div class="empty">No custom patterns, so only the built-in detectors run.</div>';
+        $("rule-sev-note").hidden = !(rated && list.some(isSaved));
         // The list just changed, so whether "use only these" is a no-op did too.
         syncReplaceWarning();
         syncDirty();
@@ -1095,6 +1113,7 @@
         try {
           const res = await api("/v1/team/settings");
           settings = normalizeSettings(res.settings || res);
+          savedRules = new Set(settings.policy.extraPatterns.map((p) => p.label));
           savedWebhook = settings.alertWebhook;
           settingsLoaded = true;
           renderSettings();
@@ -1141,7 +1160,11 @@
           // Take the server's copy when it sends one back (it owns
           // policyVersion); otherwise keep what we just wrote.
           const back = res && (res.settings || (res.policy ? res : null));
+          const severities = settings.ruleSeverities;
           settings = normalizeSettings(back || settings);
+          // A save answer without the severities keeps the ones already read.
+          if (!settings.ruleSeverities && severities) settings.ruleSeverities = severities;
+          savedRules = new Set(settings.policy.extraPatterns.map((p) => p.label));
           savedWebhook = settings.alertWebhook;
           if (currentTeam) {
             currentTeam.policyVersion = settings.policyVersion;
@@ -2227,6 +2250,32 @@
           flash($("policy-status"), `Removed ${gone}. Press Save changes to apply it.`, "ok");
         });
 
+        // A rule's severity saves on its own, straight away, and does not
+        // count as an unsaved policy edit.
+        $("pat-list").addEventListener("change", async (e) => {
+          const select = e.target.closest?.("select[data-rule-sev]");
+          if (!select) return;
+          const label = select.dataset.ruleSev;
+          const severityId = Number(select.value);
+          const before = ruleSeverity(label);
+          const st = $("rule-sev-status");
+          select.disabled = true;
+          flash(st, "Saving…", "");
+          try {
+            await api("/v1/team/settings/rule-severity", { method: "POST", body: JSON.stringify({ label, severityId }) });
+            const list = settings.ruleSeverities || (settings.ruleSeverities = []);
+            const found = list.find((r) => r.label === label);
+            if (found) found.severityId = severityId;
+            else list.push({ label, severityId });
+            flash(st, `Saved: "${label}" is now ${SEVERITY[severityId]}.`, "ok");
+          } catch (err) {
+            if (err.name === "AbortError") return;
+            select.value = String(before);
+            flash(st, explain(err, { fallback: `Couldn't save the severity for "${label}". Try again.` }), "err");
+          } finally {
+            select.disabled = false;
+          }
+        });
         $("pat-list").addEventListener("click", (e) => {
           const i = e.target.getAttribute?.("data-pattern");
           if (i === null || i === undefined) return;

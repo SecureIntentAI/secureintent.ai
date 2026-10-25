@@ -101,6 +101,11 @@ async function ctxFor(browser, { teamBody = team(), settingsBody = settings(), m
   await ctx.route("**/v1/team/settings*", (r) => r.fulfill({ json: settingsBody }));
   await ctx.route("**/v1/team/metrics*", (r) => r.fulfill({ json: metricsBody }));
   await ctx.route("**/v1/team/member-report", (r) => r.fulfill({ json: reportBody }));
+  ctx.ruleSeverityPosts = [];
+  await ctx.route("**/v1/team/settings/rule-severity", (r) => {
+    ctx.ruleSeverityPosts.push(r.request().postDataJSON());
+    return ctx.failRuleSeverity ? r.fulfill({ status: 500, json: { error: "save failed" } }) : r.fulfill({ json: { ok: true } });
+  });
   await ctx.route("**/v1/team*", (r) => r.fulfill({ json: teamBody }));
   await ctx.addInitScript(() => {
     window.Clerk = {
@@ -311,6 +316,64 @@ const state = () => ({
     const mrPdf = await download(p, "#mr-pdf");
     check("an older API: member PDF without By severity", !mrPdf.includes("By severity"), null);
     check("no page errors (older API)", errs.length === 0, errs);
+    await ctx.close();
+  }
+
+  // ---- 6. Policy: severity of saved custom rules -------------------------
+  {
+    const rated = settings({ ruleSeverities: [{ label: "Acme internal token", severityId: 4 }] });
+    rated.settings.policy.extraPatterns.push({ label: "Acme staff ID", regex: "ACS-[0-9]{6}", type: "pii" });
+    const ctx = await ctxFor(b, { settingsBody: rated });
+    const p = await ctx.newPage();
+    const errs = []; p.on("pageerror", (e) => errs.push(e.message));
+    await p.goto(BASE + "/team.html#/policy");
+    await p.waitForTimeout(900);
+    const rules = () => p.evaluate(() => ({
+      head: [...document.querySelectorAll("#pat-list th")].map((th) => th.textContent),
+      selects: [...document.querySelectorAll("#pat-list select[data-rule-sev]")].map((s) => [s.dataset.ruleSev, s.value]),
+      options: [...document.querySelectorAll("#pat-list select[data-rule-sev] option")].slice(0, 4).map((o) => o.textContent),
+      note: !document.getElementById("rule-sev-note").hidden,
+      status: document.getElementById("rule-sev-status").textContent,
+      statusClass: document.getElementById("rule-sev-status").className,
+      dirty: !document.getElementById("policy-dirty").hidden,
+    }));
+    let r = await rules();
+    check("saved rules get a severity select", r.head.includes("Severity") && JSON.stringify(r.selects) === '[["Acme internal token","4"],["Acme staff ID","3"]]', r);
+    check("severity options read Low to Critical", r.options.join() === "Low,Medium,High,Critical", r);
+    check("the severity note shows", r.note, r);
+    await p.selectOption('select[data-rule-sev="Acme internal token"]', "5");
+    await p.waitForTimeout(300);
+    r = await rules();
+    check("changing a severity posts label and id", JSON.stringify(ctx.ruleSeverityPosts) === '[{"label":"Acme internal token","severityId":5}]', ctx.ruleSeverityPosts);
+    check("and says it saved", r.statusClass.includes("ok") && r.status.includes("Critical"), r);
+    check("a severity change is not an unsaved policy edit", r.dirty === false, r);
+    await p.locator("#view-policy .subsec").nth(1).screenshot({ path: OUT + "c-rule-severity.png" });
+    ctx.failRuleSeverity = true;
+    await p.selectOption('select[data-rule-sev="Acme staff ID"]', "2");
+    await p.waitForTimeout(300);
+    r = await rules();
+    check("a failed save says so and puts the old level back", r.statusClass.includes("err") && JSON.stringify(r.selects[1]) === '["Acme staff ID","3"]', r);
+    await p.fill("#pat-label", "Draft rule");
+    await p.fill("#pat-regex", "DRAFT_[0-9]+");
+    await p.click("#pat-add");
+    await p.waitForTimeout(150);
+    r = await rules();
+    check("an unsaved rule gets no select", r.selects.length === 2 && !r.selects.some(([l]) => l === "Draft rule"), r);
+    check("no page errors (rule severity)", errs.length === 0, errs);
+    await ctx.close();
+  }
+  {
+    // settings() has no ruleSeverities: an older API.
+    const ctx = await ctxFor(b);
+    const p = await ctx.newPage();
+    await p.goto(BASE + "/team.html#/policy");
+    await p.waitForTimeout(900);
+    const r = await p.evaluate(() => ({
+      head: [...document.querySelectorAll("#pat-list th")].map((th) => th.textContent).join(),
+      selects: document.querySelectorAll("#pat-list select").length,
+      note: !document.getElementById("rule-sev-note").hidden,
+    }));
+    check("an older API: custom rules as before, no severity", r.head === "Label,Pattern,Treated as," && r.selects === 0 && !r.note, r);
     await ctx.close();
   }
 

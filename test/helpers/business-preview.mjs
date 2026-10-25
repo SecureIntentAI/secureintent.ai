@@ -26,7 +26,9 @@ const team = { team:{ orgId:'org_demo_northstar', name:'Northstar Engineering', 
   if (i === 0) return person;
   return { ...person, connection:{ status:'recently_connected', lastSeenAt:devices[0].lastSeenAt, devices } };
 }), invitations:[{id:'invite_demo_1',email:'taylor@northstar.example'}] } };
-const settings = { settings:{ alertWebhook:'', alertMinType:'known-key', policy:{ blockInsteadOfWarn:false, requireSessionLock:false, extraPatterns:[], blockedSites:[], replaceDefaultPatterns:false }, policyVersion:3, alertDelivery:{ known:false, ok:null, consecutiveFailures:0, suppressedEvents:0, throttleWindowSeconds:60 } } };
+// One saved team rule, rated High (ruleSeverities: OCSF 2 Low to 5 Critical).
+const settings = { settings:{ alertWebhook:'', alertMinType:'known-key', policy:{ blockInsteadOfWarn:false, requireSessionLock:false, extraPatterns:[{ label:'Northstar deploy token', regex:'NSD_[A-Z0-9]{32}', type:'known-key' }], blockedSites:[], replaceDefaultPatterns:false }, policyVersion:3, alertDelivery:{ known:false, ok:null, consecutiveFailures:0, suppressedEvents:0, throttleWindowSeconds:60 },
+  ruleSeverities:[{ label:'Northstar deploy token', severityId:4 }] } };
 const metrics = { metrics:{ days:30, total:263, activeActors:5,
   byDay:Array.from({length:30},(_,i)=>({day:new Date(Date.now()-(29-i)*86400000).toISOString().slice(0,10),n:[3,8,5,12,6,9,4,11,7,2][i%10]})),
   byDayAction:Array.from({length:30},(_,i)=>{const day=new Date(Date.now()-(29-i)*86400000).toISOString().slice(0,10);const n=[3,8,5,12,6,9,4,11,7,2][i%10];return [{day,key:'cancelled',n:Math.ceil(n*0.45)},{day,key:'paste_anonymously',n:Math.floor(n*0.3)},{day,key:'paste_anyway',n:Math.max(0,n-Math.ceil(n*0.45)-Math.floor(n*0.3))}];}).flat(),
@@ -163,6 +165,13 @@ handleRedirectCallback:async()=>{},load:async()=>{},addListener:(f)=>{listeners.
       return json(res, { accessToken: 'a'.repeat(64), expiresAt: Date.now() + 30 * 60000, orgId: 'org_demo_northstar' });
     if (url.pathname === '/mock-api/v1/team' && req.method === 'GET') return json(res, team);
     if (url.pathname === '/mock-api/v1/team/settings' && req.method === 'GET') return json(res, settings);
+    if (url.pathname === '/mock-api/v1/team/settings/rule-severity' && req.method === 'POST') {
+      const chunks = []; for await (const chunk of req) chunks.push(chunk);
+      const { label, severityId } = JSON.parse(Buffer.concat(chunks).toString() || '{}');
+      if (![2, 3, 4, 5].includes(severityId) || !settings.settings.policy.extraPatterns.some(p => p.label === label)) { res.writeHead(400, {'Content-Type':'application/json'}); res.end(JSON.stringify({ error: 'invalid_rule_severity' })); return; }
+      settings.settings.ruleSeverities = [...settings.settings.ruleSeverities.filter(r => r.label !== label), { label, severityId }];
+      return json(res, { ok: true, ruleSeverities: settings.settings.ruleSeverities });
+    }
     if (url.pathname === '/mock-api/v1/team/settings/test-alert' && req.method === 'POST') {
       if (!settings.settings.alertWebhook) { res.writeHead(400, {'Content-Type':'application/json'}); res.end(JSON.stringify({ error: 'no_webhook' })); return; }
       return json(res, { ok: true });
