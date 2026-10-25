@@ -56,7 +56,12 @@
       const SEVERITY = { 5: "Critical", 4: "High", 3: "Medium", 2: "Low" };
       const severityRows = (list) => (Array.isArray(list) ? list : [])
         .filter((r) => SEVERITY[Number(r?.severityId)])
-        .map((r) => ({ key: String(r.name || SEVERITY[Number(r.severityId)]), severityId: Number(r.severityId), n: Number(r.n) || 0 }));
+        .map((r) => ({ key: String(r.name || SEVERITY[Number(r.severityId)]), severityId: Number(r.severityId), n: Number(r.n) || 0,
+          // Catches whose secret went on anyway; null from an API that predates it.
+          letThrough: r.letThrough == null || !Number.isFinite(Number(r.letThrough)) ? null : Math.max(0, Number(r.letThrough)) }));
+      // "Critical or High let through": the potential incidents. Null when the API sends no letThrough.
+      const severeLetThrough = (rows) => rows.some((r) => r.letThrough !== null)
+        ? rows.filter((r) => r.severityId >= 4).reduce((t, r) => t + (r.letThrough || 0), 0) : null;
 
       // How far back the dashboard looks, and the last payload we drew, so
       // Export CSV writes exactly the figures on screen rather than refetching.
@@ -306,7 +311,8 @@
       }
 
       // `tone` names an extra class for a row's fill (the severity colours).
-      function bars(el, list, labels, tone) {
+      // `after` adds a line under a row (a severity's "let through" note).
+      function bars(el, list, labels, tone, after) {
         el.textContent = "";
         if (!list || !list.length) {
           el.innerHTML = '<div class="empty">Nothing yet</div>';
@@ -320,7 +326,7 @@
                 (labels && labels[r.key]) || r.key,
               )}</div><div class="track"><div class="fill${tone ? ` ${tone(r)}` : ""}" style="width:${
                 (r.n / max) * 100
-              }%"></div></div><div class="n">${fmt(r.n)}</div></div>`,
+              }%"></div></div><div class="n">${fmt(r.n)}</div></div>${after ? after(r) : ""}`,
           )
           .join("");
       }
@@ -420,7 +426,12 @@
           $("breakdowns").classList.toggle("quad", Array.isArray(m.bySeverity));
           if (Array.isArray(m.bySeverity)) {
             const sev = severityRows(m.bySeverity);
-            bars($("p-severity"), sev.some((r) => r.n) ? sev : [], null, (r) => `sev-${r.severityId}`);
+            bars($("p-severity"), sev.some((r) => r.n) ? sev : [], null, (r) => `sev-${r.severityId}`,
+              (r) => r.letThrough ? `<div class="row-note${r.severityId >= 4 ? " is-severe" : ""}">${fmt(r.letThrough)} let through</div>` : "");
+            // A sanitised Critical is an event; a Critical pasted anyway is a potential incident.
+            const severe = severeLetThrough(sev);
+            if (severe !== null && sev.some((r) => r.n)) $("p-severity").insertAdjacentHTML("afterbegin",
+              `<p class="sev-head">Critical or High let through: <b class="${severe ? "is-severe" : "is-none"}">${severe ? fmt(severe) : "none"}</b></p>`);
           }
           $("export").disabled = false;
           $("overview-export-pdf").disabled = false;
@@ -467,6 +478,8 @@
         );
         (m.byType || []).forEach((r) => rows.push(["type", r.key, TYPE_LABEL[r.key] || r.key, r.n]));
         severityRows(m.bySeverity).forEach((r) => rows.push(["severity", r.severityId, r.key, r.n]));
+        severityRows(m.bySeverity).filter((r) => r.letThrough !== null)
+          .forEach((r) => rows.push(["severity_let_through", r.severityId, r.key, r.letThrough]));
         (m.bySite || []).forEach((r) => rows.push(["destination", r.key, r.key, r.n]));
         (m.byAction || []).forEach((r) =>
           rows.push(["action", r.key, ACTION_LABEL[r.key] || r.key, r.n]),
@@ -1898,10 +1911,14 @@
           for (const r of a.byType || []) row(TYPE_LABEL[r.key] || r.key, count(r.n));
           y += 4;
           if (Array.isArray(a.bySeverity)) {
-            const sev = severityRows(a.bySeverity).filter((r) => r.n > 0);
+            const all = severityRows(a.bySeverity);
+            const sev = all.filter((r) => r.n > 0);
+            const severe = severeLetThrough(all);
             section("By severity");
+            if (severe !== null && sev.length) row("Critical or High let through", severe ? count(severe) : "none", severe ? C.up : C.down);
             if (!sev.length) row("Nothing in this period.", undefined, C.muted);
-            for (const r of sev) row(r.key, count(r.n));
+            for (const r of sev) row(r.letThrough === null ? r.key : `${r.key} | ${count(r.letThrough)} let through`, count(r.n));
+            ensure(14); text(kit.SEVERITY_MAP_NOTE, LEFT, y + 4, 7, C.faint); y += 14;
             y += 4;
           }
           section("Where it was going");

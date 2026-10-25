@@ -522,6 +522,13 @@
   .row .fill.sev-4, .mr-bar i.sev-4 { background: var(--sev-high); }
   .row .fill.sev-3, .mr-bar i.sev-3 { background: var(--sev-medium); }
   .row .fill.sev-2, .mr-bar i.sev-2 { background: var(--sev-low); }
+  /* Under a severity row: how many of its catches went on anyway. */
+  .row-note { margin: -6px 0 10px 162px; color: var(--c-muted); font-size: 12px; }
+  .row-note.is-severe { color: var(--c-danger); font-weight: 600; }
+  .sev-head { margin: 0 0 14px; color: var(--c-body); font-size: 13px; }
+  .sev-head b { font-weight: 650; }
+  .sev-head .is-severe { color: var(--c-danger); }
+  .sev-head .is-none { color: var(--c-ok); }
   .row .n { width: 52px; text-align: right; color: var(--c-text); font: 500 13px/1 var(--mono); }
   .chart { display: flex; align-items: flex-end; gap: 4px; height: 160px; border-bottom: 1px solid var(--c-line); }
   .chart .bar { flex: 1; min-width: 4px; min-height: 2px; border-radius: 3px 3px 0 0; background: var(--c-accent); opacity: 0.85; }

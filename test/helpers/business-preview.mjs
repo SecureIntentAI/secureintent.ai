@@ -39,8 +39,9 @@ const metrics = { metrics:{ days:30, total:263, activeActors:5,
   bySite:[{key:'chatgpt.com',n:104},{key:'claude.ai',n:73},{key:'gemini.google.com',n:52},{key:'perplexity.ai',n:34}],
   byAction:[{key:'cancelled',n:121},{key:'paste_anonymously',n:62},{key:'blocked',n:30},{key:'paste_anyway',n:30},{key:'sanitised',n:20},{key:'auto_redacted',n:14}],
   byClient:[{key:'extension',n:249},{key:'desktop',n:14}],
-  // OCSF severity (5 Critical to 2 Low): always all four, Critical first.
-  bySeverity:[{severityId:5,name:'Critical',n:48},{severityId:4,name:'High',n:112},{severityId:3,name:'Medium',n:74},{severityId:2,name:'Low',n:29}] } };
+  // OCSF severity (5 Critical to 2 Low): always all four, Critical first. letThrough
+  // counts the catches whose secret went on anyway (pasted anyway, or Undo on the desktop).
+  bySeverity:[{severityId:5,name:'Critical',n:48,letThrough:4},{severityId:4,name:'High',n:112,letThrough:9},{severityId:3,name:'Medium',n:74,letThrough:12},{severityId:2,name:'Low',n:29,letThrough:5}] } };
 const shadowDashboard = {
   organization:{name:'Northstar Engineering',email:'maya@northstar.example'},
   generatedAt: Date.now(), dataAsOf: Date.now(), policyVersion: 3, canManagePolicy: true,
@@ -226,7 +227,7 @@ handleRedirectCallback:async()=>{},load:async()=>{},addListener:(f)=>{listeners.
           byType: [{ key: 'known-key', n: n(11) }, { key: 'pii', n: n(7) }, { key: 'env-credential', n: n(5) }],
           bySite: [{ key: 'chatgpt.com', n: n(14) }, { key: 'claude.ai', n: n(6) }, { key: 'github.com', n: n(3) }],
           byAction: [{ key: 'cancelled', n: n(9) }, { key: 'paste_anonymously', n: n(6) }, { key: 'blocked', n: n(4) }, { key: 'paste_anyway', n: n(3) }, { key: 'sanitised', n: n(1) }],
-          bySeverity: [{ severityId: 5, name: 'Critical', n: n(3) }, { severityId: 4, name: 'High', n: n(11) }, { severityId: 3, name: 'Medium', n: n(5) }, { severityId: 2, name: 'Low', n: n(4) }],
+          bySeverity: [{ severityId: 5, name: 'Critical', n: n(3), letThrough: n(1) }, { severityId: 4, name: 'High', n: n(11), letThrough: n(2) }, { severityId: 3, name: 'Medium', n: n(5), letThrough: 0 }, { severityId: 2, name: 'Low', n: n(4), letThrough: 0 }],
         },
         aiTools: idx === 0 ? [] : [
           { serviceId: 'chatgpt', name: 'ChatGPT', visits: n(41), pastes: n(18), sensitiveEvents: n(6), lastSeen: Date.now() - 3_600_000 },

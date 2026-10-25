@@ -70,9 +70,14 @@ const metrics = {
     byAction: [{ key: "cancelled", n: 88 }, { key: "paste_anonymously", n: 47 }, { key: "paste_anyway", n: 13 }, { key: "auto_redacted", n: 14 }],
     byClient: [{ key: "extension", n: 134 }, { key: "desktop", n: 14 }],
     // OCSF severity: always all four, Critical first.
-    bySeverity: [{ severityId: 5, name: "Critical", n: 21 }, { severityId: 4, name: "High", n: 71 }, { severityId: 3, name: "Medium", n: 44 }, { severityId: 2, name: "Low", n: 12 }],
+    // letThrough: catches whose secret went on anyway (pasted anyway, or Undo on the desktop).
+    bySeverity: [{ severityId: 5, name: "Critical", n: 21, letThrough: 2 }, { severityId: 4, name: "High", n: 71, letThrough: 3 }, { severityId: 3, name: "Medium", n: 44, letThrough: 5 }, { severityId: 2, name: "Low", n: 12, letThrough: 0 }],
   },
 };
+// Severity from an API that predates letThrough, and one where nothing severe went on.
+const metricsWith = (bySeverity) => ({ metrics: { ...metrics.metrics, bySeverity } });
+const noLetThrough = metricsWith(metrics.metrics.bySeverity.map(({ letThrough, ...r }) => r));
+const noneLetThrough = metricsWith(metrics.metrics.bySeverity.map((r) => ({ ...r, letThrough: r.severityId >= 4 ? 0 : r.letThrough })));
 // The same metrics from an API that predates severity.
 const { bySeverity: _sev, ...metricsNoSeverity } = metrics.metrics;
 
@@ -84,7 +89,7 @@ const memberReport = (activity = {}) => ({
   activity: {
     days: 30, total: 9, activeActors: 1, byDay: [],
     byType: [{ key: "known-key", n: 6 }, { key: "pii", n: 3 }], bySite: [{ key: "chatgpt.com", n: 9 }], byAction: [{ key: "cancelled", n: 9 }],
-    bySeverity: [{ severityId: 5, name: "Critical", n: 2 }, { severityId: 4, name: "High", n: 4 }, { severityId: 3, name: "Medium", n: 3 }, { severityId: 2, name: "Low", n: 0 }],
+    bySeverity: [{ severityId: 5, name: "Critical", n: 2, letThrough: 1 }, { severityId: 4, name: "High", n: 4, letThrough: 0 }, { severityId: 3, name: "Medium", n: 3, letThrough: 0 }, { severityId: 2, name: "Low", n: 0, letThrough: 0 }],
     ...activity,
   },
 });
@@ -284,22 +289,49 @@ const state = () => ({
       fills: [...document.querySelectorAll("#p-severity .fill")].map((f) => f.className),
       colours: [...document.querySelectorAll("#p-severity .fill")].map((f) => getComputedStyle(f).backgroundColor),
       note: document.querySelector("#severity-block .note").textContent,
+      head: document.querySelector("#p-severity .sev-head")?.textContent,
+      headTone: document.querySelector("#p-severity .sev-head b")?.className,
+      notes: [...document.querySelectorAll("#p-severity .row-note")].map((n) => `${n.textContent}${n.classList.contains("is-severe") ? " !" : ""}`),
     }));
+    check("Critical or High let through is the headline", sev.head === "Critical or High let through: 5" && sev.headTone === "is-severe", sev);
+    check("each severity says how many were let through", sev.notes.join() === "2 let through !,3 let through !,5 let through", sev);
     check("Overview shows By severity", sev.shown && sev.rows.join() === "Critical 21,High 71,Medium 44,Low 12", sev);
     check("each level has its own colour", sev.fills.join() === "fill sev-5,fill sev-4,fill sev-3,fill sev-2" && new Set(sev.colours).size === 4, sev);
     check("the severity note names the OCSF scale", sev.note.startsWith("Severity uses the OCSF scale."), sev);
     await p.locator("#severity-block").screenshot({ path: OUT + "c-severity.png" });
     const csv = await download(p, "#export");
     check("CSV has severity rows", ["severity,5,Critical,21", "severity,4,High,71", "severity,3,Medium,44", "severity,2,Low,12"].every((row) => csv.includes(row)), csv.slice(0, 400));
+    check("CSV has let-through rows", ["severity_let_through,5,Critical,2", "severity_let_through,4,High,3", "severity_let_through,2,Low,0"].every((row) => csv.includes(row)), null);
     const pdf = await download(p, "#overview-export-pdf");
     check("Overview PDF has By severity with shares", ["(By severity)", "(Critical)", "(Low)", "(14%)"].every((t) => pdf.includes(t)), null);
+    check("Overview PDF has let through and the severity mapping line", ["(Critical or High let through:)", "(2 let through)", "(0 let through)", "(Severity levels map to OCSF, PCI DSS"].every((t) => pdf.includes(t)) && !pdf.includes("ompliant"), null);
     await p.click('.navitem[data-view="people"]'); await p.waitForTimeout(200);
     await p.click('[data-report="u2"]'); await p.waitForTimeout(500);
     const mr = await p.evaluate(() => [...document.querySelectorAll("#mr-body .mr-severity li")].map((li) => li.textContent));
     check("member report shows By severity (non-zero levels)", mr.join() === "Critical2,High4,Medium3", mr);
     const mrPdf = await download(p, "#mr-pdf");
-    check("member PDF has By severity", ["(By severity)", "(Critical)", "(High)"].every((t) => mrPdf.includes(t)), null);
+    check("member PDF has By severity", ["(By severity)", "(Critical | 1 let through)", "(High | 0 let through)"].every((t) => mrPdf.includes(t)), null);
+    check("member PDF has let through and the mapping line", ["(Critical or High let through)", "(Severity levels map to OCSF"].every((t) => mrPdf.includes(t)), null);
     check("no page errors (severity)", errs.length === 0, errs);
+    await ctx.close();
+  }
+  for (const [name, body, want] of [["no letThrough", noLetThrough, null], ["none let through", noneLetThrough, "Critical or High let through: none"]]) {
+    const ctx = await ctxFor(b, { metricsBody: body });
+    const p = await ctx.newPage();
+    await p.goto(BASE + "/team.html");
+    await p.waitForTimeout(900);
+    const r = await p.evaluate(() => ({
+      head: document.querySelector("#p-severity .sev-head")?.textContent ?? null,
+      tone: document.querySelector("#p-severity .sev-head b")?.className ?? null,
+      notes: document.querySelectorAll("#p-severity .row-note").length,
+      rows: document.querySelectorAll("#p-severity .row").length,
+    }));
+    check(`${name}: severity headline`, r.head === want && r.rows === 4 && (want ? r.tone === "is-none" && r.notes === 1 : r.notes === 0), r);
+    if (!want) {
+      const csv = await download(p, "#export");
+      const pdf = await download(p, "#overview-export-pdf");
+      check("no letThrough: no let-through rows in CSV or PDF", csv.includes("severity,5,Critical,21") && !csv.includes("severity_let_through") && !pdf.includes("let through"), null);
+    }
     await ctx.close();
   }
   {
@@ -314,7 +346,7 @@ const state = () => ({
     const csv = await download(p, "#export");
     check("an older API: no severity rows in the CSV", !csv.includes("severity,") && csv.includes("type,known-key"), null);
     const pdf = await download(p, "#overview-export-pdf");
-    check("an older API: no By severity in the PDF", !pdf.includes("By severity") && pdf.includes("(What was caught)"), null);
+    check("an older API: no By severity in the PDF", !pdf.includes("By severity") && !pdf.includes("map to OCSF") && pdf.includes("(What was caught)"), null);
     await p.click('.navitem[data-view="people"]'); await p.waitForTimeout(200);
     await p.click('[data-report="u2"]'); await p.waitForTimeout(500);
     const body = await p.textContent("#mr-body");
