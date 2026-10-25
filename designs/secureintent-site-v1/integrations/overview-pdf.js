@@ -26,7 +26,10 @@
     all: [0.12, 0.62, 0.76],
     up: [0.8, 0.33, 0.2],
     down: [0.16, 0.6, 0.42],
+    // Severity on the OCSF scale, as on screen: 5 Critical to 2 Low.
+    sev: { 5: [0.8, 0.22, 0.2], 4: [0.9, 0.42, 0.1], 3: [0.86, 0.65, 0.1], 2: [0.5, 0.58, 0.68] },
   };
+  const SEVERITY = { 5: "Critical", 4: "High", 3: "Medium", 2: "Low" };
 
   const num = (v) => (Number.isFinite(Number(v)) ? Math.max(0, Number(v)) : 0);
   const count = (v) => Math.round(num(v)).toLocaleString("en-US");
@@ -226,8 +229,9 @@
     text(clip(summary, 120), LEFT, y, 8, C.muted);
     y += 22;
 
-    // The three breakdowns, as labelled bars with share of total.
-    const breakdown = (title, rows, labels) => {
+    // The breakdowns, as labelled bars with share of total. `colour` picks a
+    // row's bar colour (severity); the rest are cyan.
+    const breakdown = (title, rows, labels, colour) => {
       section(title);
       if (!rows?.length) {
         text("Nothing in this period.", LEFT, y, 9, C.muted);
@@ -240,7 +244,7 @@
         ensure(18);
         text(clip(labels?.[row.key] || row.key || "(unknown)", 34), LEFT, y + 8, 8.5);
         rect(LEFT + 180, y + 1, WIDTH - 280, 8, C.line);
-        rect(LEFT + 180, y + 1, Math.max(1, ((WIDTH - 280) * num(row.n)) / peak), 8, C.cyan);
+        if (num(row.n) || !colour) rect(LEFT + 180, y + 1, Math.max(1, ((WIDTH - 280) * num(row.n)) / peak), 8, colour ? colour(row) : C.cyan);
         text(count(row.n), RIGHT - 46, y + 8, 8.5, C.ink, true, "right");
         text(`${Math.round((num(row.n) / total) * 100)}%`, RIGHT, y + 8, 8, C.muted, false, "right");
         y += 17;
@@ -252,6 +256,12 @@
       y += 10;
     };
     breakdown("What was caught", m.byType, r.labels.types);
+    // Only from an API that reports severity; all four levels, Critical first.
+    if (Array.isArray(m.bySeverity)) {
+      const sev = m.bySeverity.filter((x) => SEVERITY[Number(x?.severityId)])
+        .map((x) => ({ key: x.name || SEVERITY[Number(x.severityId)], n: x.n, id: Number(x.severityId) }));
+      breakdown("By severity", sev.some((x) => num(x.n)) ? sev : [], null, (x) => C.sev[x.id]);
+    }
     breakdown("Where it was headed", m.bySite);
     breakdown("What people chose", m.byAction, r.labels.actions);
 

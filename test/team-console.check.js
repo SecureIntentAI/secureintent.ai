@@ -63,10 +63,27 @@ const metrics = {
     bySite: [{ key: "chatgpt.com", n: 63 }, { key: "claude.ai", n: 41 }, { key: "gemini.google.com", n: 26 }, { key: "perplexity.ai", n: 18 }],
     byAction: [{ key: "cancelled", n: 88 }, { key: "paste_anonymously", n: 47 }, { key: "paste_anyway", n: 13 }, { key: "auto_redacted", n: 14 }],
     byClient: [{ key: "extension", n: 134 }, { key: "desktop", n: 14 }],
+    // OCSF severity: always all four, Critical first.
+    bySeverity: [{ severityId: 5, name: "Critical", n: 21 }, { severityId: 4, name: "High", n: 71 }, { severityId: 3, name: "Medium", n: 44 }, { severityId: 2, name: "Low", n: 12 }],
   },
 };
+// The same metrics from an API that predates severity.
+const { bySeverity: _sev, ...metricsNoSeverity } = metrics.metrics;
 
-async function ctxFor(browser, { teamBody = team(), settingsBody = settings(), viewport = { width: 1280, height: 900 } } = {}) {
+// POST /v1/team/member-report for Grace; `activity` is the metrics shape for one member.
+const memberReport = (activity = {}) => ({
+  days: 30, policyVersion: 4,
+  member: { userId: "u2", name: "Grace Hopper", email: "grace@acme.io", role: "org:member", joinedAt: Date.now() - 5 * 86400e3, seatNumber: 2, lastSeenAt: Date.now() - 60e3 },
+  devices: [], aiTools: [], recentSensitive: [],
+  activity: {
+    days: 30, total: 9, activeActors: 1, byDay: [],
+    byType: [{ key: "known-key", n: 6 }, { key: "pii", n: 3 }], bySite: [{ key: "chatgpt.com", n: 9 }], byAction: [{ key: "cancelled", n: 9 }],
+    bySeverity: [{ severityId: 5, name: "Critical", n: 2 }, { severityId: 4, name: "High", n: 4 }, { severityId: 3, name: "Medium", n: 3 }, { severityId: 2, name: "Low", n: 0 }],
+    ...activity,
+  },
+});
+
+async function ctxFor(browser, { teamBody = team(), settingsBody = settings(), metricsBody = metrics, reportBody = memberReport(), viewport = { width: 1280, height: 900 } } = {}) {
   const ctx = await browser.newContext({ viewport, deviceScaleFactor: 2 });
   // V2 loads service configuration before its SDKs. Keep the test backend on a
   // reserved .test hostname; every endpoint is fulfilled below.
@@ -82,7 +99,8 @@ async function ctxFor(browser, { teamBody = team(), settingsBody = settings(), v
   // The admin pass: the real server opens it for a session started in the last 12 hours.
   await ctx.route("**/v1/business-access/unlock/clerk", (r) => r.fulfill({ json: { accessToken: "a".repeat(64), expiresAt: Date.now() + 30 * 60_000, orgId: "org_x" } }));
   await ctx.route("**/v1/team/settings*", (r) => r.fulfill({ json: settingsBody }));
-  await ctx.route("**/v1/team/metrics*", (r) => r.fulfill({ json: metrics }));
+  await ctx.route("**/v1/team/metrics*", (r) => r.fulfill({ json: metricsBody }));
+  await ctx.route("**/v1/team/member-report", (r) => r.fulfill({ json: reportBody }));
   await ctx.route("**/v1/team*", (r) => r.fulfill({ json: teamBody }));
   await ctx.addInitScript(() => {
     window.Clerk = {
@@ -233,6 +251,66 @@ const state = () => ({
     await p.screenshot({ path: OUT + "c-mobile.png" });
     await p.click(".navitem[data-view=people]"); await p.waitForTimeout(250);
     await p.screenshot({ path: OUT + "c-mobile-people.png" });
+    await ctx.close();
+  }
+
+  // ---- 5. Severity: Overview, CSV, PDFs, member report; and an older API ----
+  const download = async (p, click) => {
+    const [d] = await Promise.all([p.waitForEvent("download"), p.click(click)]);
+    return require("fs").readFileSync(await d.path(), "latin1");
+  };
+  {
+    const ctx = await ctxFor(b);
+    const p = await ctx.newPage();
+    const errs = []; p.on("pageerror", (e) => errs.push(e.message));
+    await p.goto(BASE + "/team.html");
+    await p.waitForTimeout(900);
+    // The colours come from team.css; give a cold server a moment to deliver it.
+    await p.waitForFunction(() => getComputedStyle(document.querySelector("#p-severity .fill") || document.body).backgroundColor !== "rgba(0, 0, 0, 0)", null, { timeout: 5000 }).catch(() => {});
+    const sev = await p.evaluate(() => ({
+      shown: !document.getElementById("severity-block").hidden,
+      rows: [...document.querySelectorAll("#p-severity .row")].map((r) => `${r.querySelector(".lbl").textContent} ${r.querySelector(".n").textContent}`),
+      fills: [...document.querySelectorAll("#p-severity .fill")].map((f) => f.className),
+      colours: [...document.querySelectorAll("#p-severity .fill")].map((f) => getComputedStyle(f).backgroundColor),
+      note: document.querySelector("#severity-block .note").textContent,
+    }));
+    check("Overview shows By severity", sev.shown && sev.rows.join() === "Critical 21,High 71,Medium 44,Low 12", sev);
+    check("each level has its own colour", sev.fills.join() === "fill sev-5,fill sev-4,fill sev-3,fill sev-2" && new Set(sev.colours).size === 4, sev);
+    check("the severity note names the OCSF scale", sev.note.startsWith("Severity uses the OCSF scale."), sev);
+    await p.locator("#severity-block").screenshot({ path: OUT + "c-severity.png" });
+    const csv = await download(p, "#export");
+    check("CSV has severity rows", ["severity,5,Critical,21", "severity,4,High,71", "severity,3,Medium,44", "severity,2,Low,12"].every((row) => csv.includes(row)), csv.slice(0, 400));
+    const pdf = await download(p, "#overview-export-pdf");
+    check("Overview PDF has By severity with shares", ["(By severity)", "(Critical)", "(Low)", "(14%)"].every((t) => pdf.includes(t)), null);
+    await p.click('.navitem[data-view="people"]'); await p.waitForTimeout(200);
+    await p.click('[data-report="u2"]'); await p.waitForTimeout(500);
+    const mr = await p.evaluate(() => [...document.querySelectorAll("#mr-body .mr-severity li")].map((li) => li.textContent));
+    check("member report shows By severity (non-zero levels)", mr.join() === "Critical2,High4,Medium3", mr);
+    const mrPdf = await download(p, "#mr-pdf");
+    check("member PDF has By severity", ["(By severity)", "(Critical)", "(High)"].every((t) => mrPdf.includes(t)), null);
+    check("no page errors (severity)", errs.length === 0, errs);
+    await ctx.close();
+  }
+  {
+    const { bySeverity: _a, ...olderActivity } = memberReport().activity;
+    const ctx = await ctxFor(b, { metricsBody: { metrics: metricsNoSeverity }, reportBody: { ...memberReport(), activity: olderActivity } });
+    const p = await ctx.newPage();
+    const errs = []; p.on("pageerror", (e) => errs.push(e.message));
+    await p.goto(BASE + "/team.html");
+    await p.waitForTimeout(900);
+    check("an older API: no severity block", await p.evaluate(() => document.getElementById("severity-block").hidden), null);
+    check("an older API: the other blocks still draw", (await p.textContent("#p-types")).includes("Known API key"), null);
+    const csv = await download(p, "#export");
+    check("an older API: no severity rows in the CSV", !csv.includes("severity,") && csv.includes("type,known-key"), null);
+    const pdf = await download(p, "#overview-export-pdf");
+    check("an older API: no By severity in the PDF", !pdf.includes("By severity") && pdf.includes("(What was caught)"), null);
+    await p.click('.navitem[data-view="people"]'); await p.waitForTimeout(200);
+    await p.click('[data-report="u2"]'); await p.waitForTimeout(500);
+    const body = await p.textContent("#mr-body");
+    check("an older API: member report without By severity", body.includes("What was caught") && !body.includes("By severity"), null);
+    const mrPdf = await download(p, "#mr-pdf");
+    check("an older API: member PDF without By severity", !mrPdf.includes("By severity"), null);
+    check("no page errors (older API)", errs.length === 0, errs);
     await ctx.close();
   }
 

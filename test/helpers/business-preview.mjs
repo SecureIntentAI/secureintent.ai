@@ -34,7 +34,9 @@ const metrics = { metrics:{ days:30, total:263, activeActors:5,
   byType:[{key:'known-key',n:112},{key:'env-credential',n:74},{key:'private-key',n:48},{key:'pii',n:29}],
   bySite:[{key:'chatgpt.com',n:104},{key:'claude.ai',n:73},{key:'gemini.google.com',n:52},{key:'perplexity.ai',n:34}],
   byAction:[{key:'cancelled',n:121},{key:'paste_anonymously',n:62},{key:'blocked',n:30},{key:'paste_anyway',n:30},{key:'sanitised',n:20},{key:'auto_redacted',n:14}],
-  byClient:[{key:'extension',n:249},{key:'desktop',n:14}] } };
+  byClient:[{key:'extension',n:249},{key:'desktop',n:14}],
+  // OCSF severity (5 Critical to 2 Low): always all four, Critical first.
+  bySeverity:[{severityId:5,name:'Critical',n:48},{severityId:4,name:'High',n:112},{severityId:3,name:'Medium',n:74},{severityId:2,name:'Low',n:29}] } };
 const shadowDashboard = {
   organization:{name:'Northstar Engineering',email:'maya@northstar.example'},
   generatedAt: Date.now(), dataAsOf: Date.now(), policyVersion: 3, canManagePolicy: true,
@@ -205,12 +207,14 @@ handleRedirectCallback:async()=>{},load:async()=>{},addListener:(f)=>{listeners.
         days, policyVersion: team.team.policyVersion,
         member: { userId: m.userId, name: m.name, email: m.email, role: m.role, joinedAt: Date.now() - (20 - idx) * 86_400_000, seatNumber: idx + 1, lastSeenAt: devices[0]?.lastSeenAt ?? null },
         devices,
-        activity: idx === 0 ? { days, total: 0, activeActors: 0, byDay: [], byType: [], bySite: [], byAction: [] } : {
+        activity: idx === 0 ? { days, total: 0, activeActors: 0, byDay: [], byType: [], bySite: [], byAction: [],
+          bySeverity: [{ severityId: 5, name: 'Critical', n: 0 }, { severityId: 4, name: 'High', n: 0 }, { severityId: 3, name: 'Medium', n: 0 }, { severityId: 2, name: 'Low', n: 0 }] } : {
           days, total: n(23), activeActors: 1,
           byDay: Array.from({ length: days }, (_, i) => ({ day: new Date(Date.now() - (days - 1 - i) * 86_400_000).toISOString().slice(0, 10), n: [0, 1, 0, 2, 0, 0, 3, 1, 0, 0][i % 10] })),
           byType: [{ key: 'known-key', n: n(11) }, { key: 'pii', n: n(7) }, { key: 'env-credential', n: n(5) }],
           bySite: [{ key: 'chatgpt.com', n: n(14) }, { key: 'claude.ai', n: n(6) }, { key: 'github.com', n: n(3) }],
           byAction: [{ key: 'cancelled', n: n(9) }, { key: 'paste_anonymously', n: n(6) }, { key: 'blocked', n: n(4) }, { key: 'paste_anyway', n: n(3) }, { key: 'sanitised', n: n(1) }],
+          bySeverity: [{ severityId: 5, name: 'Critical', n: n(3) }, { severityId: 4, name: 'High', n: n(11) }, { severityId: 3, name: 'Medium', n: n(5) }, { severityId: 2, name: 'Low', n: n(4) }],
         },
         aiTools: idx === 0 ? [] : [
           { serviceId: 'chatgpt', name: 'ChatGPT', visits: n(41), pastes: n(18), sensitiveEvents: n(6), lastSeen: Date.now() - 3_600_000 },

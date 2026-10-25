@@ -51,6 +51,12 @@
       // The four detector types, most severe first — the order the alert
       // threshold reads down.
       const TYPES = ["private-key", "known-key", "env-credential", "pii"];
+      // Severity on the OCSF scale, as the API reports it (metrics.bySeverity),
+      // most severe first. An id outside it is dropped rather than guessed at.
+      const SEVERITY = { 5: "Critical", 4: "High", 3: "Medium", 2: "Low" };
+      const severityRows = (list) => (Array.isArray(list) ? list : [])
+        .filter((r) => SEVERITY[Number(r?.severityId)])
+        .map((r) => ({ key: String(r.name || SEVERITY[Number(r.severityId)]), severityId: Number(r.severityId), n: Number(r.n) || 0 }));
 
       // How far back the dashboard looks, and the last payload we drew, so
       // Export CSV writes exactly the figures on screen rather than refetching.
@@ -299,7 +305,8 @@
         }
       }
 
-      function bars(el, list, labels) {
+      // `tone` names an extra class for a row's fill (the severity colours).
+      function bars(el, list, labels, tone) {
         el.textContent = "";
         if (!list || !list.length) {
           el.innerHTML = '<div class="empty">Nothing yet</div>';
@@ -311,7 +318,7 @@
             (r) =>
               `<div class="row"><div class="lbl" title="${esc(r.key)}">${esc(
                 (labels && labels[r.key]) || r.key,
-              )}</div><div class="track"><div class="fill" style="width:${
+              )}</div><div class="track"><div class="fill${tone ? ` ${tone(r)}` : ""}" style="width:${
                 (r.n / max) * 100
               }%"></div></div><div class="n">${fmt(r.n)}</div></div>`,
           )
@@ -408,6 +415,13 @@
           bars($("p-types"), m.byType, TYPE_LABEL);
           bars($("p-sites"), m.bySite);
           bars($("p-actions"), m.byAction, ACTION_LABEL);
+          // An older API sends no severity, and the block stays hidden.
+          $("severity-block").hidden = !Array.isArray(m.bySeverity);
+          $("breakdowns").classList.toggle("quad", Array.isArray(m.bySeverity));
+          if (Array.isArray(m.bySeverity)) {
+            const sev = severityRows(m.bySeverity);
+            bars($("p-severity"), sev.some((r) => r.n) ? sev : [], null, (r) => `sev-${r.severityId}`);
+          }
           $("export").disabled = false;
           $("overview-export-pdf").disabled = false;
           // Where detections came from, once the desktop app reports them too. A
@@ -452,6 +466,7 @@
           rows.push(["day_outcome", `${p.day}:${p.key}`, `${p.day} · ${ACTION_LABEL[p.key] || p.key}`, p.n]),
         );
         (m.byType || []).forEach((r) => rows.push(["type", r.key, TYPE_LABEL[r.key] || r.key, r.n]));
+        severityRows(m.bySeverity).forEach((r) => rows.push(["severity", r.severityId, r.key, r.n]));
         (m.bySite || []).forEach((r) => rows.push(["destination", r.key, r.key, r.n]));
         (m.byAction || []).forEach((r) =>
           rows.push(["action", r.key, ACTION_LABEL[r.key] || r.key, r.n]),
@@ -1684,11 +1699,11 @@
       const shortTime = (ms, locale) => msDate(ms)?.toLocaleString(locale, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) || "";
       const agoMs = (ms) => (Number(ms) > 0 ? relTime(new Date(Number(ms)).toISOString()) : null);
 
-      function mrBars(rows, labels = {}, empty = "Nothing in this period.") {
+      function mrBars(rows, labels = {}, empty = "Nothing in this period.", tone = null) {
         const list = (rows || []).filter((r) => Number(r.n) > 0);
         if (!list.length) return `<p class="mr-empty">${esc(empty)}</p>`;
         const max = Math.max(...list.map((r) => Number(r.n)));
-        return `<ul class="mr-bars">${list.map((r) => `<li><span class="mr-bar-label">${esc(labels[r.key] || r.key)}</span><span class="mr-bar"><i style="width:${Math.max(4, Math.round((Number(r.n) / max) * 100))}%"></i></span><b>${fmt(r.n)}</b></li>`).join("")}</ul>`;
+        return `<ul class="mr-bars">${list.map((r) => `<li><span class="mr-bar-label">${esc(labels[r.key] || r.key)}</span><span class="mr-bar"><i${tone ? ` class="${tone(r)}"` : ""} style="width:${Math.max(4, Math.round((Number(r.n) / max) * 100))}%"></i></span><b>${fmt(r.n)}</b></li>`).join("")}</ul>`;
       }
       function mrSpark(byDay, days) {
         const map = new Map((byDay || []).map((r) => [String(r.day).slice(0, 10), Number(r.n) || 0]));
@@ -1735,7 +1750,8 @@
           <section class="mr-sec"><h3>Protection</h3>${devices}</section>
           <section class="mr-sec"><h3>Activity · last ${esc(d.days)} days</h3>${stats}</section>
           ${a ? `<section class="mr-sec"><h3>What they chose</h3>${mrBars(a.byAction, ACTION_LABEL)}</section>
-          <section class="mr-sec"><h3>What was caught</h3>${mrBars(a.byType, TYPE_LABEL)}</section>
+          <section class="mr-sec"><h3>What was caught</h3>${mrBars(a.byType, TYPE_LABEL)}</section>${Array.isArray(a.bySeverity) ? `
+          <section class="mr-sec mr-severity"><h3>By severity</h3>${mrBars(severityRows(a.bySeverity), {}, undefined, (r) => `sev-${r.severityId}`)}</section>` : ""}
           <section class="mr-sec"><h3>Where it was going</h3>${mrBars(a.bySite)}</section>` : ""}
           <section class="mr-sec"><h3>AI tools used</h3>${tools}</section>${deskTools ? `
           <section class="mr-sec mr-desktop-tools"><h3>Desktop AI tools</h3>${desktop}</section>` : ""}
@@ -1823,6 +1839,13 @@
           if (!(a.byType || []).length) row("Nothing in this period.", undefined, C.muted);
           for (const r of a.byType || []) row(TYPE_LABEL[r.key] || r.key, count(r.n));
           y += 4;
+          if (Array.isArray(a.bySeverity)) {
+            const sev = severityRows(a.bySeverity).filter((r) => r.n > 0);
+            section("By severity");
+            if (!sev.length) row("Nothing in this period.", undefined, C.muted);
+            for (const r of sev) row(r.key, count(r.n));
+            y += 4;
+          }
           section("Where it was going");
           if (!(a.bySite || []).length) row("Nothing in this period.", undefined, C.muted);
           for (const r of a.bySite || []) row(r.key, count(r.n));
