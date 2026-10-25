@@ -42,6 +42,8 @@ const longDay = day => {
   return Number.isNaN(d.getTime()) ? '' : `${d.getUTCDate()} ${MONTHS_SHORT[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 };
 
+// OCSF severity of a ledger event, 5 Critical to 2 Low. Older APIs send none.
+const SEVERITY = { 5: 'Critical', 4: 'High', 3: 'Medium', 2: 'Low' };
 const DESKTOP_KINDS = { local_model: 'local AI model', editor_extension: 'AI editor extension', desktop_app: 'AI desktop app' };
 const safeNumber = value => Number.isFinite(Number(value)) ? Math.max(0, Number(value)) : 0;
 const count = value => Math.round(safeNumber(value)).toLocaleString('en-US');
@@ -404,8 +406,16 @@ function makeReport(snapshot) {
     text('No sensitive paste events are available in the current ledger page.', LEFT, y + 12, 8, COLORS.muted);
     y += 27;
   } else {
-    const dlpWidths = [88, 66, 52, 92, 82, 91, 36];
-    const dlpHeaders = ['Time', 'Member', 'Source', 'Destination', 'Detection reason', 'Resolution', 'Findings'];
+    // A Severity column once the API rates events; the others give up a little room for it.
+    const rated = events.some(event => SEVERITY[event.severityId]);
+    const dlpWidths = rated ? [72, 58, 52, 84, 77, 88, 40, 36] : [88, 66, 52, 92, 82, 91, 36];
+    const dlpHeaders = ['Time', 'Member', 'Source', 'Destination', 'Detection reason', 'Resolution', ...(rated ? ['Severity'] : []), 'Findings'];
+    if (rated) {
+      // The rows below, counted by severity: "Critical 2 | High 5 | Medium 1 | Low 0".
+      const tally = [5, 4, 3, 2].map(id => `${SEVERITY[id]} ${count(events.filter(event => Number(event.severityId) === id).length)}`);
+      text(`By severity: ${tally.join(' · ')}`, LEFT, y + 4, 8, COLORS.muted);
+      y += 14;
+    }
     const drawDlpHeader = () => {
       rect(LEFT, y, WIDTH, 22, COLORS.panel);
       let x = LEFT;
@@ -421,7 +431,8 @@ function makeReport(snapshot) {
       const outcome = (desktopRow && { auto_redacted: 'Redacted on the desktop', unlocked: 'Restored on the desktop (Undo)', purged: 'Cleared from the desktop clipboard' }[event.action])
         || { blocked: 'Blocked', cancelled: 'Cancelled', sanitised: 'Sanitised', warning_bypassed: 'Pasted anyway' }[event.action] || 'DLP event';
       const destination = desktopRow ? (event.sourceApp ? `Copied in ${event.sourceApp} (desktop)` : 'Desktop app') : event.hostname;
-      tableRow([reportDate(event.timestamp), event.seat || 'Unattributed', desktopRow ? 'Desktop app' : 'Browser', destination, event.reason, outcome, count(event.findingCount)], dlpWidths, 26);
+      tableRow([reportDate(event.timestamp), event.seat || 'Unattributed', desktopRow ? 'Desktop app' : 'Browser', destination, event.reason, outcome,
+        ...(rated ? [SEVERITY[event.severityId] || ''] : []), count(event.findingCount)], dlpWidths, 26);
       line(LEFT, y + 26, RIGHT, y + 26, COLORS.line, 0.4);
       y += 26;
     });

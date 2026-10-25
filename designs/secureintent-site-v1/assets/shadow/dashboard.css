@@ -110,3 +110,10 @@
 .desktop-panel > .empty-state { margin: 0 22px; }
 @media (max-width: 1100px) { .desktop-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .desktop-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-inline: 16px; } }
+/* Severity on the OCSF scale (5 Critical to 2 Low), beside a ledger row's reason and a recent outcome. */
+.badge.sev { margin-right: 6px; vertical-align: 1px; font-weight: 550; }
+.timeline strong .badge.sev { margin: 0 0 0 7px; }
+.badge.sev-5 { color: var(--red); background: var(--red-bg); }
+.badge.sev-4 { color: var(--orange); background: var(--orange-bg); }
+.badge.sev-3 { color: var(--peach); background: var(--peach-bg); }
+.badge.sev-2 { color: var(--muted); background: var(--surface-raised); }

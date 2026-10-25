@@ -9,6 +9,8 @@
  *    the Discovered services subtitle, review progress and queue, the service dialog
  *    (classification only for a desktop-only tool), the Desktop catches chart, the
  *    member report and both exports. Without the new fields the page is unchanged.
+ * 6. Severity (OCSF severityId on ledger events): a badge in the ledger and Recent
+ *    activity, a Severity column and a count line in the PDF; none without it.
  * Run: NODE_PATH=../Secureintent-Extension/node_modules node test/shadow-report.check.cjs
  */
 const { chromium, expect } = require('@playwright/test');
@@ -176,6 +178,18 @@ const path = require('node:path');
     }
     console.log('PASS: PDF carries the renamed card, daily charts with axes, the Member and Source columns and the desktop table');
 
+    // 6. Severity: a badge per rated row on screen; a column and a count line in the PDF.
+    await expect(desktopRow.locator('td').nth(4)).toHaveText('CriticalAWS access key');
+    await expect(desktopRow.locator('.badge.sev')).toHaveClass(/sev-5/);
+    await expect(page.locator('#ledger-body tr', { hasText: 'OpenAI API key' }).locator('.badge.sev')).toHaveText('High');
+    await expect(page.locator('#ledger-body tr', { hasText: 'Email address' }).locator('.badge.sev')).toHaveText('Medium');
+    await expect(page.locator('#ledger-body tr', { hasText: 'High-entropy token' }).locator('.badge.sev')).toHaveCount(0);
+    await expect(page.locator('#timeline .badge.sev')).toHaveText(['High', 'Critical', 'Medium']);
+    for (const text of ['(Severity)', '(By severity: Critical 1 | High 1 | Medium 1 | Low 0)', '(Critical)', '(Medium)']) {
+      if (!pdf.includes(text)) throw Error(`PDF is missing: ${text}`);
+    }
+    console.log('PASS: 6. severity badges in the ledger and Recent activity; Severity column and count line in the PDF');
+
     await page.locator('#export-button').click();
     const jsonDownload = page.waitForEvent('download');
     await page.locator('#export-json').click();
@@ -260,6 +274,12 @@ const path = require('node:path');
 
     // 5g. An older API (no source, desktop, desktopOnlyTools or desktopTrends): unchanged page.
     const older = await context.newPage();
+    // ...and ledger events without severityId.
+    await older.route('**/mock-api/v1/shadow/admin/ledger', async (route) => {
+      const data = await (await route.fetch()).json();
+      data.events = data.events.map(({ severityId, ...event }) => event);
+      return route.fulfill({ json: data });
+    });
     await older.route('**/mock-api/v1/shadow/admin/dashboard', async (route) => {
       const data = await (await route.fetch()).json();
       data.tools = data.tools.filter((tool) => tool.source !== 'desktop').map(({ source, desktop, ...tool }) => tool);
@@ -285,6 +305,15 @@ const path = require('node:path');
     await older.locator('#service-grid .service-card', { hasText: 'Claude' }).click();
     await expect(older.locator('#detail-content .dialog-desktop-note')).toHaveCount(0);
     await expect(older.locator('#detail-content input[name="pasteMode"]')).toHaveCount(3);
+    await older.click('#detail-content [data-close-dialog]');
+    await expect(older.locator('#ledger-body .badge.sev')).toHaveCount(0);
+    await expect(older.locator('#timeline .badge.sev')).toHaveCount(0);
+    await older.locator('#export-button').click();
+    const olderDownload = older.waitForEvent('download');
+    await older.locator('#export-pdf').click();
+    const olderShadowPdf = await readFile(await (await olderDownload).path(), 'latin1');
+    for (const text of ['(Severity)', 'By severity']) if (olderShadowPdf.includes(text)) throw Error(`PDF without severity still contains: ${text}`);
+    if (!olderShadowPdf.includes("(Findings)")) throw Error('PDF without severity lost the ledger table');
     console.log('PASS: 5g. without the new fields the inventory, metrics, review and chart are as before');
 
     // 5h. Team-controlled desktop tool names stay text everywhere they appear.
