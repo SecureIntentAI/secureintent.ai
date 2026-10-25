@@ -195,6 +195,7 @@
               <label class="vh" for="pending-seats">Seats to pay for (three minimum)</label>
               <input id="pending-seats" type="number" min="3" max="500" value="5" title="3 seats minimum" />
               <button class="btn primary" id="pending-buy" type="button">Complete payment</button>
+              <p class="note" id="pending-owner-note" hidden>Billing is managed by the team owner.</p>
               <button class="btn" id="recheck" type="button">Check again</button>
             </div>
             <p id="pending-price"></p>
@@ -311,6 +312,7 @@
             <div>
               <h1 id="head-people">Users</h1>
               <p class="sub">Who holds a seat, who has been invited, and how many seats you pay for.</p>
+              <p class="note" id="users-owner-note" hidden>Billing is managed by the team owner.</p>
             </div>
             <div class="headctl">
               <button class="btn" id="seats-btn" type="button" hidden>Change seats</button>

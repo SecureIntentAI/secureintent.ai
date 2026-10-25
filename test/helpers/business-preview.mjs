@@ -15,11 +15,13 @@ const people = [
   { userId:'user_demo_admin', email:'maya@northstar.example', name:'Maya Chen', role:'org:admin', createdAt:1 },
   { userId:'user_demo_1', email:'sam@northstar.example', name:'Sam Rivera', role:'org:member', createdAt:2 },
   { userId:'user_demo_2', email:'lee@northstar.example', name:'Lee Morgan', role:'org:member', createdAt:3 },
-  { userId:'user_demo_3', email:'jules@northstar.example', name:'Jules Patel', role:'org:member', createdAt:4 },
+  // A second, full admin (not the owner).
+  { userId:'user_demo_3', email:'jules@northstar.example', name:'Jules Patel', role:'org:admin', createdAt:4 },
   { userId:'user_demo_4', email:'robin@northstar.example', name:'Robin Kim', role:'org:member', createdAt:5 },
   { userId:'user_demo_5', email:'alex@northstar.example', name:'Alex Park', role:'org:member', createdAt:6 },
 ];
-const team = { team:{ orgId:'org_demo_northstar', name:'Northstar Engineering', role:'org:admin', status:'active', currentPeriodEnd:null, seats:150, seatsUsed:7, seatsAvailable:143, comp:true, source:'comp', policyVersion:3, policyRollout:{ policyVersion:3, devices:5, applied:3, updating:1, attention:0, offline:1, pageGuardsConfirmed:2, lastReceiptAt:Date.now()-30000, savedAt:Date.now()-25*60_000, savedBy:'user_demo_admin' }, members:people.map((person, i) => {
+// ownerUserId and isOwner: Maya owns the team; billing stays with her.
+const team = { team:{ orgId:'org_demo_northstar', name:'Northstar Engineering', role:'org:admin', ownerUserId:'user_demo_admin', isOwner:true, status:'active', currentPeriodEnd:null, seats:150, seatsUsed:7, seatsAvailable:143, comp:true, source:'comp', policyVersion:3, policyRollout:{ policyVersion:3, devices:5, applied:3, updating:1, attention:0, offline:1, pageGuardsConfirmed:2, lastReceiptAt:Date.now()-30000, savedAt:Date.now()-25*60_000, savedBy:'user_demo_admin' }, members:people.map((person, i) => {
   const device = (rollout, extra = {}) => ({ client:'extension', installationId:`dev-${i}`, extensionVersion:'1.2.0', lastSeenAt:Date.now()-60_000, appliedPolicyVersion:3, confirmedGuards:2, expectedPages:2, rollout, policyStatus: rollout === 'applied' ? 'guards_confirmed' : 'pending', ...extra });
   const devices = i === 1 ? [device('updating', { appliedPolicyVersion:2 })] : i === 4 ? [device('offline', { lastSeenAt:Date.now()-3*86_400_000, policyStatus:'offline' })] : [device('applied')];
   // Sam and Lee also run the desktop app (as in the Shadow AI desktop fixture).
@@ -249,6 +251,18 @@ handleRedirectCallback:async()=>{},load:async()=>{},addListener:(f)=>{listeners.
       });
     }
     if (url.pathname === '/mock-api/v1/team/member/remove' && req.method === 'POST') return json(res, { ok: true });
+    // Make admin / Make member, with the real API's refusals.
+    if (url.pathname === '/mock-api/v1/team/member/role' && req.method === 'POST') {
+      const chunks = []; for await (const chunk of req) chunks.push(chunk);
+      const { userId, role } = JSON.parse(Buffer.concat(chunks).toString() || '{}');
+      const fail = (status, error) => { res.writeHead(status, {'Content-Type':'application/json'}); res.end(JSON.stringify({ error })); };
+      const m = team.team.members.find(x => x.userId === userId);
+      if (!['admin', 'member'].includes(role)) return fail(400, 'invalid_role');
+      if (!m) return fail(404, 'member_not_found');
+      if (userId === team.team.ownerUserId) return fail(400, 'owner_role_fixed');
+      m.role = role === 'admin' ? 'org:admin' : 'org:member';
+      return json(res, { ok: true, userId, role });
+    }
     if (url.pathname === '/mock-api/v1/shadow/admin/dashboard' && req.method === 'POST') return json(res, shadowDashboard);
     if (url.pathname === '/mock-api/v1/shadow/admin/ledger' && req.method === 'POST') return json(res, shadowLedger);
     if (url.pathname === '/mock-api/v1/shadow/admin/desktop' && req.method === 'POST') return json(res, shadowDesktop);

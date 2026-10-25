@@ -155,6 +155,11 @@
         already_member: "This user already belongs to your organization.",
         too_soon: "Wait one minute before resending this invitation.",
         invitation_not_pending: "This invitation is no longer pending. Refresh the user list.",
+        // Roles (several admins) and billing, which stays with the owner.
+        owner_role_fixed: "The team owner is always an admin. Their role can't be changed.",
+        member_not_found: "That person is no longer on the team. Refresh the user list.",
+        invalid_role: "That role can't be set here. Refresh the page and try again.",
+        owner_only: "Billing is managed by the team owner.",
         invitation_pending_reconciliation: "The invitation delivery could not be confirmed. Its seat remains reserved. Refresh the user list before retrying.",
         policy_conflict: "A newer policy was saved elsewhere. Reload the settings before making your change again.",
         unauthenticated: "Your session has expired. Sign in again and pick up where you left off.",
@@ -671,12 +676,12 @@
       }
       function renderPeople(team) {
         if (!team) return;
-        const key = JSON.stringify([team.orgId, team.role, team.members, team.invitations, team.pendingInvitations]);
+        const key = JSON.stringify([team.orgId, team.role, team.members, team.invitations, team.pendingInvitations, team.ownerUserId, team.isOwner]);
         if (key === lastPeopleRenderKey) return false;
         const body = $("people");
         const active = document.activeElement;
         const focusKey = body.contains(active)
-          ? ["remove", "resend", "revoke", "cancelPending"].find((name) => active.dataset?.[name] !== undefined)
+          ? ["remove", "resend", "revoke", "cancelPending", "makeAdmin", "makeMember"].find((name) => active.dataset?.[name] !== undefined)
           : null;
         const focusValue = focusKey ? active.dataset[focusKey] : null;
         const focusedPolicyUser = body.contains(active) && active.tagName === "SUMMARY"
@@ -699,6 +704,19 @@
           ...(team.members || []).map((m) => {
             const who = m.name || m.email || "this person";
             const admin = m.role === "org:admin";
+            // Several admins: the owner stays an admin, and nobody changes their
+            // own role here. Only an API that says who the owner is (isOwner) gets
+            // these buttons; an older one keeps today's roster.
+            const owner = !!team.ownerUserId && m.userId === team.ownerUserId;
+            const roleChange = isAdmin && typeof team.isOwner === "boolean" && m.userId && !owner && m.userId !== window.Clerk.user?.id;
+            const roleBtn = !roleChange ? ""
+              : admin
+                ? `<button class="btn btn--sm" type="button" data-make-member="${esc(m.userId)}" data-who="${esc(who)}" title="An admin can't be removed: make them a member first">Make member</button>`
+                : `<button class="btn btn--sm" type="button" data-make-admin="${esc(m.userId)}" data-who="${esc(who)}">Make admin</button>`;
+            // An admin can't be removed directly; the row offers Make member instead.
+            const removeBtn = isAdmin && !admin
+              ? `<button class="btn btn--sm" type="button" data-remove="${esc(m.userId)}" data-who="${esc(who)}" aria-label="Remove ${esc(who)}">Remove</button>`
+              : "";
             const status = m.connection?.status;
             const [tone, label] =
               status === "recently_connected" ? ["ok", "Recently connected"]
@@ -709,18 +727,12 @@
               : person(m.name, m.email);
             const [installTone, installLabel] = INSTALLED[installedOf(m)];
             return `<tr data-install="${installedOf(m)}"><td>${cell}</td><td><span class="tag ${admin ? "admin" : ""}">${
-              admin ? "Admin" : "Member"
+              owner ? "Owner" : admin ? "Admin" : "Member"
             }</span></td><td><span class="pill pill--${installTone}">${installLabel}</span></td><td><div class="conn"><span class="pill pill--${tone}">${label}</span>${
               m.connection?.lastSeenAt ? `<small title="${esc(new Date(m.connection.lastSeenAt).toLocaleString())}">Last check-in ${esc(relTime(new Date(m.connection.lastSeenAt).toISOString()) || new Date(m.connection.lastSeenAt).toLocaleString())}</small>` : ""
             }${m.connection?.policyStatus ? `<small>${policyStatusLabel(m.connection.policyStatus)}</small>` : ""}${devicePolicyDetails(
               m.connection, m.userId, expanded,
-            )}</div></td><td>${
-              isAdmin && !admin
-                ? `<button class="btn btn--sm" type="button" data-remove="${esc(
-                    m.userId,
-                  )}" data-who="${esc(who)}" aria-label="Remove ${esc(who)}">Remove</button>`
-                : ""
-            }</td></tr>`;
+            )}</div></td><td>${roleBtn && removeBtn ? `<span class="rowactions">${roleBtn}${removeBtn}</span>` : roleBtn || removeBtn}</td></tr>`;
           }),
           ...(team.invitations || []).map(
             (i) =>
@@ -759,10 +771,10 @@
        * Removing someone is not undoable from here — they'd have to be invited
        * and accept again — so ask once, naming them, and say what it costs them.
        */
-      function askConfirm(cell, { question, verb, attr, value, who }) {
+      function askConfirm(cell, { question, verb, attr, value, who, tone = "danger" }) {
         cell.innerHTML =
           `<div class="confirm"><span class="q">${esc(question)}</span>` +
-          `<button class="btn btn--sm danger" type="button" data-${attr}="${esc(
+          `<button class="btn btn--sm${tone ? ` ${tone}` : ""}" type="button" data-${attr}="${esc(
             value,
           )}" data-who="${esc(who)}" data-confirmed="1">${esc(verb)}</button>` +
           '<button class="btn btn--sm" type="button" data-cancel="1">Keep</button></div>';
@@ -1601,6 +1613,10 @@
       }
 
       function openSeatsEditor() {
+        if (currentTeam?.isOwner === false) {
+          $("team-err").textContent = ERROR_TEXT.owner_only;
+          return;
+        }
         // A comped team has no subscription to prorate against, so the server
         // would 404 this. Say why instead of opening a form that cannot save.
         if (currentTeam && currentTeam.comp) {
@@ -1674,6 +1690,13 @@
         // are locked until it clears.
         $("pending").hidden = live;
         if (!live) preparePendingBuy(team);
+        // Billing stays with the owner. false only from an API that says so;
+        // undefined (an older one) keeps today's controls.
+        const billingElsewhere = team.isOwner === false;
+        ["pending-company", "pending-seats", "pending-buy", "pending-price"].forEach((id) => { $(id).hidden = billingElsewhere; });
+        $("pending-owner-note").hidden = !billingElsewhere;
+        $("users-owner-note").hidden = !billingElsewhere;
+        if (billingElsewhere) { $("seats-btn").hidden = true; closeSeatsEditor(); }
         seatsLive = live;
         syncNavSeats(team);
         syncNavLocks();
@@ -2199,9 +2222,25 @@
           if (btn.dataset.resend) { btn.disabled=true; btn.setAttribute("aria-busy","true"); act(()=>api("/v1/team/invite/resend",{method:"POST",body:JSON.stringify({email:btn.dataset.resend})}),{done:`Invitation resent to ${btn.dataset.resend}`,failed:"The invitation wasn't resent"}); return; }
           if (btn.dataset.report) { openMemberReport(btn.dataset.report); return; }
           if (btn.dataset.cancelPending) { btn.disabled=true; btn.setAttribute("aria-busy","true"); act(()=>api("/v1/team/invite/cancel-pending",{method:"POST",body:JSON.stringify({email:btn.dataset.cancelPending})}),{done:"Pending invitation cancelled",failed:"The invitation wasn't cancelled"}); return; }
-          const { remove, revoke, who, confirmed, cancel } = btn.dataset;
+          const { remove, revoke, who, confirmed, cancel, makeAdmin, makeMember } = btn.dataset;
           if (cancel) {
             renderPeople(currentTeam);
+            return;
+          }
+          const roleUser = makeAdmin || makeMember;
+          if (roleUser) {
+            if (!confirmed) {
+              askConfirm(btn.closest("td"), makeAdmin
+                ? { question: `Make ${who} an admin? Admins have full access to this console, except billing.`, verb: "Make admin", attr: "make-admin", value: roleUser, who, tone: "" }
+                : { question: `Make ${who} a member? They lose access to this console.`, verb: "Make member", attr: "make-member", value: roleUser, who });
+              return;
+            }
+            btn.disabled = true;
+            btn.setAttribute("aria-busy", "true");
+            act(() =>
+              api("/v1/team/member/role", { method: "POST", body: JSON.stringify({ userId: roleUser, role: makeAdmin ? "admin" : "member" }) }),
+              { done: `${who} is now ${makeAdmin ? "an admin" : "a member"}`, failed: `${who}'s role wasn't changed` },
+            );
             return;
           }
           if (!remove && !revoke) return;

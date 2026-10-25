@@ -112,6 +112,16 @@ async function ctxFor(browser, { teamBody = team(), settingsBody = settings(), m
   await ctx.route("**/v1/team/settings*", (r) => r.fulfill({ json: settingsBody }));
   await ctx.route("**/v1/team/metrics*", (r) => r.fulfill({ json: metricsBody }));
   await ctx.route("**/v1/team/member-report", (r) => r.fulfill({ json: reportBody }));
+  // Make admin / Make member: the change is applied to teamBody, so the refresh shows it.
+  ctx.rolePosts = [];
+  await ctx.route("**/v1/team/member/role", (r) => {
+    const body = r.request().postDataJSON();
+    ctx.rolePosts.push(body);
+    if (ctx.roleError) return r.fulfill({ status: ctx.roleError[0], json: { error: ctx.roleError[1] } });
+    const m = teamBody.team.members.find((x) => x.userId === body.userId);
+    if (m) m.role = body.role === "admin" ? "org:admin" : "org:member";
+    return r.fulfill({ json: { ok: true, ...body } });
+  });
   ctx.ruleSeverityPosts = [];
   await ctx.route("**/v1/team/settings/rule-severity", (r) => {
     ctx.ruleSeverityPosts.push(r.request().postDataJSON());
@@ -319,7 +329,7 @@ const state = () => ({
     const ctx = await ctxFor(b, { metricsBody: body });
     const p = await ctx.newPage();
     await p.goto(BASE + "/team.html");
-    await p.waitForTimeout(900);
+    await p.waitForSelector("#p-severity .row", { timeout: 8000 }).catch(() => {});
     const r = await p.evaluate(() => ({
       head: document.querySelector("#p-severity .sev-head")?.textContent ?? null,
       tone: document.querySelector("#p-severity .sev-head b")?.className ?? null,
@@ -414,6 +424,82 @@ const state = () => ({
     await p.click('[data-install-filter="missing"]');
     const r = await p.evaluate(roster);
     check("Missing something with nobody missing says so", r.rows.join() === "Everyone has both the extension and the desktop app.", r);
+    await ctx.close();
+  }
+
+  // ---- 8. Several admins: Owner / Admin / Member, role changes, billing ----
+  const admins = (over = {}) => team({
+    ownerUserId: "u1", isOwner: true, seats: 6, seatsUsed: 4,
+    members: [
+      { userId: "u1", email: "ada@acme.io", name: "Ada Lovelace", role: "org:admin", createdAt: 1 },
+      { userId: "u2", email: "grace@acme.io", name: "Grace Hopper", role: "org:member", createdAt: 2 },
+      { userId: "u3", email: "noah@acme.io", name: "Noah Brooks", role: "org:admin", createdAt: 3 },
+    ],
+    ...over,
+  });
+  const rolesOf = () => [...document.querySelectorAll("#people tr")].filter((tr) => tr.querySelector(".name") && tr.dataset.install)
+    .map((tr) => `${tr.querySelector(".name").textContent}: ${tr.children[1].textContent} [${[...tr.children[4].querySelectorAll("button")].map((x) => x.textContent).join("/")}]`);
+  {
+    const body = admins();
+    const ctx = await ctxFor(b, { teamBody: body });
+    const p = await ctx.newPage();
+    const errs = []; p.on("pageerror", (e) => errs.push(e.message));
+    await p.goto(BASE + "/team.html#/people");
+    await p.waitForTimeout(900);
+    let r = await p.evaluate(rolesOf);
+    check("roles read Owner, Member and Admin, with one action each", r.join("|") === "Ada Lovelace: Owner []|Grace Hopper: Member [Make admin/Remove]|Noah Brooks: Admin [Make member]", r);
+    await p.locator("#view-people .panel--flush").screenshot({ path: OUT + "c-admins.png" });
+    await p.click('[data-make-admin="u2"]');
+    const q = await p.textContent("#people .confirm .q");
+    check("Make admin asks first, naming them", q === "Make Grace Hopper an admin? Admins have full access to this console, except billing.", q);
+    await p.click('[data-make-admin="u2"][data-confirmed]');
+    await p.waitForTimeout(600);
+    r = await p.evaluate(rolesOf);
+    check("Make admin posts the role and the list refreshes", JSON.stringify(ctx.rolePosts) === '[{"userId":"u2","role":"admin"}]' && r[1] === "Grace Hopper: Admin [Make member]", { posts: ctx.rolePosts, r });
+    ctx.roleError = [409, "team_busy"];
+    await p.click('[data-make-member="u3"]');
+    await p.click('[data-make-member="u3"][data-confirmed]');
+    await p.waitForTimeout(500);
+    const err = await p.textContent("#team-err");
+    r = await p.evaluate(rolesOf);
+    check("a refused role change says why and leaves the row as it was", err === "Another user change is in progress. Please retry shortly." && r[2] === "Noah Brooks: Admin [Make member]", { err, r });
+    ctx.roleError = [400, "owner_role_fixed"];
+    await p.click('[data-make-member="u3"]');
+    await p.click('[data-make-member="u3"][data-confirmed]');
+    await p.waitForTimeout(500);
+    check("owner_role_fixed has a plain message", (await p.textContent("#team-err")) === "The team owner is always an admin. Their role can't be changed.", null);
+    check("the owner sees no billing note", await p.evaluate(() => document.getElementById("users-owner-note").hidden), null);
+    check("no page errors (admins)", errs.length === 0, errs);
+    await ctx.close();
+  }
+  {
+    // Noah, an admin who is not the owner: billing is hidden, and his own row has no action.
+    const ctx = await ctxFor(b, { teamBody: admins({ isOwner: false, seats: 0, seatsUsed: 0, seatsAvailable: 0 }) });
+    await ctx.addInitScript(() => { window.Clerk.user.id = "u3"; });
+    const p = await ctx.newPage();
+    await p.goto(BASE + "/team.html#/people");
+    await p.waitForTimeout(900);
+    const r = await p.evaluate(() => ({
+      buy: ["pending-company", "pending-seats", "pending-buy"].map((id) => document.getElementById(id).hidden),
+      recheck: !document.getElementById("recheck").hidden,
+      note: document.getElementById("pending-owner-note").hidden ? null : document.getElementById("pending-owner-note").textContent,
+      usersNote: !document.getElementById("users-owner-note").hidden,
+    }));
+    const rows = await p.evaluate(rolesOf);
+    check("not the owner: buy controls hidden, Check again kept, a note says who handles billing", r.buy.every(Boolean) && r.recheck && r.note === "Billing is managed by the team owner." && r.usersNote, r);
+    check("not the owner: no action on the owner or on yourself", rows[0] === "Ada Lovelace: Owner []" && rows[2] === "Noah Brooks: Admin []", rows);
+    await ctx.close();
+  }
+  {
+    // An older API (no ownerUserId or isOwner): today's roster and billing.
+    const ctx = await ctxFor(b, { teamBody: admins({ ownerUserId: undefined, isOwner: undefined, seats: 0, seatsUsed: 0, seatsAvailable: 0 }) });
+    const p = await ctx.newPage();
+    await p.goto(BASE + "/team.html#/people");
+    await p.waitForTimeout(900);
+    const rows = await p.evaluate(rolesOf);
+    const buy = await p.evaluate(() => !document.getElementById("pending-buy").hidden && document.getElementById("pending-owner-note").hidden && document.getElementById("users-owner-note").hidden);
+    check("an older API: Admin and Member only, Remove for members, no role buttons", rows.join("|") === "Ada Lovelace: Admin []|Grace Hopper: Member [Remove]|Noah Brooks: Admin []", rows);
+    check("an older API: billing controls as today", buy, null);
     await ctx.close();
   }
 
