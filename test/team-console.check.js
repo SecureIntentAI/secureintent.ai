@@ -109,7 +109,15 @@ async function ctxFor(browser, { teamBody = team(), settingsBody = settings(), m
   for (const u of ["**/clerk.browser.js", "**/paddle.js"]) await ctx.route(u, (r) => r.fulfill({ body: "", contentType: "text/javascript" }));
   // The admin pass: the real server opens it for a session started in the last 12 hours.
   await ctx.route("**/v1/business-access/unlock/clerk", (r) => r.fulfill({ json: { accessToken: "a".repeat(64), expiresAt: Date.now() + 30 * 60_000, orgId: "org_x" } }));
-  await ctx.route("**/v1/team/settings*", (r) => r.fulfill({ json: settingsBody }));
+  // A policy save (PUT) is recorded and echoed back as the new record, as the real API does.
+  ctx.settingsPuts = [];
+  await ctx.route("**/v1/team/settings*", (r) => {
+    if (r.request().method() !== "PUT") return r.fulfill({ json: settingsBody });
+    const sent = r.request().postDataJSON();
+    ctx.settingsPuts.push(sent);
+    if (sent.policy) Object.assign(settingsBody.settings, { policy: sent.policy, policyVersion: settingsBody.settings.policyVersion + 1 });
+    return r.fulfill({ json: settingsBody });
+  });
   await ctx.route("**/v1/team/metrics*", (r) => r.fulfill({ json: metricsBody }));
   await ctx.route("**/v1/team/member-report", (r) => r.fulfill({ json: reportBody }));
   // Make admin / Make member: the change is applied to teamBody, so the refresh shows it.
@@ -500,6 +508,55 @@ const state = () => ({
     const buy = await p.evaluate(() => !document.getElementById("pending-buy").hidden && document.getElementById("pending-owner-note").hidden && document.getElementById("users-owner-note").hidden);
     check("an older API: Admin and Member only, Remove for members, no role buttons", rows.join("|") === "Ada Lovelace: Admin []|Grace Hopper: Member [Remove]|Noah Brooks: Admin []", rows);
     check("an older API: billing controls as today", buy, null);
+    await ctx.close();
+  }
+
+  // ---- 9. Policy: the optional legal pack -------------------------------
+  {
+    // settings() sends no legalPack: an older API.
+    const ctx = await ctxFor(b);
+    const p = await ctx.newPage();
+    await p.goto(BASE + "/team.html#/policy");
+    await p.waitForTimeout(900);
+    check("an older API: no legal pack switch", await p.evaluate(() => document.getElementById("pol-legal-box").hidden), null);
+    await p.click("#pol-lock");
+    await p.click("#policy-save");
+    await p.waitForTimeout(400);
+    check("an older API: a policy save sends no legalPack", ctx.settingsPuts.length === 1 && !("legalPack" in ctx.settingsPuts[0].policy), ctx.settingsPuts);
+    await ctx.close();
+  }
+  {
+    const body = settings();
+    body.settings.policy.legalPack = false;
+    const ctx = await ctxFor(b, { settingsBody: body });
+    const p = await ctx.newPage();
+    const errs = []; p.on("pageerror", (e) => errs.push(e.message));
+    await p.goto(BASE + "/team.html#/policy");
+    await p.waitForTimeout(900);
+    const legal = () => p.evaluate(() => ({
+      shown: !document.getElementById("pol-legal-box").hidden,
+      on: document.getElementById("pol-legal").checked,
+      label: document.querySelector('label[for="pol-legal"]').textContent,
+      dirty: !document.getElementById("policy-dirty").hidden,
+      summary: document.getElementById("policy-version").textContent,
+    }));
+    let r = await legal();
+    check("legal pack: shown, off by default", r.shown && !r.on && r.label === "Legal pack (optional)" && !r.summary.includes("Legal pack"), r);
+    await p.locator("#pol-legal-box").screenshot({ path: OUT + "c-legal-pack.png" });
+    await p.click("#pol-legal");
+    r = await legal();
+    check("legal pack: switching it on is an unsaved policy change", r.on && r.dirty, r);
+    await p.click("#policy-save");
+    await p.waitForTimeout(400);
+    r = await legal();
+    check("legal pack: saving sends legalPack true", ctx.settingsPuts.at(-1)?.policy?.legalPack === true && !r.dirty, ctx.settingsPuts);
+    check("legal pack: the policy summary mentions it", r.summary.includes("Legal pack on."), r);
+    await p.click("#pol-block");
+    await p.click("#policy-save");
+    await p.waitForTimeout(400);
+    const last = ctx.settingsPuts.at(-1)?.policy || {};
+    check("legal pack: a later unrelated save keeps legalPack true", ctx.settingsPuts.length === 2 && last.legalPack === true && last.blockInsteadOfWarn === false, ctx.settingsPuts);
+    check("no page errors (legal pack)", errs.length === 0, errs);
     await ctx.close();
   }
 

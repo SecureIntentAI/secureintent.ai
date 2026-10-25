@@ -30,8 +30,9 @@ const team = { team:{ orgId:'org_demo_northstar', name:'Northstar Engineering', 
   if (i === 0) return person;
   return { ...person, connection:{ status:'recently_connected', lastSeenAt:devices[0].lastSeenAt, devices } };
 }), invitations:[{id:'invite_demo_1',email:'taylor@northstar.example'}] } };
-// One saved team rule, rated High (ruleSeverities: OCSF 2 Low to 5 Critical).
-const settings = { settings:{ alertWebhook:'', alertMinType:'known-key', policy:{ blockInsteadOfWarn:false, requireSessionLock:false, extraPatterns:[{ label:'Northstar deploy token', regex:'NSD_[A-Z0-9]{32}', type:'known-key' }], blockedSites:[], replaceDefaultPatterns:false }, policyVersion:3, alertDelivery:{ known:false, ok:null, consecutiveFailures:0, suppressedEvents:0, throttleWindowSeconds:60 },
+// One saved team rule, rated High (ruleSeverities: OCSF 2 Low to 5 Critical). The
+// optional legal pack is off; a policy save echoes it back like the other switches.
+const settings = { settings:{ alertWebhook:'', alertMinType:'known-key', policy:{ blockInsteadOfWarn:false, requireSessionLock:false, extraPatterns:[{ label:'Northstar deploy token', regex:'NSD_[A-Z0-9]{32}', type:'known-key' }], blockedSites:[], replaceDefaultPatterns:false, legalPack:false }, policyVersion:3, alertDelivery:{ known:false, ok:null, consecutiveFailures:0, suppressedEvents:0, throttleWindowSeconds:60 },
   ruleSeverities:[{ label:'Northstar deploy token', severityId:4 }] } };
 const metrics = { metrics:{ days:30, total:263, activeActors:5,
   byDay:Array.from({length:30},(_,i)=>({day:new Date(Date.now()-(29-i)*86400000).toISOString().slice(0,10),n:[3,8,5,12,6,9,4,11,7,2][i%10]})),

@@ -871,6 +871,7 @@
       const SETTINGS_CONTROLS = [
         "pol-block",
         "pol-lock",
+        "pol-legal",
         "site-input",
         "site-add",
         "pat-label",
@@ -940,6 +941,10 @@
             blockedSites: (Array.isArray(p.blockedSites) ? p.blockedSites : [])
               .map((h) => String(h ?? "").trim())
               .filter(Boolean),
+            // Only when the server knows the option: a key it never sent is not
+            // sent back, and one it did send always is, so saving anything else
+            // can't switch the legal pack off.
+            ...(typeof p.legalPack === "boolean" ? { legalPack: p.legalPack } : {}),
           },
           policyVersion: Number(s.policyVersion) || 0,
           alertDelivery: normalizeDelivery(s.alertDelivery),
@@ -1156,13 +1161,15 @@
         $("alert-min").value = settings.alertMinType;
         $("pol-block").checked = settings.policy.blockInsteadOfWarn;
         $("pol-lock").checked = settings.policy.requireSessionLock;
+        $("pol-legal-box").hidden = !("legalPack" in settings.policy);
+        $("pol-legal").checked = settings.policy.legalPack === true;
         // Before renderPatterns(): it reads this box to decide whether to warn.
         $("pol-replace").checked = settings.policy.replaceDefaultPatterns;
         renderAlertHealth();
         renderSites();
         renderPatterns();
         $("policy-version").textContent = settings.policyVersion
-          ? `Policy version ${settings.policyVersion} saved. ${detectionText(settings.detection)}`.trim()
+          ? `Policy version ${settings.policyVersion} saved. ${detectionText(settings.detection)}${settings.policy.legalPack ? " Legal pack on." : ""}`.replace(/\s+/g, " ").trim()
           : "No organization policy saved yet.";
       }
 
@@ -1204,6 +1211,8 @@
         settings.policy.blockInsteadOfWarn = $("pol-block").checked;
         settings.policy.requireSessionLock = $("pol-lock").checked;
         settings.policy.replaceDefaultPatterns = $("pol-replace").checked;
+        if ("legalPack" in settings.policy) settings.policy.legalPack = $("pol-legal").checked;
+        const legalPack = settings.policy.legalPack;
 
         btn.disabled = true;
         flash(statusEl, "Saving…", "");
@@ -1222,6 +1231,8 @@
           const back = res && (res.settings || (res.policy ? res : null));
           const severities = settings.ruleSeverities;
           settings = normalizeSettings(back || settings);
+          // An answer without legalPack keeps what was just saved.
+          if (legalPack !== undefined && !("legalPack" in settings.policy)) settings.policy.legalPack = legalPack;
           // A save answer without the severities keeps the ones already read.
           if (!settings.ruleSeverities && severities) settings.ruleSeverities = severities;
           savedRules = new Set(settings.policy.extraPatterns.map((p) => p.label));
@@ -1498,6 +1509,7 @@
           min: $("alert-min").value,
           block: $("pol-block").checked,
           lock: $("pol-lock").checked,
+          legal: $("pol-legal").checked,
           replace: $("pol-replace").checked,
           patterns: settings.policy.extraPatterns,
           sites: settings.policy.blockedSites,
@@ -2419,7 +2431,7 @@
 
         // Edits that never reach the server until Save. The dot in the sidebar
         // is the only thing that says so once you have walked to another view.
-        ["alert-webhook", "alert-min", "pol-block", "pol-lock", "pol-replace"].forEach((id) => {
+        ["alert-webhook", "alert-min", "pol-block", "pol-lock", "pol-legal", "pol-replace"].forEach((id) => {
           $(id).addEventListener("input", syncDirty);
         });
       }
