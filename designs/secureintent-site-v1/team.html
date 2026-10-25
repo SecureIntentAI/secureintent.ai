@@ -358,8 +358,16 @@
               <h2>Members and invitations</h2>
               <p class="status" id="users-refreshed" role="status"></p>
             </div>
+            <!-- What each member has installed, from the devices seen in the last 30 days. -->
+            <div class="install-bar" id="install-bar" hidden>
+              <p class="install-summary" id="install-summary"></p>
+              <div class="install-filter" role="group" aria-label="Show users">
+                <button class="btn btn--sm" type="button" data-install-filter="all" aria-pressed="true">All</button>
+                <button class="btn btn--sm" type="button" data-install-filter="missing" aria-pressed="false">Missing something</button>
+              </div>
+            </div>
             <table class="roster">
-              <thead><tr><th>User</th><th>Role</th><th>Connection</th><th><span class="vh">Actions</span></th></tr></thead>
+              <thead><tr><th>User</th><th>Role</th><th>Installed</th><th>Connection</th><th><span class="vh">Actions</span></th></tr></thead>
               <tbody id="people"></tbody>
             </table>
           </div>

@@ -650,6 +650,12 @@
   .conn summary { cursor: pointer; color: var(--c-accent); font-weight: 600; }
   .conn details > div { margin-top: 8px; padding: 10px 12px; border: 1px solid var(--c-line); border-radius: 9px; background: var(--c-panel-2); line-height: 1.55; }
   .rowactions { display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  /* Users: what each member has installed, counted above the table, and a filter. */
+  .install-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap;
+    padding: 12px 20px; border-bottom: 1px solid var(--c-line); }
+  .install-summary { margin: 0; color: var(--c-body); font-size: 13.5px; }
+  .install-filter { display: inline-flex; gap: 6px; }
+  .install-filter .btn[aria-pressed="true"] { border-color: var(--c-accent-line); background: var(--c-accent-soft); color: var(--c-accent); }
 
   /* A state, said twice: once in words and once in colour. Never colour
      alone — the dot is decoration for those who can see it. */

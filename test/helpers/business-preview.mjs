@@ -20,8 +20,10 @@ const people = [
   { userId:'user_demo_5', email:'alex@northstar.example', name:'Alex Park', role:'org:member', createdAt:6 },
 ];
 const team = { team:{ orgId:'org_demo_northstar', name:'Northstar Engineering', role:'org:admin', status:'active', currentPeriodEnd:null, seats:150, seatsUsed:7, seatsAvailable:143, comp:true, source:'comp', policyVersion:3, policyRollout:{ policyVersion:3, devices:5, applied:3, updating:1, attention:0, offline:1, pageGuardsConfirmed:2, lastReceiptAt:Date.now()-30000, savedAt:Date.now()-25*60_000, savedBy:'user_demo_admin' }, members:people.map((person, i) => {
-  const device = (rollout, extra = {}) => ({ installationId:`dev-${i}`, extensionVersion:'1.2.0', lastSeenAt:Date.now()-60_000, appliedPolicyVersion:3, confirmedGuards:2, expectedPages:2, rollout, policyStatus: rollout === 'applied' ? 'guards_confirmed' : 'pending', ...extra });
+  const device = (rollout, extra = {}) => ({ client:'extension', installationId:`dev-${i}`, extensionVersion:'1.2.0', lastSeenAt:Date.now()-60_000, appliedPolicyVersion:3, confirmedGuards:2, expectedPages:2, rollout, policyStatus: rollout === 'applied' ? 'guards_confirmed' : 'pending', ...extra });
   const devices = i === 1 ? [device('updating', { appliedPolicyVersion:2 })] : i === 4 ? [device('offline', { lastSeenAt:Date.now()-3*86_400_000, policyStatus:'offline' })] : [device('applied')];
+  // Sam and Lee also run the desktop app (as in the Shadow AI desktop fixture).
+  if (i === 1 || i === 2) devices.push(device('applied', { client:'desktop', installationId:`desk-${i}`, extensionVersion:'0.2.12', policyStatus:'applied' }));
   // The admin has not installed the extension yet (as in the original fixture).
   if (i === 0) return person;
   return { ...person, connection:{ status:'recently_connected', lastSeenAt:devices[0].lastSeenAt, devices } };
@@ -212,7 +214,7 @@ handleRedirectCallback:async()=>{},load:async()=>{},addListener:(f)=>{listeners.
       const days = [7, 30, 90].includes(Number(body.days)) ? Number(body.days) : 30;
       const scale = days / 30;
       const n = (v) => Math.max(0, Math.round(v * scale));
-      const devices = (m.connection?.devices || []).map(d => ({ extensionVersion: d.extensionVersion, lastSeenAt: d.lastSeenAt, appliedPolicyVersion: d.appliedPolicyVersion, policyState: d.policyStatus, rollout: d.rollout }));
+      const devices = (m.connection?.devices || []).map(d => ({ client: d.client, extensionVersion: d.extensionVersion, lastSeenAt: d.lastSeenAt, appliedPolicyVersion: d.appliedPolicyVersion, policyState: d.policyStatus, rollout: d.rollout }));
       return json(res, {
         days, policyVersion: team.team.policyVersion,
         member: { userId: m.userId, name: m.name, email: m.email, role: m.role, joinedAt: Date.now() - (20 - idx) * 86_400_000, seatNumber: idx + 1, lastSeenAt: devices[0]?.lastSeenAt ?? null },

@@ -23,13 +23,19 @@ const { chromium } = require(
 const BASE = process.env.BASE || "http://localhost:3000/designs/secureintent-site-v1";
 const OUT = (process.env.OUT || require("os").tmpdir()) + "/";
 
+const device = (client) => ({ ...(client ? { client } : {}), installationId: `dev-${client}`, extensionVersion: client === "desktop" ? "0.2.12" : "1.2.0",
+  lastSeenAt: Date.now() - 60e3, appliedPolicyVersion: 4, rollout: "applied", policyStatus: "applied", confirmedGuards: 2, expectedPages: 2 });
 const team = (over = {}) => ({
   team: {
     orgId: "org_a", name: "Acme Robotics", role: "org:admin", status: "active",
     currentPeriodEnd: null, seats: 5, seatsUsed: 2, seatsAvailable: 3,
+    // Devices seen in the last 30 days: Ada has both products, Grace the
+    // extension only (no client field, as from an older API).
     members: [
-      { userId: "u1", email: "ada@acme.io", name: "Ada Lovelace", role: "org:admin", createdAt: 1 },
-      { userId: "u2", email: "grace@acme.io", name: "Grace Hopper", role: "org:member", createdAt: 2 },
+      { userId: "u1", email: "ada@acme.io", name: "Ada Lovelace", role: "org:admin", createdAt: 1,
+        connection: { status: "recently_connected", lastSeenAt: Date.now() - 60e3, devices: [device("extension"), device("desktop")] } },
+      { userId: "u2", email: "grace@acme.io", name: "Grace Hopper", role: "org:member", createdAt: 2,
+        connection: { status: "recently_connected", lastSeenAt: Date.now() - 60e3, devices: [device()] } },
     ],
     invitations: [{ id: "inv1", email: "alan@acme.io" }],
     ...over,
@@ -316,6 +322,66 @@ const state = () => ({
     const mrPdf = await download(p, "#mr-pdf");
     check("an older API: member PDF without By severity", !mrPdf.includes("By severity"), null);
     check("no page errors (older API)", errs.length === 0, errs);
+    await ctx.close();
+  }
+
+  // ---- 7. Users: what each member has installed, and a filter ------------
+  const roster = () => ({
+    bar: !document.getElementById("install-bar").hidden,
+    summary: document.getElementById("install-summary").textContent,
+    rows: [...document.querySelectorAll("#people tr")].filter((tr) => !tr.hidden)
+      .map((tr) => tr.classList.contains("install-none") ? tr.textContent : `${tr.querySelector(".name")?.textContent}: ${tr.children[2]?.textContent}`),
+    pressed: document.querySelector('[data-install-filter="missing"]').getAttribute("aria-pressed"),
+    overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  });
+  {
+    const ctx = await ctxFor(b);
+    const p = await ctx.newPage();
+    const errs = []; p.on("pageerror", (e) => errs.push(e.message));
+    await p.goto(BASE + "/team.html#/people");
+    await p.waitForTimeout(900);
+    let r = await p.evaluate(roster);
+    check("Users counts what members installed (invitations left out)", r.bar && r.summary === "1 has both · 1 extension only · 0 desktop only · 0 none", r);
+    check("each member says what is installed", r.rows.join("|") === "Ada Lovelace: Both|Grace Hopper: Extension|alan@acme.io: ", r);
+    await p.locator("#view-people .panel--flush").screenshot({ path: OUT + "c-installed.png" });
+    await p.click('[data-install-filter="missing"]');
+    r = await p.evaluate(roster);
+    check("Missing something shows only members without both", r.rows.join("|") === "Grace Hopper: Extension" && r.pressed === "true", r);
+    await p.click('[data-install-filter="all"]');
+    r = await p.evaluate(roster);
+    check("All shows everyone again", r.rows.length === 3 && r.pressed === "false", r);
+    check("no page errors (installed)", errs.length === 0, errs);
+    await ctx.close();
+  }
+  {
+    const both = [device("extension"), device("desktop")];
+    const ctx = await ctxFor(b, { teamBody: team({
+      members: [
+        { userId: "u1", email: "ada@acme.io", name: "Ada Lovelace", role: "org:admin", createdAt: 1, connection: { status: "recently_connected", devices: both } },
+        { userId: "u3", email: "lin@acme.io", name: "Lin Wei", role: "org:member", createdAt: 3, connection: { status: "recently_connected", devices: [device("desktop")] } },
+        { userId: "u4", email: "sam@acme.io", name: "Sam Ortiz", role: "org:member", createdAt: 4 },
+      ],
+    }), viewport: { width: 390, height: 844 } });
+    const p = await ctx.newPage();
+    await p.goto(BASE + "/team.html#/people");
+    await p.waitForTimeout(900);
+    let r = await p.evaluate(roster);
+    check("desktop only and none are counted", r.summary === "1 has both · 0 extension only · 1 desktop only · 1 none" && r.rows.includes("Lin Wei: Desktop app") && r.rows.includes("Sam Ortiz: None"), r);
+    check("no sideways scroll on Users at 390px", r.overflow <= 1, r);
+    await p.screenshot({ path: OUT + "c-installed-mobile.png" });
+    await ctx.close();
+  }
+  {
+    const both = [device("extension"), device("desktop")];
+    const ctx = await ctxFor(b, { teamBody: team({ members: [
+      { userId: "u1", email: "ada@acme.io", name: "Ada Lovelace", role: "org:admin", createdAt: 1, connection: { status: "recently_connected", devices: both } },
+    ] }) });
+    const p = await ctx.newPage();
+    await p.goto(BASE + "/team.html#/people");
+    await p.waitForTimeout(900);
+    await p.click('[data-install-filter="missing"]');
+    const r = await p.evaluate(roster);
+    check("Missing something with nobody missing says so", r.rows.join() === "Everyone has both the extension and the desktop app.", r);
     await ctx.close();
   }
 

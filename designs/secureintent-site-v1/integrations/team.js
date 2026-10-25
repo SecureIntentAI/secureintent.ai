@@ -630,6 +630,32 @@
             // Page guards are the extension's; the desktop app has none to report.
             d.client === "desktop" ? "" : `<br><small>${esc(d.confirmedGuards)} guards responded · ${esc(d.expectedPages)} web pages checked</small>`}</div>`).join("")}</details>`;
       }
+      // What a member has installed, from the devices the API reports for the
+      // last 30 days. A device without a client is the extension (older API).
+      const INSTALLED = { both: ["ok", "Both"], extension: ["warn", "Extension"], desktop: ["warn", "Desktop app"], none: ["idle", "None"] };
+      function installedOf(m) {
+        const devices = m.connection?.devices || [];
+        const desktop = devices.some((d) => d.client === "desktop");
+        const extension = devices.some((d) => d.client !== "desktop");
+        return desktop && extension ? "both" : extension ? "extension" : desktop ? "desktop" : "none";
+      }
+      // "All" or "missing": members without both. Invitations are not members, so
+      // the filter hides them too.
+      let installFilter = "all";
+      function applyInstallFilter() {
+        const missing = installFilter === "missing";
+        let shown = 0;
+        for (const tr of $("people").querySelectorAll("tr")) {
+          if (tr.classList.contains("install-none")) continue;
+          const hide = missing && (!tr.dataset.install || tr.dataset.install === "both");
+          tr.hidden = hide;
+          if (!hide && tr.dataset.install) shown++;
+        }
+        const none = $("people").querySelector(".install-none");
+        if (none) none.hidden = !missing || shown > 0;
+        document.querySelectorAll("[data-install-filter]").forEach((b) =>
+          b.setAttribute("aria-pressed", String(b.dataset.installFilter === installFilter)));
+      }
       function renderPeople(team) {
         if (!team) return;
         const key = JSON.stringify([team.orgId, team.role, team.members, team.invitations, team.pendingInvitations]);
@@ -668,9 +694,10 @@
             const cell = isAdmin && m.userId
               ? `<button class="person-open" type="button" data-report="${esc(m.userId)}" aria-label="Open the member report for ${esc(who)}">${person(m.name, m.email)}<span class="person-open-hint">View report ›</span></button>`
               : person(m.name, m.email);
-            return `<tr><td>${cell}</td><td><span class="tag ${admin ? "admin" : ""}">${
+            const [installTone, installLabel] = INSTALLED[installedOf(m)];
+            return `<tr data-install="${installedOf(m)}"><td>${cell}</td><td><span class="tag ${admin ? "admin" : ""}">${
               admin ? "Admin" : "Member"
-            }</span></td><td><div class="conn"><span class="pill pill--${tone}">${label}</span>${
+            }</span></td><td><span class="pill pill--${installTone}">${installLabel}</span></td><td><div class="conn"><span class="pill pill--${tone}">${label}</span>${
               m.connection?.lastSeenAt ? `<small title="${esc(new Date(m.connection.lastSeenAt).toLocaleString())}">Last check-in ${esc(relTime(new Date(m.connection.lastSeenAt).toISOString()) || new Date(m.connection.lastSeenAt).toLocaleString())}</small>` : ""
             }${m.connection?.policyStatus ? `<small>${policyStatusLabel(m.connection.policyStatus)}</small>` : ""}${devicePolicyDetails(
               m.connection, m.userId, expanded,
@@ -684,7 +711,7 @@
           }),
           ...(team.invitations || []).map(
             (i) =>
-              `<tr><td>${person("", i.email, true)}</td><td><span class="tag">Member</span></td><td><div class="conn"><span class="pill pill--warn">Invited · awaiting acceptance</span><small>Email delivery not confirmed</small></div></td><td>${
+              `<tr><td>${person("", i.email, true)}</td><td><span class="tag">Member</span></td><td></td><td><div class="conn"><span class="pill pill--warn">Invited · awaiting acceptance</span><small>Email delivery not confirmed</small></div></td><td>${
                 isAdmin
                   ? `<span class="rowactions"><button class="btn btn--sm" type="button" data-resend="${esc(i.email)}">Resend</button><button class="btn btn--sm" type="button" data-revoke="${esc(i.id)}" data-who="${esc(
                       i.email,
@@ -693,8 +720,16 @@
               }</td></tr>`,
           ),
         ];
-        for (const invitation of team.pendingInvitations || []) rows.push(`<tr><td>${person("", invitation.email, true)}</td><td><span class="tag">Member</span></td><td><div class="conn"><span class="pill pill--warn">Invitation awaiting confirmation</span></div></td><td><button class="btn btn--sm" type="button" data-cancel-pending="${esc(invitation.email)}">Cancel pending invitation</button></td></tr>`);
-        body.innerHTML = rows.join("") || '<tr><td colspan="4" class="empty">No users yet. Invite someone above to fill a seat.</td></tr>';
+        for (const invitation of team.pendingInvitations || []) rows.push(`<tr><td>${person("", invitation.email, true)}</td><td><span class="tag">Member</span></td><td></td><td><div class="conn"><span class="pill pill--warn">Invitation awaiting confirmation</span></div></td><td><button class="btn btn--sm" type="button" data-cancel-pending="${esc(invitation.email)}">Cancel pending invitation</button></td></tr>`);
+        const members = team.members || [];
+        if (members.length) rows.push('<tr class="install-none" hidden><td colspan="5" class="empty">Everyone has both the extension and the desktop app.</td></tr>');
+        body.innerHTML = rows.join("") || '<tr><td colspan="5" class="empty">No users yet. Invite someone above to fill a seat.</td></tr>';
+        // Members only: pending invitations are left out of the counts.
+        const tally = { both: 0, extension: 0, desktop: 0, none: 0 };
+        members.forEach((m) => tally[installedOf(m)]++);
+        $("install-bar").hidden = !members.length;
+        $("install-summary").textContent = `${fmt(tally.both)} ${tally.both === 1 ? "has" : "have"} both · ${fmt(tally.extension)} extension only · ${fmt(tally.desktop)} desktop only · ${fmt(tally.none)} none`;
+        applyInstallFilter();
         lastPeopleRenderKey = key;
         if (focusKey) {
           const replacement = [...body.querySelectorAll("button")].find((button) => button.dataset[focusKey] === focusValue);
@@ -2252,6 +2287,10 @@
 
         // A rule's severity saves on its own, straight away, and does not
         // count as an unsaved policy edit.
+        document.querySelectorAll("[data-install-filter]").forEach((b) => b.addEventListener("click", () => {
+          installFilter = b.dataset.installFilter;
+          applyInstallFilter();
+        }));
         $("pat-list").addEventListener("change", async (e) => {
           const select = e.target.closest?.("select[data-rule-sev]");
           if (!select) return;
