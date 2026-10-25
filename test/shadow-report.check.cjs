@@ -11,6 +11,9 @@
  *    member report and both exports. Without the new fields the page is unchanged.
  * 6. Severity (OCSF severityId on ledger events): a badge in the ledger and Recent
  *    activity, a Severity column and a count line in the PDF; none without it.
+ * 7. Destination status (Approved / Recognised / Not approved) beside a ledger
+ *    event's destination, on screen and as a second line in the PDF; the severity
+ *    mapping line; inventory cells wrap instead of being cut.
  * Run: NODE_PATH=../Secureintent-Extension/node_modules node test/shadow-report.check.cjs
  */
 const { chromium, expect } = require('@playwright/test');
@@ -190,6 +193,18 @@ const path = require('node:path');
     }
     console.log('PASS: 6. severity badges in the ledger and Recent activity; Severity column and count line in the PDF');
 
+    // 7. Destination status: beside the destination; nothing for a desktop catch or an older row.
+    await expect(page.locator('#ledger-body tr', { hasText: 'OpenAI API key' }).locator('.dest-status')).toHaveText('Recognised');
+    await expect(page.locator('#ledger-body tr', { hasText: 'Email address' }).locator('td').nth(3)).toContainText('chat.deepseek.com Not approved');
+    await expect(desktopRow.locator('.dest-status')).toHaveCount(0);
+    await expect(page.locator('#ledger-body tr', { hasText: 'High-entropy token' }).locator('.dest-status')).toHaveCount(0);
+    await expect(page.locator('#timeline .dest-status')).toHaveText(['Recognised', 'Not approved']);
+    for (const text of ['(chat.deepseek.com)', '(Not approved)', '(Severity levels map to OCSF, PCI DSS', '(claude.ai)', '(+ desktop app)']) {
+      if (!pdf.includes(text)) throw Error(`PDF is missing: ${text}`);
+    }
+    for (const text of ['ompliant', 'deskto...', '(claude.ai + desktop']) if (pdf.includes(text)) throw Error(`PDF contains: ${text}`);
+    console.log('PASS: 7. destination status on screen and in the PDF; the mapping line; the hostname wraps instead of being cut');
+
     await page.locator('#export-button').click();
     const jsonDownload = page.waitForEvent('download');
     await page.locator('#export-json').click();
@@ -277,7 +292,7 @@ const path = require('node:path');
     // ...and ledger events without severityId.
     await older.route('**/mock-api/v1/shadow/admin/ledger', async (route) => {
       const data = await (await route.fetch()).json();
-      data.events = data.events.map(({ severityId, ...event }) => event);
+      data.events = data.events.map(({ severityId, destinationStatus, ...event }) => event);
       return route.fulfill({ json: data });
     });
     await older.route('**/mock-api/v1/shadow/admin/dashboard', async (route) => {
@@ -308,11 +323,12 @@ const path = require('node:path');
     await older.click('#detail-content [data-close-dialog]');
     await expect(older.locator('#ledger-body .badge.sev')).toHaveCount(0);
     await expect(older.locator('#timeline .badge.sev')).toHaveCount(0);
+    await expect(older.locator('.dest-status')).toHaveCount(0);
     await older.locator('#export-button').click();
     const olderDownload = older.waitForEvent('download');
     await older.locator('#export-pdf').click();
     const olderShadowPdf = await readFile(await (await olderDownload).path(), 'latin1');
-    for (const text of ['(Severity)', 'By severity']) if (olderShadowPdf.includes(text)) throw Error(`PDF without severity still contains: ${text}`);
+    for (const text of ['(Severity)', 'By severity', 'map to OCSF', '(Not approved)']) if (olderShadowPdf.includes(text)) throw Error(`PDF without severity still contains: ${text}`);
     if (!olderShadowPdf.includes("(Findings)")) throw Error('PDF without severity lost the ledger table');
     console.log('PASS: 5g. without the new fields the inventory, metrics, review and chart are as before');
 
@@ -380,6 +396,29 @@ const path = require('node:path');
     expect(await people.locator('#mr-body img').count()).toBe(0);
     expect(await people.evaluate(() => window.xss)).toBeUndefined();
     console.log('PASS: 5i. member report lists desktop AI tools (screen and PDF); absent for older APIs; names stay text');
+
+    // 7b. Long inventory values wrap onto more lines instead of being cut with "...".
+    const long = await context.newPage();
+    await long.route('**/mock-api/v1/shadow/admin/dashboard', async (route) => {
+      const data = await (await route.fetch()).json();
+      data.tools.push({ serviceId: 'copilot-365', name: 'Microsoft Copilot for Microsoft 365 Enterprise', hostname: 'copilot.cloud.microsoft.example-enterprise.com', source: 'web',
+        classification: 'review', pasteMode: 'block_sensitive', visits: 12, pastes: 3, sensitiveEvents: 0, activeSeats: 2, seatNumbers: [1, 2], lastSeen: Date.now(),
+        desktop: { memberCount: 1, seatNumbers: [2], lastSeen: Date.now(), kinds: ['desktop_app'] } });
+      return route.fulfill({ json: data });
+    });
+    await long.goto(`${origin}/team.html#/overview`);
+    await long.locator('#console-nav [data-view="shadow"]').click();
+    await expect(long.locator('#chart svg')).toBeVisible({ timeout: 15000 });
+    await long.locator('#export-button').click();
+    const longDownload = long.waitForEvent('download');
+    await long.locator('#export-pdf').click();
+    const longPdf = await readFile(await (await longDownload).path(), 'latin1');
+    const inventory = longPdf.slice(longPdf.indexOf('(AI service inventory)'), longPdf.indexOf('(Sensitive paste activity'));
+    for (const text of ['(Microsoft Copilot for)', '(Microsoft 365)', '(Enterprise)', '(copilot.cloud.microsoft.exam)', '(ple-enterprise.com)', '(+ desktop app)', '(Block sensitive)']) {
+      if (!inventory.includes(text)) throw Error(`Inventory is missing: ${text}`);
+    }
+    if (inventory.includes('...')) throw Error('Inventory still cuts a value short');
+    console.log('PASS: 7b. long service names and hostnames wrap in the PDF inventory, nothing cut');
 
     // A member who joins while the admin's page is open: the first seat list
     // lacks them, then their activity arrives. They must show by name, not

@@ -117,3 +117,5 @@
 .badge.sev-4 { color: var(--orange); background: var(--orange-bg); }
 .badge.sev-3 { color: var(--peach); background: var(--peach-bg); }
 .badge.sev-2 { color: var(--muted); background: var(--surface-raised); }
+/* Whether a ledger event's destination is approved, beside the hostname. */
+.badge.dest-status { margin-left: 6px; vertical-align: 1px; }

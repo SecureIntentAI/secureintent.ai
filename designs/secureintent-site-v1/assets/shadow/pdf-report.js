@@ -133,14 +133,34 @@ function makeReport(snapshot) {
     while (str.length > 1 && measure(`${str}...`, size) > room) str = str.slice(0, -1);
     return `${str.trimEnd()}...`;
   };
-  /** A table row: each cell on one line, or two when it does not fit (the second cut to fit). */
+  /** Every line `value` needs in `room` points: words wrapped, an over-long word broken. */
+  const wrap = (value, room) => {
+    const lines = [];
+    let current = '';
+    for (let word of plain(value).split(' ')) {
+      while (measure(word, 7) > room && word.length > 1) {
+        let cut = word.length - 1;
+        while (cut > 1 && measure(word.slice(0, cut), 7) > room) cut--;
+        if (current) { lines.push(current); current = ''; }
+        lines.push(word.slice(0, cut));
+        word = word.slice(cut);
+      }
+      const next = current ? `${current} ${word}` : word;
+      if (!current || measure(next, 7) <= room) current = next;
+      else { lines.push(current); current = word; }
+    }
+    lines.push(current);
+    return lines;
+  };
+  /** A table row: each cell on one line, or two when it does not fit (the second cut to fit).
+   *  A cell given as [first, second] is two lines as given, each cut to fit. */
   const tableRow = (values, widths, height) => {
     let x = LEFT;
     values.forEach((value, i) => {
       const room = widths[i] - 10;
-      const str = plain(value);
-      let lines = [str];
-      if (measure(str, 7) > room) {
+      const str = Array.isArray(value) ? '' : plain(value);
+      let lines = Array.isArray(value) ? value.map(part => fit(part, room)) : [str];
+      if (!Array.isArray(value) && measure(str, 7) > room) {
         const words = str.split(' ');
         let first = words.shift();
         while (words.length && measure(`${first} ${words[0]}`, 7) <= room) first += ` ${words.shift()}`;
@@ -337,8 +357,6 @@ function makeReport(snapshot) {
   } else {
     drawTableHeader();
     serviceRows.forEach((tool, index) => {
-      if (y + 25 > BOTTOM) { beginPage(); section('AI service inventory (continued)'); drawTableHeader(); }
-      if (index % 2 === 1) rect(LEFT, y, WIDTH, 25, [0.985, 0.988, 0.992]);
       const classification = { sanctioned: 'Sanctioned', recognized: 'Recognised', review: 'Needs review' }[tool.classification] || 'Needs review';
       const pastePolicy = { normal: 'Normal protection', block_sensitive: 'Block sensitive', block_all: 'Block all pastes' }[tool.pasteMode] || (tool.pasteBlocked ? 'Block all pastes' : 'Normal protection');
       // A desktop-only tool (found by the desktop app, no website): its kind in place
@@ -348,15 +366,22 @@ function makeReport(snapshot) {
         ? [tool.name, `Desktop: ${DESKTOP_KINDS[tool.kind] || 'AI tool'}`, classification,
           count(tool.activeSeats ?? (Array.isArray(tool.seatNumbers) ? tool.seatNumbers.length : 0)), '-', '-', 'Not applied on desktop']
         // A web service also used through its desktop app says so, as the card does.
-        : [tool.name, `${tool.hostname || (tool.observedHostnames || []).join(', ')}${tool.desktop ? ' + desktop app' : ''}`, classification,
+        // "+ desktop app" on its own line, so the hostname is never cut short.
+        : [tool.name, [tool.hostname || (tool.observedHostnames || []).join(', '), ...(tool.desktop ? ['+ desktop app'] : [])], classification,
           tool.activeSeats == null ? 'N/A' : count(tool.activeSeats), count(tool.visits), count(tool.pastes), pastePolicy];
+      // Every cell wraps in full; the row grows to the tallest one.
+      const cells = values.map((value, i) => (Array.isArray(value) ? value : [value]).flatMap(part => wrap(part, columnWidths[i] - 10)));
+      const height = Math.max(25, Math.max(...cells.map(lines => lines.length)) * 9 + 10);
+      if (y + height > BOTTOM) { beginPage(); section('AI service inventory (continued)'); drawTableHeader(); }
+      if (index % 2 === 1) rect(LEFT, y, WIDTH, height, [0.985, 0.988, 0.992]);
       let x = LEFT;
-      values.forEach((value, i) => {
-        text(desktopOnly ? fit(value, columnWidths[i] - 10) : clipped(value, Math.floor((columnWidths[i] - 10) / 4.2)), x + 5, y + 15, 7, COLORS.ink);
+      cells.forEach((lines, i) => {
+        const first = y + height / 2 + 3 - (lines.length - 1) * 4.5;
+        lines.forEach((value, n) => text(value, x + 5, first + n * 9, 7, COLORS.ink));
         x += columnWidths[i];
       });
-      line(LEFT, y + 25, RIGHT, y + 25, COLORS.line, 0.4);
-      y += 25;
+      line(LEFT, y + height, RIGHT, y + height, COLORS.line, 0.4);
+      y += height;
     });
     if (desktopOnlyRows) {
       ensure(18);
@@ -414,7 +439,9 @@ function makeReport(snapshot) {
       // The rows below, counted by severity: "Critical 2 | High 5 | Medium 1 | Low 0".
       const tally = [5, 4, 3, 2].map(id => `${SEVERITY[id]} ${count(events.filter(event => Number(event.severityId) === id).length)}`);
       text(`By severity: ${tally.join(' · ')}`, LEFT, y + 4, 8, COLORS.muted);
-      y += 14;
+      // "Map to", never "compliant": the levels follow these schemes, nothing more.
+      text('Severity levels map to OCSF, PCI DSS (card numbers), GDPR Article 9 (special category data) and NIST SP 800-122 (personal data impact).', LEFT, y + 15, 7, COLORS.faint);
+      y += 25;
     }
     const drawDlpHeader = () => {
       rect(LEFT, y, WIDTH, 22, COLORS.panel);
@@ -431,7 +458,9 @@ function makeReport(snapshot) {
       const outcome = (desktopRow && { auto_redacted: 'Redacted on the desktop', unlocked: 'Restored on the desktop (Undo)', purged: 'Cleared from the desktop clipboard' }[event.action])
         || { blocked: 'Blocked', cancelled: 'Cancelled', sanitised: 'Sanitised', warning_bypassed: 'Pasted anyway' }[event.action] || 'DLP event';
       const destination = desktopRow ? (event.sourceApp ? `Copied in ${event.sourceApp} (desktop)` : 'Desktop app') : event.hostname;
-      tableRow([reportDate(event.timestamp), event.seat || 'Unattributed', desktopRow ? 'Desktop app' : 'Browser', destination, event.reason, outcome,
+      // Whether that destination is approved, as a second line (none for a desktop catch or an older API).
+      const status = { sanctioned: 'Approved', recognized: 'Recognised', review: 'Not approved' }[event.destinationStatus];
+      tableRow([reportDate(event.timestamp), event.seat || 'Unattributed', desktopRow ? 'Desktop app' : 'Browser', status && !desktopRow ? [destination || '', status] : destination, event.reason, outcome,
         ...(rated ? [SEVERITY[event.severityId] || ''] : []), count(event.findingCount)], dlpWidths, 26);
       line(LEFT, y + 26, RIGHT, y + 26, COLORS.line, 0.4);
       y += 26;

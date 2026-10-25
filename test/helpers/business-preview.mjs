@@ -73,11 +73,12 @@ const shadowDashboard = {
 };
 // One desktop app catch (source 'desktop': no hostname, the app it was copied in);
 // the last row has no source or severityId, as from an older API, and counts as the browser.
-// severityId is OCSF: 5 Critical, 4 High, 3 Medium, 2 Low.
+// severityId is OCSF: 5 Critical, 4 High, 3 Medium, 2 Low. destinationStatus is the
+// destination's classification; null for a desktop catch (made on copy, before any destination).
 const shadowLedger = { total:4, nextOffset:null, events:[
-  {eventId:'evt_preview_1',source:'browser',seat:'Seat 2',seatNumber:2,timestamp:Date.now()-240000,hostname:'claude.ai',serviceId:'claude',reason:'OpenAI API key',action:'blocked',findingCount:1,severityId:4},
-  {eventId:'evt_preview_4',source:'desktop',seat:'Seat 3',seatNumber:3,timestamp:Date.now()-1800000,hostname:'',serviceId:'',sourceApp:'Visual Studio Code',reason:'AWS access key',action:'auto_redacted',findingCount:1,severityId:5},
-  {eventId:'evt_preview_2',seat:'Seat 9',seatNumber:9,timestamp:Date.now()-3600000,hostname:'chat.deepseek.com',serviceId:'deepseek',reason:'Email address',action:'sanitised',findingCount:2,severityId:3},
+  {eventId:'evt_preview_1',source:'browser',seat:'Seat 2',seatNumber:2,timestamp:Date.now()-240000,hostname:'claude.ai',serviceId:'claude',reason:'OpenAI API key',action:'blocked',findingCount:1,severityId:4,destinationStatus:'recognized'},
+  {eventId:'evt_preview_4',source:'desktop',seat:'Seat 3',seatNumber:3,timestamp:Date.now()-1800000,hostname:'',serviceId:'',sourceApp:'Visual Studio Code',reason:'AWS access key',action:'auto_redacted',findingCount:1,severityId:5,destinationStatus:null},
+  {eventId:'evt_preview_2',seat:'Seat 9',seatNumber:9,timestamp:Date.now()-3600000,hostname:'chat.deepseek.com',serviceId:'deepseek',reason:'Email address',action:'sanitised',findingCount:2,severityId:3,destinationStatus:'review'},
   {eventId:'evt_preview_3',timestamp:Date.now()-7200000,hostname:'perplexity.ai',serviceId:'perplexity',reason:'High-entropy token',action:'warning_bypassed',findingCount:1},
 ] };
 // AI on members' computers, as the desktop app reports it (POST /v1/shadow/admin/desktop).

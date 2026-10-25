@@ -48,6 +48,11 @@ const eventOutcome = event => (isDesktop(event) && desktopOutcomes[event.action]
 // OCSF severity of a ledger event; an older API sends none, and then no badge shows.
 const SEVERITY = { 5: 'Critical', 4: 'High', 3: 'Medium', 2: 'Low' };
 const severityBadge = event => SEVERITY[event.severityId] ? `<span class="badge sev sev-${Number(event.severityId)}">${SEVERITY[event.severityId]}</span>` : '';
+// Whether the place a paste was headed is approved for the team. Desktop catches
+// (on copy, before there is a destination) and older APIs send none: no badge.
+const DESTINATION_STATUS = { sanctioned: ['Approved', 'sanctioned'], recognized: ['Recognised', 'progress'], review: ['Not approved', 'review'] };
+const destinationBadge = event => Object.hasOwn(DESTINATION_STATUS, event.destinationStatus ?? '')
+  ? ` <span class="badge dest-status ${DESTINATION_STATUS[event.destinationStatus][1]}">${DESTINATION_STATUS[event.destinationStatus][0]}</span>` : '';
 const eventDestination = event => isDesktop(event) ? (event.sourceApp ? `Copied in ${event.sourceApp} (desktop)` : 'Desktop app') : event.hostname;
 const marks = { chatgpt: 'G', claude: '✳', gemini: '✧', copilot: 'C', perplexity: 'P', deepseek: 'D' };
 const date = value => {
@@ -430,12 +435,12 @@ function renderReviews() {
 }
 const eventTone = action => ({ blocked: 'high', cancelled: 'review', sanitised: 'done', warning_bypassed: 'medium', auto_redacted: 'done', purged: 'done', unlocked: 'medium' })[action] || 'low';
 function renderActivity() {
-  $('#timeline').innerHTML = state.recent.length ? state.recent.slice(0, 4).map(event => `<li><span class="timeline-icon ${event.action === 'blocked' ? 'warm' : ''}">${icon(['sanitised', 'auto_redacted'].includes(event.action) ? 'check' : 'shield')}</span><div><strong>${esc(eventOutcome(event))}${severityBadge(event)}</strong><p>${esc(eventDestination(event))} · ${esc(event.reason)}</p><time>${esc(date(event.timestamp))}</time></div></li>`).join('') : '<li><div></div><p class="empty-state">No sensitive activity in this period.</p></li>';
+  $('#timeline').innerHTML = state.recent.length ? state.recent.slice(0, 4).map(event => `<li><span class="timeline-icon ${event.action === 'blocked' ? 'warm' : ''}">${icon(['sanitised', 'auto_redacted'].includes(event.action) ? 'check' : 'shield')}</span><div><strong>${esc(eventOutcome(event))}${severityBadge(event)}</strong><p>${esc(eventDestination(event))}${destinationBadge(event)} · ${esc(event.reason)}</p><time>${esc(date(event.timestamp))}</time></div></li>`).join('') : '<li><div></div><p class="empty-state">No sensitive activity in this period.</p></li>';
   const ledger = state.ledger;
   $('#ledger-subtitle').textContent = ledger?.desktopAvailable === false
     ? 'Detection reasons and outcomes from the browser extension. Hostnames only; no pasted content.'
     : 'Detection reasons and outcomes from the browser and the desktop app. Hostnames and app names only; no pasted content.';
-  $('#ledger-body').innerHTML = ledger?.events.length ? ledger.events.map(event => `<tr><td>${esc(date(event.timestamp))}</td><td>${esc(seatLabel(eventSeat(event)))}</td><td>${isDesktop(event) ? 'Desktop app' : 'Browser'}</td><td>${esc(eventDestination(event))}${isDesktop(event) ? '' : `<small>${esc(event.serviceId)}</small>`}</td><td>${severityBadge(event)}${esc(event.reason)}</td><td><span class="badge ${eventTone(event.action)}">${esc(eventOutcome(event))}</span></td><td>${fmt(event.findingCount)}</td></tr>`).join('') : '<tr><td colspan="7" class="empty-state">No sensitive events in this period.</td></tr>';
+  $('#ledger-body').innerHTML = ledger?.events.length ? ledger.events.map(event => `<tr><td>${esc(date(event.timestamp))}</td><td>${esc(seatLabel(eventSeat(event)))}</td><td>${isDesktop(event) ? 'Desktop app' : 'Browser'}</td><td>${esc(eventDestination(event))}${destinationBadge(event)}${isDesktop(event) ? '' : `<small>${esc(event.serviceId)}</small>`}</td><td>${severityBadge(event)}${esc(event.reason)}</td><td><span class="badge ${eventTone(event.action)}">${esc(eventOutcome(event))}</span></td><td>${fmt(event.findingCount)}</td></tr>`).join('') : '<tr><td colspan="7" class="empty-state">No sensitive events in this period.</td></tr>';
   const count = ledger?.events.length || 0;
   $('#ledger-count').textContent = `${fmt(ledger?.total)} events · ${count ? state.offset + 1 : 0} to ${count ? state.offset + count : 0}`;
   state.nextOffset = ledger?.nextOffset ?? null;
