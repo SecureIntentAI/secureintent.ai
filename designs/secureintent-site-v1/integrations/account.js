@@ -193,6 +193,9 @@ const CFG = SI.config;
             detail: aiRules ? "Some AI tools have paste rules of their own." : "No AI tool has a paste rule of its own." },
           { name: "Session Lock", on: !!c.requireSessionLock, state: c.requireSessionLock ? "Required" : "Optional", scopes: ["Browser"],
             detail: c.requireSessionLock ? "The browser extension asks you to unlock it." : "Up to you in the browser extension." },
+          // Only from an API that reports it, and only when switched on.
+          ...(c.legalPack === true ? [{ name: "Legal pack", on: true, state: "On", scopes: both,
+            detail: "Legal privilege markers, Suspicious Activity Report references and labelled phone numbers are detected too." }] : []),
           { name: "Restricted sites", on: siteCount > 0, state: siteCount ? `${siteCount} ${siteCount === 1 ? "site" : "sites"}` : "None", scopes: ["Browser"],
             detail: siteCount ? `${sites.join(", ")}${siteCount > sites.length ? ", and more" : ""}` : "No sites are restricted." },
         ].map(enforcedRow));

@@ -26,7 +26,13 @@
     all: [0.12, 0.62, 0.76],
     up: [0.8, 0.33, 0.2],
     down: [0.16, 0.6, 0.42],
+    // Severity on the OCSF scale, as on screen: 5 Critical to 2 Low.
+    sev: { 5: [0.8, 0.22, 0.2], 4: [0.9, 0.42, 0.1], 3: [0.86, 0.65, 0.1], 2: [0.5, 0.58, 0.68] },
   };
+  const SEVERITY = { 5: "Critical", 4: "High", 3: "Medium", 2: "Low" };
+  // Printed with any severity content (this report, the member report, Shadow AI).
+  // "Map to", never "compliant": the levels follow these schemes, nothing more.
+  const SEVERITY_MAP_NOTE = "Severity levels map to OCSF, PCI DSS (card numbers), GDPR Article 9 (special category data) and NIST SP 800-122 (personal data impact).";
 
   const num = (v) => (Number.isFinite(Number(v)) ? Math.max(0, Number(v)) : 0);
   const count = (v) => Math.round(num(v)).toLocaleString("en-US");
@@ -226,21 +232,27 @@
     text(clip(summary, 120), LEFT, y, 8, C.muted);
     y += 22;
 
-    // The three breakdowns, as labelled bars with share of total.
-    const breakdown = (title, rows, labels) => {
+    // The breakdowns, as labelled bars with share of total. `colour` picks a
+    // row's bar colour (severity); the rest are cyan.
+    // `opts.intro` draws a line under the title, `opts.note(row)` a note
+    // beside a row's label, and `opts.outro` a line after the rows.
+    const breakdown = (title, rows, labels, colour, opts = {}) => {
       section(title);
       if (!rows?.length) {
         text("Nothing in this period.", LEFT, y, 9, C.muted);
         y += 20;
+        opts.outro?.();
         return;
       }
+      opts.intro?.();
       const total = rows.reduce((t, x) => t + num(x.n), 0) || 1;
       const peak = Math.max(1, ...rows.map((x) => num(x.n)));
       for (const row of rows.slice(0, 12)) {
         ensure(18);
         text(clip(labels?.[row.key] || row.key || "(unknown)", 34), LEFT, y + 8, 8.5);
+        opts.note?.(row);
         rect(LEFT + 180, y + 1, WIDTH - 280, 8, C.line);
-        rect(LEFT + 180, y + 1, Math.max(1, ((WIDTH - 280) * num(row.n)) / peak), 8, C.cyan);
+        if (num(row.n) || !colour) rect(LEFT + 180, y + 1, Math.max(1, ((WIDTH - 280) * num(row.n)) / peak), 8, colour ? colour(row) : C.cyan);
         text(count(row.n), RIGHT - 46, y + 8, 8.5, C.ink, true, "right");
         text(`${Math.round((num(row.n) / total) * 100)}%`, RIGHT, y + 8, 8, C.muted, false, "right");
         y += 17;
@@ -249,9 +261,31 @@
         text(`+ ${rows.length - 12} more`, LEFT, y + 8, 8, C.muted);
         y += 17;
       }
+      opts.outro?.();
       y += 10;
     };
     breakdown("What was caught", m.byType, r.labels.types);
+    // Only from an API that reports severity; all four levels, Critical first.
+    if (Array.isArray(m.bySeverity)) {
+      const sev = m.bySeverity.filter((x) => SEVERITY[Number(x?.severityId)])
+        .map((x) => ({ key: x.name || SEVERITY[Number(x.severityId)], n: x.n, id: Number(x.severityId),
+          letThrough: x.letThrough == null || !Number.isFinite(Number(x.letThrough)) ? null : num(x.letThrough) }));
+      // Let through: catches whose secret went on anyway. Only from an API that reports it.
+      const rated = sev.some((x) => x.letThrough !== null);
+      const severe = sev.filter((x) => x.id >= 4).reduce((t, x) => t + (x.letThrough || 0), 0);
+      breakdown("By severity", sev.some((x) => num(x.n)) ? sev : [], null, (x) => C.sev[x.id], {
+        intro: () => {
+          if (rated) {
+            text("Critical or High let through:", LEFT, y + 4, 8.5, C.ink, true);
+            text(severe ? count(severe) : "none", LEFT + measure("Critical or High let through: ", 8.5, true), y + 4, 8.5, severe ? C.up : C.down, true);
+            y += 14;
+          }
+          text(SEVERITY_MAP_NOTE, LEFT, y + 4, 7, C.faint);
+          y += 16;
+        },
+        note: rated ? (x) => text(`${count(x.letThrough)} let through`, LEFT + 70, y + 8, 7.5, x.letThrough && x.id >= 4 ? C.up : C.muted) : null,
+      });
+    }
     breakdown("Where it was headed", m.bySite);
     breakdown("What people chose", m.byAction, r.labels.actions);
 
@@ -311,6 +345,6 @@
   }
 
   // Shared with the member report (team.js): the same page geometry and fonts.
-  const kit = { PAGE_W, PAGE_H, LEFT, RIGHT, BOTTOM, WIDTH, C, plain, escapePdf, rgb, textWidth, clip, count, when, encode, header };
+  const kit = { PAGE_W, PAGE_H, LEFT, RIGHT, BOTTOM, WIDTH, C, plain, escapePdf, rgb, textWidth, clip, count, when, encode, header, SEVERITY_MAP_NOTE };
   window.SIOverviewPdf = { build, download, kit };
 })();

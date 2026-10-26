@@ -15,18 +15,25 @@ const people = [
   { userId:'user_demo_admin', email:'maya@northstar.example', name:'Maya Chen', role:'org:admin', createdAt:1 },
   { userId:'user_demo_1', email:'sam@northstar.example', name:'Sam Rivera', role:'org:member', createdAt:2 },
   { userId:'user_demo_2', email:'lee@northstar.example', name:'Lee Morgan', role:'org:member', createdAt:3 },
-  { userId:'user_demo_3', email:'jules@northstar.example', name:'Jules Patel', role:'org:member', createdAt:4 },
+  // A second, full admin (not the owner).
+  { userId:'user_demo_3', email:'jules@northstar.example', name:'Jules Patel', role:'org:admin', createdAt:4 },
   { userId:'user_demo_4', email:'robin@northstar.example', name:'Robin Kim', role:'org:member', createdAt:5 },
   { userId:'user_demo_5', email:'alex@northstar.example', name:'Alex Park', role:'org:member', createdAt:6 },
 ];
-const team = { team:{ orgId:'org_demo_northstar', name:'Northstar Engineering', role:'org:admin', status:'active', currentPeriodEnd:null, seats:150, seatsUsed:7, seatsAvailable:143, comp:true, source:'comp', policyVersion:3, policyRollout:{ policyVersion:3, devices:5, applied:3, updating:1, attention:0, offline:1, pageGuardsConfirmed:2, lastReceiptAt:Date.now()-30000, savedAt:Date.now()-25*60_000, savedBy:'user_demo_admin' }, members:people.map((person, i) => {
-  const device = (rollout, extra = {}) => ({ installationId:`dev-${i}`, extensionVersion:'1.2.0', lastSeenAt:Date.now()-60_000, appliedPolicyVersion:3, confirmedGuards:2, expectedPages:2, rollout, policyStatus: rollout === 'applied' ? 'guards_confirmed' : 'pending', ...extra });
+// ownerUserId and isOwner: Maya owns the team; billing stays with her.
+const team = { team:{ orgId:'org_demo_northstar', name:'Northstar Engineering', role:'org:admin', ownerUserId:'user_demo_admin', isOwner:true, status:'active', currentPeriodEnd:null, seats:150, seatsUsed:7, seatsAvailable:143, comp:true, source:'comp', policyVersion:3, policyRollout:{ policyVersion:3, devices:5, applied:3, updating:1, attention:0, offline:1, pageGuardsConfirmed:2, lastReceiptAt:Date.now()-30000, savedAt:Date.now()-25*60_000, savedBy:'user_demo_admin' }, members:people.map((person, i) => {
+  const device = (rollout, extra = {}) => ({ client:'extension', installationId:`dev-${i}`, extensionVersion:'1.2.0', lastSeenAt:Date.now()-60_000, appliedPolicyVersion:3, confirmedGuards:2, expectedPages:2, rollout, policyStatus: rollout === 'applied' ? 'guards_confirmed' : 'pending', ...extra });
   const devices = i === 1 ? [device('updating', { appliedPolicyVersion:2 })] : i === 4 ? [device('offline', { lastSeenAt:Date.now()-3*86_400_000, policyStatus:'offline' })] : [device('applied')];
+  // Sam and Lee also run the desktop app (as in the Shadow AI desktop fixture).
+  if (i === 1 || i === 2) devices.push(device('applied', { client:'desktop', installationId:`desk-${i}`, extensionVersion:'0.2.12', policyStatus:'applied' }));
   // The admin has not installed the extension yet (as in the original fixture).
   if (i === 0) return person;
   return { ...person, connection:{ status:'recently_connected', lastSeenAt:devices[0].lastSeenAt, devices } };
 }), invitations:[{id:'invite_demo_1',email:'taylor@northstar.example'}] } };
-const settings = { settings:{ alertWebhook:'', alertMinType:'known-key', policy:{ blockInsteadOfWarn:false, requireSessionLock:false, extraPatterns:[], blockedSites:[], replaceDefaultPatterns:false }, policyVersion:3, alertDelivery:{ known:false, ok:null, consecutiveFailures:0, suppressedEvents:0, throttleWindowSeconds:60 } } };
+// One saved team rule, rated High (ruleSeverities: OCSF 2 Low to 5 Critical). The
+// optional legal pack is off; a policy save echoes it back like the other switches.
+const settings = { settings:{ alertWebhook:'', alertMinType:'known-key', policy:{ blockInsteadOfWarn:false, requireSessionLock:false, extraPatterns:[{ label:'Northstar deploy token', regex:'NSD_[A-Z0-9]{32}', type:'known-key' }], blockedSites:[], replaceDefaultPatterns:false, legalPack:false }, policyVersion:3, alertDelivery:{ known:false, ok:null, consecutiveFailures:0, suppressedEvents:0, throttleWindowSeconds:60 },
+  ruleSeverities:[{ label:'Northstar deploy token', severityId:4 }] } };
 const metrics = { metrics:{ days:30, total:263, activeActors:5,
   byDay:Array.from({length:30},(_,i)=>({day:new Date(Date.now()-(29-i)*86400000).toISOString().slice(0,10),n:[3,8,5,12,6,9,4,11,7,2][i%10]})),
   byDayAction:Array.from({length:30},(_,i)=>{const day=new Date(Date.now()-(29-i)*86400000).toISOString().slice(0,10);const n=[3,8,5,12,6,9,4,11,7,2][i%10];return [{day,key:'cancelled',n:Math.ceil(n*0.45)},{day,key:'paste_anonymously',n:Math.floor(n*0.3)},{day,key:'paste_anyway',n:Math.max(0,n-Math.ceil(n*0.45)-Math.floor(n*0.3))}];}).flat(),
@@ -34,7 +41,10 @@ const metrics = { metrics:{ days:30, total:263, activeActors:5,
   byType:[{key:'known-key',n:112},{key:'env-credential',n:74},{key:'private-key',n:48},{key:'pii',n:29}],
   bySite:[{key:'chatgpt.com',n:104},{key:'claude.ai',n:73},{key:'gemini.google.com',n:52},{key:'perplexity.ai',n:34}],
   byAction:[{key:'cancelled',n:121},{key:'paste_anonymously',n:62},{key:'blocked',n:30},{key:'paste_anyway',n:30},{key:'sanitised',n:20},{key:'auto_redacted',n:14}],
-  byClient:[{key:'extension',n:249},{key:'desktop',n:14}] } };
+  byClient:[{key:'extension',n:249},{key:'desktop',n:14}],
+  // OCSF severity (5 Critical to 2 Low): always all four, Critical first. letThrough
+  // counts the catches whose secret went on anyway (pasted anyway, or Undo on the desktop).
+  bySeverity:[{severityId:5,name:'Critical',n:48,letThrough:4},{severityId:4,name:'High',n:112,letThrough:9},{severityId:3,name:'Medium',n:74,letThrough:12},{severityId:2,name:'Low',n:29,letThrough:5}] } };
 const shadowDashboard = {
   organization:{name:'Northstar Engineering',email:'maya@northstar.example'},
   generatedAt: Date.now(), dataAsOf: Date.now(), policyVersion: 3, canManagePolicy: true,
@@ -65,11 +75,13 @@ const shadowDashboard = {
   ]
 };
 // One desktop app catch (source 'desktop': no hostname, the app it was copied in);
-// the last row has no source, as from an older API, and counts as the browser.
+// the last row has no source or severityId, as from an older API, and counts as the browser.
+// severityId is OCSF: 5 Critical, 4 High, 3 Medium, 2 Low. destinationStatus is the
+// destination's classification; null for a desktop catch (made on copy, before any destination).
 const shadowLedger = { total:4, nextOffset:null, events:[
-  {eventId:'evt_preview_1',source:'browser',seat:'Seat 2',seatNumber:2,timestamp:Date.now()-240000,hostname:'claude.ai',serviceId:'claude',reason:'OpenAI API key',action:'blocked',findingCount:1},
-  {eventId:'evt_preview_4',source:'desktop',seat:'Seat 3',seatNumber:3,timestamp:Date.now()-1800000,hostname:'',serviceId:'',sourceApp:'Visual Studio Code',reason:'AWS access key',action:'auto_redacted',findingCount:1},
-  {eventId:'evt_preview_2',seat:'Seat 9',seatNumber:9,timestamp:Date.now()-3600000,hostname:'chat.deepseek.com',serviceId:'deepseek',reason:'Email address',action:'sanitised',findingCount:2},
+  {eventId:'evt_preview_1',source:'browser',seat:'Seat 2',seatNumber:2,timestamp:Date.now()-240000,hostname:'claude.ai',serviceId:'claude',reason:'OpenAI API key',action:'blocked',findingCount:1,severityId:4,destinationStatus:'recognized'},
+  {eventId:'evt_preview_4',source:'desktop',seat:'Seat 3',seatNumber:3,timestamp:Date.now()-1800000,hostname:'',serviceId:'',sourceApp:'Visual Studio Code',reason:'AWS access key',action:'auto_redacted',findingCount:1,severityId:5,destinationStatus:null},
+  {eventId:'evt_preview_2',seat:'Seat 9',seatNumber:9,timestamp:Date.now()-3600000,hostname:'chat.deepseek.com',serviceId:'deepseek',reason:'Email address',action:'sanitised',findingCount:2,severityId:3,destinationStatus:'review'},
   {eventId:'evt_preview_3',timestamp:Date.now()-7200000,hostname:'perplexity.ai',serviceId:'perplexity',reason:'High-entropy token',action:'warning_bypassed',findingCount:1},
 ] };
 // AI on members' computers, as the desktop app reports it (POST /v1/shadow/admin/desktop).
@@ -160,6 +172,13 @@ handleRedirectCallback:async()=>{},load:async()=>{},addListener:(f)=>{listeners.
       return json(res, { accessToken: 'a'.repeat(64), expiresAt: Date.now() + 30 * 60000, orgId: 'org_demo_northstar' });
     if (url.pathname === '/mock-api/v1/team' && req.method === 'GET') return json(res, team);
     if (url.pathname === '/mock-api/v1/team/settings' && req.method === 'GET') return json(res, settings);
+    if (url.pathname === '/mock-api/v1/team/settings/rule-severity' && req.method === 'POST') {
+      const chunks = []; for await (const chunk of req) chunks.push(chunk);
+      const { label, severityId } = JSON.parse(Buffer.concat(chunks).toString() || '{}');
+      if (![2, 3, 4, 5].includes(severityId) || !settings.settings.policy.extraPatterns.some(p => p.label === label)) { res.writeHead(400, {'Content-Type':'application/json'}); res.end(JSON.stringify({ error: 'invalid_rule_severity' })); return; }
+      settings.settings.ruleSeverities = [...settings.settings.ruleSeverities.filter(r => r.label !== label), { label, severityId }];
+      return json(res, { ok: true, ruleSeverities: settings.settings.ruleSeverities });
+    }
     if (url.pathname === '/mock-api/v1/team/settings/test-alert' && req.method === 'POST') {
       if (!settings.settings.alertWebhook) { res.writeHead(400, {'Content-Type':'application/json'}); res.end(JSON.stringify({ error: 'no_webhook' })); return; }
       return json(res, { ok: true });
@@ -200,17 +219,19 @@ handleRedirectCallback:async()=>{},load:async()=>{},addListener:(f)=>{listeners.
       const days = [7, 30, 90].includes(Number(body.days)) ? Number(body.days) : 30;
       const scale = days / 30;
       const n = (v) => Math.max(0, Math.round(v * scale));
-      const devices = (m.connection?.devices || []).map(d => ({ extensionVersion: d.extensionVersion, lastSeenAt: d.lastSeenAt, appliedPolicyVersion: d.appliedPolicyVersion, policyState: d.policyStatus, rollout: d.rollout }));
+      const devices = (m.connection?.devices || []).map(d => ({ client: d.client, extensionVersion: d.extensionVersion, lastSeenAt: d.lastSeenAt, appliedPolicyVersion: d.appliedPolicyVersion, policyState: d.policyStatus, rollout: d.rollout }));
       return json(res, {
         days, policyVersion: team.team.policyVersion,
         member: { userId: m.userId, name: m.name, email: m.email, role: m.role, joinedAt: Date.now() - (20 - idx) * 86_400_000, seatNumber: idx + 1, lastSeenAt: devices[0]?.lastSeenAt ?? null },
         devices,
-        activity: idx === 0 ? { days, total: 0, activeActors: 0, byDay: [], byType: [], bySite: [], byAction: [] } : {
+        activity: idx === 0 ? { days, total: 0, activeActors: 0, byDay: [], byType: [], bySite: [], byAction: [],
+          bySeverity: [{ severityId: 5, name: 'Critical', n: 0 }, { severityId: 4, name: 'High', n: 0 }, { severityId: 3, name: 'Medium', n: 0 }, { severityId: 2, name: 'Low', n: 0 }] } : {
           days, total: n(23), activeActors: 1,
           byDay: Array.from({ length: days }, (_, i) => ({ day: new Date(Date.now() - (days - 1 - i) * 86_400_000).toISOString().slice(0, 10), n: [0, 1, 0, 2, 0, 0, 3, 1, 0, 0][i % 10] })),
           byType: [{ key: 'known-key', n: n(11) }, { key: 'pii', n: n(7) }, { key: 'env-credential', n: n(5) }],
           bySite: [{ key: 'chatgpt.com', n: n(14) }, { key: 'claude.ai', n: n(6) }, { key: 'github.com', n: n(3) }],
           byAction: [{ key: 'cancelled', n: n(9) }, { key: 'paste_anonymously', n: n(6) }, { key: 'blocked', n: n(4) }, { key: 'paste_anyway', n: n(3) }, { key: 'sanitised', n: n(1) }],
+          bySeverity: [{ severityId: 5, name: 'Critical', n: n(3), letThrough: n(1) }, { severityId: 4, name: 'High', n: n(11), letThrough: n(2) }, { severityId: 3, name: 'Medium', n: n(5), letThrough: 0 }, { severityId: 2, name: 'Low', n: n(4), letThrough: 0 }],
         },
         aiTools: idx === 0 ? [] : [
           { serviceId: 'chatgpt', name: 'ChatGPT', visits: n(41), pastes: n(18), sensitiveEvents: n(6), lastSeen: Date.now() - 3_600_000 },
@@ -231,6 +252,18 @@ handleRedirectCallback:async()=>{},load:async()=>{},addListener:(f)=>{listeners.
       });
     }
     if (url.pathname === '/mock-api/v1/team/member/remove' && req.method === 'POST') return json(res, { ok: true });
+    // Make admin / Make member, with the real API's refusals.
+    if (url.pathname === '/mock-api/v1/team/member/role' && req.method === 'POST') {
+      const chunks = []; for await (const chunk of req) chunks.push(chunk);
+      const { userId, role } = JSON.parse(Buffer.concat(chunks).toString() || '{}');
+      const fail = (status, error) => { res.writeHead(status, {'Content-Type':'application/json'}); res.end(JSON.stringify({ error })); };
+      const m = team.team.members.find(x => x.userId === userId);
+      if (!['admin', 'member'].includes(role)) return fail(400, 'invalid_role');
+      if (!m) return fail(404, 'member_not_found');
+      if (userId === team.team.ownerUserId) return fail(400, 'owner_role_fixed');
+      m.role = role === 'admin' ? 'org:admin' : 'org:member';
+      return json(res, { ok: true, userId, role });
+    }
     if (url.pathname === '/mock-api/v1/shadow/admin/dashboard' && req.method === 'POST') return json(res, shadowDashboard);
     if (url.pathname === '/mock-api/v1/shadow/admin/ledger' && req.method === 'POST') return json(res, shadowLedger);
     if (url.pathname === '/mock-api/v1/shadow/admin/desktop' && req.method === 'POST') return json(res, shadowDesktop);

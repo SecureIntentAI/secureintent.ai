@@ -51,6 +51,17 @@
       // The four detector types, most severe first — the order the alert
       // threshold reads down.
       const TYPES = ["private-key", "known-key", "env-credential", "pii"];
+      // Severity on the OCSF scale, as the API reports it (metrics.bySeverity),
+      // most severe first. An id outside it is dropped rather than guessed at.
+      const SEVERITY = { 5: "Critical", 4: "High", 3: "Medium", 2: "Low" };
+      const severityRows = (list) => (Array.isArray(list) ? list : [])
+        .filter((r) => SEVERITY[Number(r?.severityId)])
+        .map((r) => ({ key: String(r.name || SEVERITY[Number(r.severityId)]), severityId: Number(r.severityId), n: Number(r.n) || 0,
+          // Catches whose secret went on anyway; null from an API that predates it.
+          letThrough: r.letThrough == null || !Number.isFinite(Number(r.letThrough)) ? null : Math.max(0, Number(r.letThrough)) }));
+      // "Critical or High let through": the potential incidents. Null when the API sends no letThrough.
+      const severeLetThrough = (rows) => rows.some((r) => r.letThrough !== null)
+        ? rows.filter((r) => r.severityId >= 4).reduce((t, r) => t + (r.letThrough || 0), 0) : null;
 
       // How far back the dashboard looks, and the last payload we drew, so
       // Export CSV writes exactly the figures on screen rather than refetching.
@@ -144,6 +155,11 @@
         already_member: "This user already belongs to your organization.",
         too_soon: "Wait one minute before resending this invitation.",
         invitation_not_pending: "This invitation is no longer pending. Refresh the user list.",
+        // Roles (several admins) and billing, which stays with the owner.
+        owner_role_fixed: "The team owner is always an admin. Their role can't be changed.",
+        member_not_found: "That person is no longer on the team. Refresh the user list.",
+        invalid_role: "That role can't be set here. Refresh the page and try again.",
+        owner_only: "Billing is managed by the team owner.",
         invitation_pending_reconciliation: "The invitation delivery could not be confirmed. Its seat remains reserved. Refresh the user list before retrying.",
         policy_conflict: "A newer policy was saved elsewhere. Reload the settings before making your change again.",
         unauthenticated: "Your session has expired. Sign in again and pick up where you left off.",
@@ -299,7 +315,9 @@
         }
       }
 
-      function bars(el, list, labels) {
+      // `tone` names an extra class for a row's fill (the severity colours).
+      // `after` adds a line under a row (a severity's "let through" note).
+      function bars(el, list, labels, tone, after) {
         el.textContent = "";
         if (!list || !list.length) {
           el.innerHTML = '<div class="empty">Nothing yet</div>';
@@ -311,9 +329,9 @@
             (r) =>
               `<div class="row"><div class="lbl" title="${esc(r.key)}">${esc(
                 (labels && labels[r.key]) || r.key,
-              )}</div><div class="track"><div class="fill" style="width:${
+              )}</div><div class="track"><div class="fill${tone ? ` ${tone(r)}` : ""}" style="width:${
                 (r.n / max) * 100
-              }%"></div></div><div class="n">${fmt(r.n)}</div></div>`,
+              }%"></div></div><div class="n">${fmt(r.n)}</div></div>${after ? after(r) : ""}`,
           )
           .join("");
       }
@@ -408,6 +426,18 @@
           bars($("p-types"), m.byType, TYPE_LABEL);
           bars($("p-sites"), m.bySite);
           bars($("p-actions"), m.byAction, ACTION_LABEL);
+          // An older API sends no severity, and the block stays hidden.
+          $("severity-block").hidden = !Array.isArray(m.bySeverity);
+          $("breakdowns").classList.toggle("quad", Array.isArray(m.bySeverity));
+          if (Array.isArray(m.bySeverity)) {
+            const sev = severityRows(m.bySeverity);
+            bars($("p-severity"), sev.some((r) => r.n) ? sev : [], null, (r) => `sev-${r.severityId}`,
+              (r) => r.letThrough ? `<div class="row-note${r.severityId >= 4 ? " is-severe" : ""}">${fmt(r.letThrough)} let through</div>` : "");
+            // A sanitised Critical is an event; a Critical pasted anyway is a potential incident.
+            const severe = severeLetThrough(sev);
+            if (severe !== null && sev.some((r) => r.n)) $("p-severity").insertAdjacentHTML("afterbegin",
+              `<p class="sev-head">Critical or High let through: <b class="${severe ? "is-severe" : "is-none"}">${severe ? fmt(severe) : "none"}</b></p>`);
+          }
           $("export").disabled = false;
           $("overview-export-pdf").disabled = false;
           // Where detections came from, once the desktop app reports them too. A
@@ -452,6 +482,9 @@
           rows.push(["day_outcome", `${p.day}:${p.key}`, `${p.day} · ${ACTION_LABEL[p.key] || p.key}`, p.n]),
         );
         (m.byType || []).forEach((r) => rows.push(["type", r.key, TYPE_LABEL[r.key] || r.key, r.n]));
+        severityRows(m.bySeverity).forEach((r) => rows.push(["severity", r.severityId, r.key, r.n]));
+        severityRows(m.bySeverity).filter((r) => r.letThrough !== null)
+          .forEach((r) => rows.push(["severity_let_through", r.severityId, r.key, r.letThrough]));
         (m.bySite || []).forEach((r) => rows.push(["destination", r.key, r.key, r.n]));
         (m.byAction || []).forEach((r) =>
           rows.push(["action", r.key, ACTION_LABEL[r.key] || r.key, r.n]),
@@ -615,14 +648,40 @@
             // Page guards are the extension's; the desktop app has none to report.
             d.client === "desktop" ? "" : `<br><small>${esc(d.confirmedGuards)} guards responded · ${esc(d.expectedPages)} web pages checked</small>`}</div>`).join("")}</details>`;
       }
+      // What a member has installed, from the devices the API reports for the
+      // last 30 days. A device without a client is the extension (older API).
+      const INSTALLED = { both: ["ok", "Both"], extension: ["warn", "Extension"], desktop: ["warn", "Desktop app"], none: ["idle", "None"] };
+      function installedOf(m) {
+        const devices = m.connection?.devices || [];
+        const desktop = devices.some((d) => d.client === "desktop");
+        const extension = devices.some((d) => d.client !== "desktop");
+        return desktop && extension ? "both" : extension ? "extension" : desktop ? "desktop" : "none";
+      }
+      // "All" or "missing": members without both. Invitations are not members, so
+      // the filter hides them too.
+      let installFilter = "all";
+      function applyInstallFilter() {
+        const missing = installFilter === "missing";
+        let shown = 0;
+        for (const tr of $("people").querySelectorAll("tr")) {
+          if (tr.classList.contains("install-none")) continue;
+          const hide = missing && (!tr.dataset.install || tr.dataset.install === "both");
+          tr.hidden = hide;
+          if (!hide && tr.dataset.install) shown++;
+        }
+        const none = $("people").querySelector(".install-none");
+        if (none) none.hidden = !missing || shown > 0;
+        document.querySelectorAll("[data-install-filter]").forEach((b) =>
+          b.setAttribute("aria-pressed", String(b.dataset.installFilter === installFilter)));
+      }
       function renderPeople(team) {
         if (!team) return;
-        const key = JSON.stringify([team.orgId, team.role, team.members, team.invitations, team.pendingInvitations]);
+        const key = JSON.stringify([team.orgId, team.role, team.members, team.invitations, team.pendingInvitations, team.ownerUserId, team.isOwner]);
         if (key === lastPeopleRenderKey) return false;
         const body = $("people");
         const active = document.activeElement;
         const focusKey = body.contains(active)
-          ? ["remove", "resend", "revoke", "cancelPending"].find((name) => active.dataset?.[name] !== undefined)
+          ? ["remove", "resend", "revoke", "cancelPending", "makeAdmin", "makeMember"].find((name) => active.dataset?.[name] !== undefined)
           : null;
         const focusValue = focusKey ? active.dataset[focusKey] : null;
         const focusedPolicyUser = body.contains(active) && active.tagName === "SUMMARY"
@@ -645,6 +704,19 @@
           ...(team.members || []).map((m) => {
             const who = m.name || m.email || "this person";
             const admin = m.role === "org:admin";
+            // Several admins: the owner stays an admin, and nobody changes their
+            // own role here. Only an API that says who the owner is (isOwner) gets
+            // these buttons; an older one keeps today's roster.
+            const owner = !!team.ownerUserId && m.userId === team.ownerUserId;
+            const roleChange = isAdmin && typeof team.isOwner === "boolean" && m.userId && !owner && m.userId !== window.Clerk.user?.id;
+            const roleBtn = !roleChange ? ""
+              : admin
+                ? `<button class="btn btn--sm" type="button" data-make-member="${esc(m.userId)}" data-who="${esc(who)}" title="An admin can't be removed: make them a member first">Make member</button>`
+                : `<button class="btn btn--sm" type="button" data-make-admin="${esc(m.userId)}" data-who="${esc(who)}">Make admin</button>`;
+            // An admin can't be removed directly; the row offers Make member instead.
+            const removeBtn = isAdmin && !admin
+              ? `<button class="btn btn--sm" type="button" data-remove="${esc(m.userId)}" data-who="${esc(who)}" aria-label="Remove ${esc(who)}">Remove</button>`
+              : "";
             const status = m.connection?.status;
             const [tone, label] =
               status === "recently_connected" ? ["ok", "Recently connected"]
@@ -653,23 +725,18 @@
             const cell = isAdmin && m.userId
               ? `<button class="person-open" type="button" data-report="${esc(m.userId)}" aria-label="Open the member report for ${esc(who)}">${person(m.name, m.email)}<span class="person-open-hint">View report ›</span></button>`
               : person(m.name, m.email);
-            return `<tr><td>${cell}</td><td><span class="tag ${admin ? "admin" : ""}">${
-              admin ? "Admin" : "Member"
-            }</span></td><td><div class="conn"><span class="pill pill--${tone}">${label}</span>${
+            const [installTone, installLabel] = INSTALLED[installedOf(m)];
+            return `<tr data-install="${installedOf(m)}"><td>${cell}</td><td><span class="tag ${admin ? "admin" : ""}">${
+              owner ? "Owner" : admin ? "Admin" : "Member"
+            }</span></td><td><span class="pill pill--${installTone}">${installLabel}</span></td><td><div class="conn"><span class="pill pill--${tone}">${label}</span>${
               m.connection?.lastSeenAt ? `<small title="${esc(new Date(m.connection.lastSeenAt).toLocaleString())}">Last check-in ${esc(relTime(new Date(m.connection.lastSeenAt).toISOString()) || new Date(m.connection.lastSeenAt).toLocaleString())}</small>` : ""
             }${m.connection?.policyStatus ? `<small>${policyStatusLabel(m.connection.policyStatus)}</small>` : ""}${devicePolicyDetails(
               m.connection, m.userId, expanded,
-            )}</div></td><td>${
-              isAdmin && !admin
-                ? `<button class="btn btn--sm" type="button" data-remove="${esc(
-                    m.userId,
-                  )}" data-who="${esc(who)}" aria-label="Remove ${esc(who)}">Remove</button>`
-                : ""
-            }</td></tr>`;
+            )}</div></td><td>${roleBtn && removeBtn ? `<span class="rowactions">${roleBtn}${removeBtn}</span>` : roleBtn || removeBtn}</td></tr>`;
           }),
           ...(team.invitations || []).map(
             (i) =>
-              `<tr><td>${person("", i.email, true)}</td><td><span class="tag">Member</span></td><td><div class="conn"><span class="pill pill--warn">Invited · awaiting acceptance</span><small>Email delivery not confirmed</small></div></td><td>${
+              `<tr><td>${person("", i.email, true)}</td><td><span class="tag">Member</span></td><td></td><td><div class="conn"><span class="pill pill--warn">Invited · awaiting acceptance</span><small>Email delivery not confirmed</small></div></td><td>${
                 isAdmin
                   ? `<span class="rowactions"><button class="btn btn--sm" type="button" data-resend="${esc(i.email)}">Resend</button><button class="btn btn--sm" type="button" data-revoke="${esc(i.id)}" data-who="${esc(
                       i.email,
@@ -678,8 +745,16 @@
               }</td></tr>`,
           ),
         ];
-        for (const invitation of team.pendingInvitations || []) rows.push(`<tr><td>${person("", invitation.email, true)}</td><td><span class="tag">Member</span></td><td><div class="conn"><span class="pill pill--warn">Invitation awaiting confirmation</span></div></td><td><button class="btn btn--sm" type="button" data-cancel-pending="${esc(invitation.email)}">Cancel pending invitation</button></td></tr>`);
-        body.innerHTML = rows.join("") || '<tr><td colspan="4" class="empty">No users yet. Invite someone above to fill a seat.</td></tr>';
+        for (const invitation of team.pendingInvitations || []) rows.push(`<tr><td>${person("", invitation.email, true)}</td><td><span class="tag">Member</span></td><td></td><td><div class="conn"><span class="pill pill--warn">Invitation awaiting confirmation</span></div></td><td><button class="btn btn--sm" type="button" data-cancel-pending="${esc(invitation.email)}">Cancel pending invitation</button></td></tr>`);
+        const members = team.members || [];
+        if (members.length) rows.push('<tr class="install-none" hidden><td colspan="5" class="empty">Everyone has both the extension and the desktop app.</td></tr>');
+        body.innerHTML = rows.join("") || '<tr><td colspan="5" class="empty">No users yet. Invite someone above to fill a seat.</td></tr>';
+        // Members only: pending invitations are left out of the counts.
+        const tally = { both: 0, extension: 0, desktop: 0, none: 0 };
+        members.forEach((m) => tally[installedOf(m)]++);
+        $("install-bar").hidden = !members.length;
+        $("install-summary").textContent = `${fmt(tally.both)} ${tally.both === 1 ? "has" : "have"} both · ${fmt(tally.extension)} extension only · ${fmt(tally.desktop)} desktop only · ${fmt(tally.none)} none`;
+        applyInstallFilter();
         lastPeopleRenderKey = key;
         if (focusKey) {
           const replacement = [...body.querySelectorAll("button")].find((button) => button.dataset[focusKey] === focusValue);
@@ -696,10 +771,10 @@
        * Removing someone is not undoable from here — they'd have to be invited
        * and accept again — so ask once, naming them, and say what it costs them.
        */
-      function askConfirm(cell, { question, verb, attr, value, who }) {
+      function askConfirm(cell, { question, verb, attr, value, who, tone = "danger" }) {
         cell.innerHTML =
           `<div class="confirm"><span class="q">${esc(question)}</span>` +
-          `<button class="btn btn--sm danger" type="button" data-${attr}="${esc(
+          `<button class="btn btn--sm${tone ? ` ${tone}` : ""}" type="button" data-${attr}="${esc(
             value,
           )}" data-who="${esc(who)}" data-confirmed="1">${esc(verb)}</button>` +
           '<button class="btn btn--sm" type="button" data-cancel="1">Keep</button></div>';
@@ -787,6 +862,8 @@
       // through, and against saving defaults over a record we never read.
       let settings = null;
       let settingsLoaded = false;
+      // Labels of the custom rules the server holds, as last read or saved.
+      let savedRules = new Set();
       let savedWebhook = "";
 
       // The Alerts page is a preview until alerts ship with the desktop app, so
@@ -794,6 +871,7 @@
       const SETTINGS_CONTROLS = [
         "pol-block",
         "pol-lock",
+        "pol-legal",
         "site-input",
         "site-add",
         "pat-label",
@@ -863,12 +941,22 @@
             blockedSites: (Array.isArray(p.blockedSites) ? p.blockedSites : [])
               .map((h) => String(h ?? "").trim())
               .filter(Boolean),
+            // Only when the server knows the option: a key it never sent is not
+            // sent back, and one it did send always is, so saving anything else
+            // can't switch the legal pack off.
+            ...(typeof p.legalPack === "boolean" ? { legalPack: p.legalPack } : {}),
           },
           policyVersion: Number(s.policyVersion) || 0,
           alertDelivery: normalizeDelivery(s.alertDelivery),
           // What the extension really runs, as resolved by the server. Absent on
           // an older API, in which case nothing is claimed.
           detection: s.detection && typeof s.detection === "object" ? s.detection : null,
+          // Each saved custom rule's severity, set on its own endpoint. Absent on
+          // an older API, and then the rules show no severity at all.
+          ruleSeverities: Array.isArray(s.ruleSeverities)
+            ? s.ruleSeverities.filter((r) => r && typeof r.label === "string")
+              .map((r) => ({ label: r.label, severityId: SEVERITY[Number(r.severityId)] ? Number(r.severityId) : 3 }))
+            : null,
         };
       }
       function detectionText(d) {
@@ -1039,20 +1127,30 @@
         syncDirty();
       }
 
+      // Severity of a saved rule; one the server has not rated yet is Medium.
+      const ruleSeverity = (label) => settings.ruleSeverities?.find((r) => r.label === label)?.severityId || 3;
       function renderPatterns() {
         const list = settings.policy.extraPatterns;
+        // Only rules the server holds can be rated: an unsaved edit gets no select.
+        const rated = !!settings.ruleSeverities;
+        const isSaved = (p) => !!p.label && savedRules.has(p.label);
+        const severityCell = (p) => !rated ? "" : `<td>${isSaved(p)
+          ? `<select class="rule-sev" data-rule-sev="${esc(p.label)}" aria-label="Severity of ${esc(p.label)}">${[2, 3, 4, 5]
+            .map((id) => `<option value="${id}"${ruleSeverity(p.label) === id ? " selected" : ""}>${SEVERITY[id]}</option>`).join("")}</select>`
+          : ""}</td>`;
         $("pat-list").innerHTML = list.length
-          ? `<table><thead><tr><th>Label</th><th>Pattern</th><th>Treated as</th><th></th></tr></thead><tbody>${list
+          ? `<table><thead><tr><th>Label</th><th>Pattern</th><th>Treated as</th>${rated ? "<th>Severity</th>" : ""}<th></th></tr></thead><tbody>${list
               .map(
                 (p, i) =>
                   `<tr><td>${esc(p.label || "—")}</td><td><code>${esc(
                     p.regex,
                   )}</code></td><td><span class="tag">${esc(
                     TYPE_LABEL[p.type] || p.type,
-                  )}</span></td><td><button class="btn" type="button" data-pattern="${i}">Remove</button></td></tr>`,
+                  )}</span></td>${severityCell(p)}<td><button class="btn" type="button" data-pattern="${i}">Remove</button></td></tr>`,
               )
               .join("")}</tbody></table>`
           : '<div class="empty">No custom patterns, so only the built-in detectors run.</div>';
+        $("rule-sev-note").hidden = !(rated && list.some(isSaved));
         // The list just changed, so whether "use only these" is a no-op did too.
         syncReplaceWarning();
         syncDirty();
@@ -1063,13 +1161,15 @@
         $("alert-min").value = settings.alertMinType;
         $("pol-block").checked = settings.policy.blockInsteadOfWarn;
         $("pol-lock").checked = settings.policy.requireSessionLock;
+        $("pol-legal-box").hidden = !("legalPack" in settings.policy);
+        $("pol-legal").checked = settings.policy.legalPack === true;
         // Before renderPatterns(): it reads this box to decide whether to warn.
         $("pol-replace").checked = settings.policy.replaceDefaultPatterns;
         renderAlertHealth();
         renderSites();
         renderPatterns();
         $("policy-version").textContent = settings.policyVersion
-          ? `Policy version ${settings.policyVersion} saved. ${detectionText(settings.detection)}`.trim()
+          ? `Policy version ${settings.policyVersion} saved. ${detectionText(settings.detection)}${settings.policy.legalPack ? " Legal pack on." : ""}`.replace(/\s+/g, " ").trim()
           : "No organization policy saved yet.";
       }
 
@@ -1080,6 +1180,7 @@
         try {
           const res = await api("/v1/team/settings");
           settings = normalizeSettings(res.settings || res);
+          savedRules = new Set(settings.policy.extraPatterns.map((p) => p.label));
           savedWebhook = settings.alertWebhook;
           settingsLoaded = true;
           renderSettings();
@@ -1110,6 +1211,8 @@
         settings.policy.blockInsteadOfWarn = $("pol-block").checked;
         settings.policy.requireSessionLock = $("pol-lock").checked;
         settings.policy.replaceDefaultPatterns = $("pol-replace").checked;
+        if ("legalPack" in settings.policy) settings.policy.legalPack = $("pol-legal").checked;
+        const legalPack = settings.policy.legalPack;
 
         btn.disabled = true;
         flash(statusEl, "Saving…", "");
@@ -1126,7 +1229,13 @@
           // Take the server's copy when it sends one back (it owns
           // policyVersion); otherwise keep what we just wrote.
           const back = res && (res.settings || (res.policy ? res : null));
+          const severities = settings.ruleSeverities;
           settings = normalizeSettings(back || settings);
+          // An answer without legalPack keeps what was just saved.
+          if (legalPack !== undefined && !("legalPack" in settings.policy)) settings.policy.legalPack = legalPack;
+          // A save answer without the severities keeps the ones already read.
+          if (!settings.ruleSeverities && severities) settings.ruleSeverities = severities;
+          savedRules = new Set(settings.policy.extraPatterns.map((p) => p.label));
           savedWebhook = settings.alertWebhook;
           if (currentTeam) {
             currentTeam.policyVersion = settings.policyVersion;
@@ -1400,6 +1509,7 @@
           min: $("alert-min").value,
           block: $("pol-block").checked,
           lock: $("pol-lock").checked,
+          legal: $("pol-legal").checked,
           replace: $("pol-replace").checked,
           patterns: settings.policy.extraPatterns,
           sites: settings.policy.blockedSites,
@@ -1515,6 +1625,10 @@
       }
 
       function openSeatsEditor() {
+        if (currentTeam?.isOwner === false) {
+          $("team-err").textContent = ERROR_TEXT.owner_only;
+          return;
+        }
         // A comped team has no subscription to prorate against, so the server
         // would 404 this. Say why instead of opening a form that cannot save.
         if (currentTeam && currentTeam.comp) {
@@ -1588,6 +1702,13 @@
         // are locked until it clears.
         $("pending").hidden = live;
         if (!live) preparePendingBuy(team);
+        // Billing stays with the owner. false only from an API that says so;
+        // undefined (an older one) keeps today's controls.
+        const billingElsewhere = team.isOwner === false;
+        ["pending-company", "pending-seats", "pending-buy", "pending-price"].forEach((id) => { $(id).hidden = billingElsewhere; });
+        $("pending-owner-note").hidden = !billingElsewhere;
+        $("users-owner-note").hidden = !billingElsewhere;
+        if (billingElsewhere) { $("seats-btn").hidden = true; closeSeatsEditor(); }
         seatsLive = live;
         syncNavSeats(team);
         syncNavLocks();
@@ -1684,11 +1805,11 @@
       const shortTime = (ms, locale) => msDate(ms)?.toLocaleString(locale, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) || "";
       const agoMs = (ms) => (Number(ms) > 0 ? relTime(new Date(Number(ms)).toISOString()) : null);
 
-      function mrBars(rows, labels = {}, empty = "Nothing in this period.") {
+      function mrBars(rows, labels = {}, empty = "Nothing in this period.", tone = null) {
         const list = (rows || []).filter((r) => Number(r.n) > 0);
         if (!list.length) return `<p class="mr-empty">${esc(empty)}</p>`;
         const max = Math.max(...list.map((r) => Number(r.n)));
-        return `<ul class="mr-bars">${list.map((r) => `<li><span class="mr-bar-label">${esc(labels[r.key] || r.key)}</span><span class="mr-bar"><i style="width:${Math.max(4, Math.round((Number(r.n) / max) * 100))}%"></i></span><b>${fmt(r.n)}</b></li>`).join("")}</ul>`;
+        return `<ul class="mr-bars">${list.map((r) => `<li><span class="mr-bar-label">${esc(labels[r.key] || r.key)}</span><span class="mr-bar"><i${tone ? ` class="${tone(r)}"` : ""} style="width:${Math.max(4, Math.round((Number(r.n) / max) * 100))}%"></i></span><b>${fmt(r.n)}</b></li>`).join("")}</ul>`;
       }
       function mrSpark(byDay, days) {
         const map = new Map((byDay || []).map((r) => [String(r.day).slice(0, 10), Number(r.n) || 0]));
@@ -1735,7 +1856,8 @@
           <section class="mr-sec"><h3>Protection</h3>${devices}</section>
           <section class="mr-sec"><h3>Activity · last ${esc(d.days)} days</h3>${stats}</section>
           ${a ? `<section class="mr-sec"><h3>What they chose</h3>${mrBars(a.byAction, ACTION_LABEL)}</section>
-          <section class="mr-sec"><h3>What was caught</h3>${mrBars(a.byType, TYPE_LABEL)}</section>
+          <section class="mr-sec"><h3>What was caught</h3>${mrBars(a.byType, TYPE_LABEL)}</section>${Array.isArray(a.bySeverity) ? `
+          <section class="mr-sec mr-severity"><h3>By severity</h3>${mrBars(severityRows(a.bySeverity), {}, undefined, (r) => `sev-${r.severityId}`)}</section>` : ""}
           <section class="mr-sec"><h3>Where it was going</h3>${mrBars(a.bySite)}</section>` : ""}
           <section class="mr-sec"><h3>AI tools used</h3>${tools}</section>${deskTools ? `
           <section class="mr-sec mr-desktop-tools"><h3>Desktop AI tools</h3>${desktop}</section>` : ""}
@@ -1823,6 +1945,17 @@
           if (!(a.byType || []).length) row("Nothing in this period.", undefined, C.muted);
           for (const r of a.byType || []) row(TYPE_LABEL[r.key] || r.key, count(r.n));
           y += 4;
+          if (Array.isArray(a.bySeverity)) {
+            const all = severityRows(a.bySeverity);
+            const sev = all.filter((r) => r.n > 0);
+            const severe = severeLetThrough(all);
+            section("By severity");
+            if (severe !== null && sev.length) row("Critical or High let through", severe ? count(severe) : "none", severe ? C.up : C.down);
+            if (!sev.length) row("Nothing in this period.", undefined, C.muted);
+            for (const r of sev) row(r.letThrough === null ? r.key : `${r.key} | ${count(r.letThrough)} let through`, count(r.n));
+            ensure(14); text(kit.SEVERITY_MAP_NOTE, LEFT, y + 4, 7, C.faint); y += 14;
+            y += 4;
+          }
           section("Where it was going");
           if (!(a.bySite || []).length) row("Nothing in this period.", undefined, C.muted);
           for (const r of a.bySite || []) row(r.key, count(r.n));
@@ -2101,9 +2234,25 @@
           if (btn.dataset.resend) { btn.disabled=true; btn.setAttribute("aria-busy","true"); act(()=>api("/v1/team/invite/resend",{method:"POST",body:JSON.stringify({email:btn.dataset.resend})}),{done:`Invitation resent to ${btn.dataset.resend}`,failed:"The invitation wasn't resent"}); return; }
           if (btn.dataset.report) { openMemberReport(btn.dataset.report); return; }
           if (btn.dataset.cancelPending) { btn.disabled=true; btn.setAttribute("aria-busy","true"); act(()=>api("/v1/team/invite/cancel-pending",{method:"POST",body:JSON.stringify({email:btn.dataset.cancelPending})}),{done:"Pending invitation cancelled",failed:"The invitation wasn't cancelled"}); return; }
-          const { remove, revoke, who, confirmed, cancel } = btn.dataset;
+          const { remove, revoke, who, confirmed, cancel, makeAdmin, makeMember } = btn.dataset;
           if (cancel) {
             renderPeople(currentTeam);
+            return;
+          }
+          const roleUser = makeAdmin || makeMember;
+          if (roleUser) {
+            if (!confirmed) {
+              askConfirm(btn.closest("td"), makeAdmin
+                ? { question: `Make ${who} an admin? Admins have full access to this console, except billing.`, verb: "Make admin", attr: "make-admin", value: roleUser, who, tone: "" }
+                : { question: `Make ${who} a member? They lose access to this console.`, verb: "Make member", attr: "make-member", value: roleUser, who });
+              return;
+            }
+            btn.disabled = true;
+            btn.setAttribute("aria-busy", "true");
+            act(() =>
+              api("/v1/team/member/role", { method: "POST", body: JSON.stringify({ userId: roleUser, role: makeAdmin ? "admin" : "member" }) }),
+              { done: `${who} is now ${makeAdmin ? "an admin" : "a member"}`, failed: `${who}'s role wasn't changed` },
+            );
             return;
           }
           if (!remove && !revoke) return;
@@ -2204,6 +2353,36 @@
           flash($("policy-status"), `Removed ${gone}. Press Save changes to apply it.`, "ok");
         });
 
+        // A rule's severity saves on its own, straight away, and does not
+        // count as an unsaved policy edit.
+        document.querySelectorAll("[data-install-filter]").forEach((b) => b.addEventListener("click", () => {
+          installFilter = b.dataset.installFilter;
+          applyInstallFilter();
+        }));
+        $("pat-list").addEventListener("change", async (e) => {
+          const select = e.target.closest?.("select[data-rule-sev]");
+          if (!select) return;
+          const label = select.dataset.ruleSev;
+          const severityId = Number(select.value);
+          const before = ruleSeverity(label);
+          const st = $("rule-sev-status");
+          select.disabled = true;
+          flash(st, "Saving…", "");
+          try {
+            await api("/v1/team/settings/rule-severity", { method: "POST", body: JSON.stringify({ label, severityId }) });
+            const list = settings.ruleSeverities || (settings.ruleSeverities = []);
+            const found = list.find((r) => r.label === label);
+            if (found) found.severityId = severityId;
+            else list.push({ label, severityId });
+            flash(st, `Saved: "${label}" is now ${SEVERITY[severityId]}.`, "ok");
+          } catch (err) {
+            if (err.name === "AbortError") return;
+            select.value = String(before);
+            flash(st, explain(err, { fallback: `Couldn't save the severity for "${label}". Try again.` }), "err");
+          } finally {
+            select.disabled = false;
+          }
+        });
         $("pat-list").addEventListener("click", (e) => {
           const i = e.target.getAttribute?.("data-pattern");
           if (i === null || i === undefined) return;
@@ -2252,7 +2431,7 @@
 
         // Edits that never reach the server until Save. The dot in the sidebar
         // is the only thing that says so once you have walked to another view.
-        ["alert-webhook", "alert-min", "pol-block", "pol-lock", "pol-replace"].forEach((id) => {
+        ["alert-webhook", "alert-min", "pol-block", "pol-lock", "pol-legal", "pol-replace"].forEach((id) => {
           $(id).addEventListener("input", syncDirty);
         });
       }

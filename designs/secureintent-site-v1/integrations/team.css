@@ -42,6 +42,11 @@
   --chart-anon: #72ffff;
   --chart-anyway: #fbbf24;
   --chart-other: #8f9bac;
+  /* Severity on the OCSF scale, most severe first. */
+  --sev-critical: var(--c-danger);
+  --sev-high: #fb923c;
+  --sev-medium: var(--c-warn);
+  --sev-low: #8ea3bd;
   /* Icons for alerts and pop-ups, painted in the tone of the message. */
   --ico-alert: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7.5v5.5M12 16.5h.01'/%3E%3C/svg%3E");
   --ico-ok: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='m8 12.5 2.7 2.7L16 9.5'/%3E%3C/svg%3E");
@@ -76,6 +81,9 @@
   --chart-anon: #2f7fd0;
   --chart-anyway: #e08a12;
   --chart-other: #8796a3;
+  --sev-high: #d9620b;
+  --sev-medium: #c99412;
+  --sev-low: #7f93a8;
   --c-danger-soft: #fdecea;
   --c-danger-line: #f0b5af;
   --c-hover: rgba(15, 37, 52, 0.05);
@@ -499,6 +507,8 @@
   section.block { margin-top: 24px; }
   .block h2 { margin: 0 0 10px; font: 600 15px/1.3 var(--sans); letter-spacing: -0.01em; }
   .block.trio { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  /* Four breakdowns (with By severity) read better two by two than three and one. */
+  .block.trio.quad { grid-template-columns: repeat(auto-fit, minmax(max(280px, calc(50% - 7px)), 1fr)); }
   .blockhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 0 0 11px; }
   .blockhead h2 { margin: 0; }
 
@@ -508,6 +518,17 @@
     display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; }
   .row .track { flex: 1; height: 8px; border-radius: 6px; background: var(--c-line); overflow: hidden; }
   .row .fill { height: 100%; border-radius: 6px; background: var(--c-accent); }
+  .row .fill.sev-5, .mr-bar i.sev-5 { background: var(--sev-critical); }
+  .row .fill.sev-4, .mr-bar i.sev-4 { background: var(--sev-high); }
+  .row .fill.sev-3, .mr-bar i.sev-3 { background: var(--sev-medium); }
+  .row .fill.sev-2, .mr-bar i.sev-2 { background: var(--sev-low); }
+  /* Under a severity row: how many of its catches went on anyway. */
+  .row-note { margin: -6px 0 10px 162px; color: var(--c-muted); font-size: 12px; }
+  .row-note.is-severe { color: var(--c-danger); font-weight: 600; }
+  .sev-head { margin: 0 0 14px; color: var(--c-body); font-size: 13px; }
+  .sev-head b { font-weight: 650; }
+  .sev-head .is-severe { color: var(--c-danger); }
+  .sev-head .is-none { color: var(--c-ok); }
   .row .n { width: 52px; text-align: right; color: var(--c-text); font: 500 13px/1 var(--mono); }
   .chart { display: flex; align-items: flex-end; gap: 4px; height: 160px; border-bottom: 1px solid var(--c-line); }
   .chart .bar { flex: 1; min-width: 4px; min-height: 2px; border-radius: 3px 3px 0 0; background: var(--c-accent); opacity: 0.85; }
@@ -636,6 +657,12 @@
   .conn summary { cursor: pointer; color: var(--c-accent); font-weight: 600; }
   .conn details > div { margin-top: 8px; padding: 10px 12px; border: 1px solid var(--c-line); border-radius: 9px; background: var(--c-panel-2); line-height: 1.55; }
   .rowactions { display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  /* Users: what each member has installed, counted above the table, and a filter. */
+  .install-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap;
+    padding: 12px 20px; border-bottom: 1px solid var(--c-line); }
+  .install-summary { margin: 0; color: var(--c-body); font-size: 13.5px; }
+  .install-filter { display: inline-flex; gap: 6px; }
+  .install-filter .btn[aria-pressed="true"] { border-color: var(--c-accent-line); background: var(--c-accent-soft); color: var(--c-accent); }
 
   /* A state, said twice: once in words and once in colour. Never colour
      alone — the dot is decoration for those who can see it. */
@@ -866,6 +893,10 @@
   .health--bad .line { color: var(--c-danger); font-weight: 600; }
   .subsec { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--c-line); }
   .subsec > p { margin: 0 0 14px; color: var(--c-muted); font-size: 13.5px; line-height: 1.6; max-width: 72ch; }
+  /* A saved custom rule's severity, set on its own (not part of Save changes). */
+  .rule-sev { min-height: 30px; padding: 4px 8px; font-size: 13px; }
+  #rule-sev-status { margin: 10px 0 0; }
+  #rule-sev-note { margin: 8px 0 0; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .chip {
     display: inline-flex;
