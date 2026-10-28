@@ -135,7 +135,11 @@ async function ctxFor(browser, { teamBody = team(), settingsBody = settings(), m
     ctx.ruleSeverityPosts.push(r.request().postDataJSON());
     return ctx.failRuleSeverity ? r.fulfill({ status: 500, json: { error: "save failed" } }) : r.fulfill({ json: { ok: true } });
   });
-  await ctx.route("**/v1/team*", (r) => r.fulfill({ json: teamBody }));
+  // `teamDelay` holds the team list back, as a slow server does.
+  await ctx.route("**/v1/team*", async (r) => {
+    if (ctx.teamDelay) await new Promise((done) => setTimeout(done, ctx.teamDelay));
+    return r.fulfill({ json: teamBody });
+  });
   await ctx.addInitScript(() => {
     window.Clerk = {
       user: { id: "user_fixture", primaryEmailAddress: { emailAddress: "ada@acme.io" } },
@@ -464,6 +468,15 @@ const state = () => ({
     await p.waitForTimeout(600);
     r = await p.evaluate(rolesOf);
     check("Make admin posts the role and the list refreshes", JSON.stringify(ctx.rolePosts) === '[{"userId":"u2","role":"admin"}]' && r[1] === "Grace Hopper: Admin [Make member]", { posts: ctx.rolePosts, r });
+    // The row changes as soon as the role is saved, not after the slower team reload.
+    ctx.teamDelay = 4000;
+    await p.click('[data-make-member="u2"]');
+    await p.click('[data-make-member="u2"][data-confirmed]');
+    await p.waitForTimeout(600);
+    r = await p.evaluate(rolesOf);
+    check("Make member shows at once, before the team reloads", r[1] === "Grace Hopper: Member [Make admin/Remove]", r);
+    await p.waitForTimeout(4000);
+    ctx.teamDelay = 0;
     ctx.roleError = [409, "team_busy"];
     await p.click('[data-make-member="u3"]');
     await p.click('[data-make-member="u3"][data-confirmed]');
