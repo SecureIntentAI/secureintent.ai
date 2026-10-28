@@ -1989,6 +1989,7 @@
         try {
           await fn();
           if (ctx.done) notify("ok", ctx.done);
+          ctx.after?.();
         } catch (e) {
           if (e.name === "AbortError") return;
           // The button is in the roster; the error line is up in the invite
@@ -2251,7 +2252,17 @@
             btn.setAttribute("aria-busy", "true");
             act(() =>
               api("/v1/team/member/role", { method: "POST", body: JSON.stringify({ userId: roleUser, role: makeAdmin ? "admin" : "member" }) }),
-              { done: `${who} is now ${makeAdmin ? "an admin" : "a member"}`, failed: `${who}'s role wasn't changed` },
+              {
+                done: `${who} is now ${makeAdmin ? "an admin" : "a member"}`,
+                failed: `${who}'s role wasn't changed`,
+                // Show the new role now; reloading the whole team takes a few seconds.
+                after: () => {
+                  const member = currentTeam?.members?.find((m) => m.userId === roleUser);
+                  if (!member) return;
+                  member.role = makeAdmin ? "org:admin" : "org:member";
+                  renderPeople(currentTeam);
+                },
+              },
             );
             return;
           }
