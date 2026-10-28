@@ -157,6 +157,8 @@
         invitation_not_pending: "This invitation is no longer pending. Refresh the user list.",
         // Roles (several admins) and billing, which stays with the owner.
         owner_role_fixed: "The team owner is always an admin. Their role can't be changed.",
+        member_role_required: "Inviting as an admin isn't available yet. Invite them as a member, then make them an admin once they join.",
+        invalid_role: "Choose Member or Admin for the invitation.",
         member_not_found: "That person is no longer on the team. Refresh the user list.",
         invalid_role: "That role can't be set here. Refresh the page and try again.",
         owner_only: "Billing is managed by the team owner.",
@@ -736,7 +738,7 @@
           }),
           ...(team.invitations || []).map(
             (i) =>
-              `<tr><td>${person("", i.email, true)}</td><td><span class="tag">Member</span></td><td></td><td><div class="conn"><span class="pill pill--warn">Invited · awaiting acceptance</span><small>Email delivery not confirmed</small></div></td><td>${
+              `<tr><td>${person("", i.email, true)}</td><td>${i.role === "org:admin" ? '<span class="tag admin">Admin</span>' : '<span class="tag">Member</span>'}</td><td></td><td><div class="conn"><span class="pill pill--warn">Invited · awaiting acceptance</span><small>Email delivery not confirmed</small></div></td><td>${
                 isAdmin
                   ? `<span class="rowactions"><button class="btn btn--sm" type="button" data-resend="${esc(i.email)}">Resend</button><button class="btn btn--sm" type="button" data-revoke="${esc(i.id)}" data-who="${esc(
                       i.email,
@@ -2035,6 +2037,8 @@
         invitesBusy = true;
         setPaywalled(seatsLive);
         $("invite").setAttribute("aria-busy", "true");
+        // One role for the whole batch, read once so a change mid-send can't split it.
+        const role = $("invite-role").value;
         let requested = 0;
         let alreadyInvited = 0;
         let alreadyMember = 0;
@@ -2050,7 +2054,7 @@
             try {
               const result = await api("/v1/team/invite", {
                 method: "POST",
-                body: JSON.stringify({ email, role: $("invite-role").value }),
+                body: JSON.stringify({ email, role }),
               });
               if (result.alreadyInvited) alreadyInvited++;
               else requested++;
@@ -2077,7 +2081,7 @@
           const left = emails.length - next;
           const duplicates = entries.length - emails.length;
           const parts = [
-            requested && count(requested, "invitation sent", "invitations sent"),
+            requested && (role === "org:admin" ? count(requested, "admin invitation sent", "admin invitations sent") : count(requested, "invitation sent", "invitations sent")),
             alreadyInvited && count(alreadyInvited, "was already invited", "were already invited"),
             alreadyMember && count(alreadyMember, "is already a member", "are already members"),
             duplicates && count(duplicates, "duplicate skipped", "duplicates skipped"),
@@ -2101,8 +2105,12 @@
             input.focus();
           } else {
             results.innerHTML = "";
-            if (requested) notify("ok", count(requested, "invitation sent", "invitations sent"), "Each person gets an email with a link to join.");
+            if (requested && role === "org:admin")
+              notify("ok", count(requested, "admin invitation sent", "admin invitations sent"), "They join as admins, with full access to this console except billing.");
+            else if (requested) notify("ok", count(requested, "invitation sent", "invitations sent"), "Each person gets an email with a link to join.");
             else notify("info", "Nothing new to send", `${parts.join(" · ")}.`);
+            // Back to Member, so the next invitation isn't an admin one by accident.
+            $("invite-role").value = "org:member";
           }
           results.hidden = !failed.length;
           try {
