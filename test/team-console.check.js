@@ -130,6 +130,14 @@ async function ctxFor(browser, { teamBody = team(), settingsBody = settings(), m
     if (m) m.role = body.role === "admin" ? "org:admin" : "org:member";
     return r.fulfill({ json: { ok: true, ...body } });
   });
+  // Invitations: recorded, and added to teamBody as pending so the refresh shows them.
+  ctx.invitePosts = [];
+  await ctx.route("**/v1/team/invite", (r) => {
+    const body = r.request().postDataJSON();
+    ctx.invitePosts.push(body);
+    teamBody.team.invitations = [...(teamBody.team.invitations || []), { id: `inv_${ctx.invitePosts.length}`, email: body.email, role: body.role, status: "pending" }];
+    return r.fulfill({ json: { ok: true, invitationId: `inv_${ctx.invitePosts.length}` } });
+  });
   ctx.ruleSeverityPosts = [];
   await ctx.route("**/v1/team/settings/rule-severity", (r) => {
     ctx.ruleSeverityPosts.push(r.request().postDataJSON());
@@ -491,6 +499,31 @@ const state = () => ({
     check("owner_role_fixed has a plain message", (await p.textContent("#team-err")) === "The team owner is always an admin. Their role can't be changed.", null);
     check("the owner sees no billing note", await p.evaluate(() => document.getElementById("users-owner-note").hidden), null);
     check("no page errors (admins)", errs.length === 0, errs);
+    await ctx.close();
+  }
+  {
+    // Invite straight in as an admin.
+    const ctx = await ctxFor(b, { teamBody: admins() });
+    const p = await ctx.newPage();
+    const errs = []; p.on("pageerror", (e) => errs.push(e.message));
+    await p.goto(BASE + "/team.html#/people");
+    await p.waitForTimeout(900);
+    const options = await p.$$eval("#invite-role option", (o) => o.map((x) => `${x.value}:${x.textContent}`));
+    check("the invite role offers Member and Admin", options.join("|") === "org:member:Member|org:admin:Admin", options);
+    await p.selectOption("#invite-role", "org:admin");
+    await p.fill("#invite-email", "lead@acme.io");
+    await p.click("#invite");
+    await p.waitForTimeout(700);
+    check("an admin invitation posts role org:admin", JSON.stringify(ctx.invitePosts) === '[{"email":"lead@acme.io","role":"org:admin"}]', ctx.invitePosts);
+    const row = await p.evaluate(() => [...document.querySelectorAll("#people tr")].find((tr) => tr.textContent.includes("lead@acme.io"))?.children[1].textContent);
+    check("the pending invitation shows Admin", row === "Admin", row);
+    check("the result names it an admin invitation", (await p.textContent("#invite-progress")) === "1 admin invitation sent.", await p.textContent("#invite-progress"));
+    check("the role goes back to Member after sending", (await p.inputValue("#invite-role")) === "org:member", null);
+    await p.fill("#invite-email", "dev@acme.io");
+    await p.click("#invite");
+    await p.waitForTimeout(700);
+    check("the next invitation is a member one", ctx.invitePosts[1]?.role === "org:member", ctx.invitePosts);
+    check("no page errors (admin invite)", errs.length === 0, errs);
     await ctx.close();
   }
   {
