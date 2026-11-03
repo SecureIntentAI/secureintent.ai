@@ -4,7 +4,7 @@
   <meta charset="utf-8"><script src="integrations/consent.js"></script><script src="integrations/config.js"></script><script src="integrations/runtime.js"></script><script>(function(){try{document.documentElement.dataset.theme=localStorage.getItem('si_site_theme')==='light'?'light':'dark';}catch(_){}})();</script>
   <meta name="theme-color" content="#050608" id="theme-color"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Account · SecureIntent</title><base href="/designs/secureintent-site-v1/">
   <link rel="icon" href="/designs/secureintent-site-v1/favicon.ico" sizes="32x32"><link rel="icon" href="/designs/secureintent-site-v1/favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/designs/secureintent-site-v1/apple-touch-icon.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="how-it-works.css"><link rel="stylesheet" href="site-pages.css"><script src="how-it-works.js?v=20260915-menu-cleanup" defer></script>
-<link rel="stylesheet" href="integrations/account.css?v=20261022-member-view"><link rel="stylesheet" href="integrations/app.css"><script src="../../install-links.js" defer></script><script src="integrations/account.js?v=20261025-legal" defer></script><script src="integrations/site.js" defer></script></head>
+<link rel="stylesheet" href="integrations/account.css?v=20261103-packages"><link rel="stylesheet" href="integrations/app.css"><script src="../../install-links.js" defer></script><script src="integrations/packages.js?v=20261103-packages" defer></script><script src="integrations/account.js?v=20261103-packages" defer></script><script src="integrations/site.js" defer></script></head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
   <header class="site-header"><div class="container header-inner"><a href="index.html" class="brand"><span aria-hidden="true" class="brand-dot">●</span><span>SecureIntent<span class="brand-suffix">.ai</span></span></a><div class="header-actions"><a class="text-action" href="index.html">Back to site →</a><div class="theme-switch" role="group" aria-label="Colour theme"><button class="theme-option" type="button" data-set-theme="dark" aria-pressed="true">Dark</button><button class="theme-option" type="button" data-set-theme="light" aria-pressed="false">Light</button></div></div></div></header>
@@ -62,9 +62,9 @@
             </div>
             <div class="plan-actions">
               <button class="manage" id="profile-jump" type="button">Manage profile</button>
-              <button class="upgrade" id="upgrade" hidden>Upgrade · $8/mo</button>
+              <button class="upgrade" id="upgrade" type="button" aria-controls="upgrade-panel" hidden>Upgrade</button>
               <button class="manage" id="manage" hidden>Manage subscription</button>
-              <span class="lifetime-badge" id="lifetime-badge" hidden>Lifetime Pro</span>
+              <span class="lifetime-badge" id="lifetime-badge" hidden>Lifetime</span>
             </div>
           </div>
           <dl class="card-facts">
@@ -94,14 +94,41 @@
           <button class="overlap-cta" id="plan-retry" type="button">Retry</button>
         </div>
 
-        <!-- Team: their org when they're in one, otherwise the way into buying seats. -->
+        <!-- Upgrade: below Desktop Pro, or on its trial. Names, prices and
+             what each package adds come from integrations/packages.js. -->
+        <section class="upgrade-panel" id="upgrade-panel" aria-labelledby="upgrade-title" tabindex="-1" hidden>
+          <div class="upgrade-head">
+            <div>
+              <h2 class="upgrade-title" id="upgrade-title">Upgrade</h2>
+              <p class="upgrade-lead" id="upgrade-lead" hidden></p>
+            </div>
+            <div class="interval-toggle" role="group" aria-label="Billing period">
+              <button type="button" class="interval-option" data-interval="monthly" aria-pressed="true">Monthly</button>
+              <button type="button" class="interval-option" data-interval="annual" aria-pressed="false">Annual</button>
+            </div>
+          </div>
+          <fieldset class="upgrade-options">
+            <legend class="visually-hidden">Package</legend>
+            <div id="upgrade-options"></div>
+          </fieldset>
+          <div class="upgrade-terms">
+            <p id="upgrade-renewal"></p>
+            <p id="upgrade-cancel"></p>
+            <p id="upgrade-tax"></p>
+          </div>
+          <div class="upgrade-foot">
+            <button class="upgrade" id="checkout" type="button">Continue to checkout</button>
+          </div>
+        </section>
+
+        <!-- Team: their org when they're in one, otherwise the way to talk to us about one. -->
         <!-- Their employer now covers them, but they're still paying for their
              own plan. Say so where they can act on it. -->
         <div class="overlap" id="overlap" hidden>
           <div>
             <strong id="overlap-title">Your team already covers you</strong>
             <p id="overlap-body">
-              You're also paying for Developer Pro yourself. Cancel it and you keep it until the
+              You're also paying for a plan of your own. Cancel it and you keep it until the
               period you've paid for ends. Your team seat takes over from there.
             </p>
           </div>

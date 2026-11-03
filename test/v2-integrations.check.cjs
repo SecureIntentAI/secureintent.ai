@@ -67,6 +67,8 @@ async function context(browser, options = {}) {
       }
       if (path === '/v1/team/metrics') return route.fulfill({json: metrics});
       if (path === '/v1/usage') return route.fulfill({json: {remaining:8, limit:10}});
+      // Today's API: ignores the body and answers with Paddle's checkout link.
+      if (path === '/v1/billing/checkout') return route.fulfill({json: {url:'https://secureintent.ai/account.html?_ptxn=txn_fixture'}});
       if (path === '/v1/promo') return route.fulfill({json: {enabled:true}});
       // Signed-in account page looks for invitations by verified email (live since 5 Oct).
       if (path === '/v1/business-member/pending') return route.fulfill({json: {invitations:[]}});
@@ -108,22 +110,26 @@ async function run() {
     assert.equal(args.signInUrl,DESIGN+'account.html?_ptxn=txn_fixture'); assert.equal(args.forceRedirectUrl,DESIGN+'account.html?_ptxn=txn_fixture');
   });
   await test('free account, profile, JWT, checkout identity and sign out', {}, async ({page,requests}) => {
-    await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Free');
-    await expect(page.locator('#clerk-profile')).toContainText('Test profile'); await page.click('#upgrade');
+    await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Browser Free');
+    await expect(page.locator('#clerk-profile')).toContainText('Test profile'); await page.click('#upgrade'); await page.click('#checkout');
+    await expect.poll(()=>page.evaluate(()=>calls.filter(c=>c[0]==='checkout').length)).toBe(1);
+    // The server creates the transaction (customer + clerk_user_id); the page opens it.
     const checkout=await page.evaluate(()=>calls.find(c=>c[0]==='checkout')[1]);
-    assert.deepEqual(checkout.customData,{clerk_user_id:'user_fixture'}); assert.equal(checkout.items[0].priceId,'pri_fixture');
+    assert.equal(checkout.transactionId,'txn_fixture'); assert.equal(checkout.items,undefined);
+    const sent=requests.find(r=>r.path==='/v1/billing/checkout');
+    assert.equal(sent.method,'POST'); assert.equal(sent.authorization,'Bearer fixture_token'); assert.deepEqual(sent.body,{product:'browser_pro',interval:'monthly'});
     assert.ok(requests.find(r=>r.path==='/v1/entitlement'&&r.authorization==='Bearer fixture_token'));
     assert.ok(await page.evaluate(()=>calls.some(c=>c[0]==='token'&&c[1]?.template==='secureintent')));
     await page.click('#signout'); await expect(page.locator('#account')).toBeHidden(); await expect(page.locator('#auth')).toBeVisible();
   });
   await test('billing failure never presents a paid user as Free', {respond:p=>p==='/v1/entitlement'?{status:503,body:{}}:null}, async ({page}) => {
-    await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Unavailable'); await expect(page.locator('#upgrade')).toBeHidden(); await expect(page.locator('#plan-retry')).toBeVisible();
+    await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Unavailable'); await expect(page.locator('#upgrade')).toBeHidden(); await expect(page.locator('#upgrade-panel')).toBeHidden(); await expect(page.locator('#plan-retry')).toBeVisible();
   });
-  for (const source of ['lifetime','org_seat','business_email']) await test(source+' account has no personal checkout or billing', {respond:p=>p==='/v1/entitlement'?{body:{entitlement:{plan:'business_pro',source,...(source==='org_seat'?{org:{id:'org_fixture',name:'Fixture Co',role:'org:admin'}}:{})}}}:null}, async ({page})=>{
-    await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Business Pro'); await expect(page.locator('#upgrade')).toBeHidden(); await expect(page.locator('#manage')).toBeHidden();
+  for (const [source,label] of [['lifetime','Lifetime Business'],['org_seat','Business'],['business_email','Business']]) await test(source+' account has no personal checkout or billing', {respond:p=>p==='/v1/entitlement'?{body:{entitlement:{plan:'business_pro',source,...(source==='org_seat'?{org:{id:'org_fixture',name:'Fixture Co',role:'org:admin'}}:{})}}}:null}, async ({page})=>{
+    await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText(label); await expect(page.locator('#upgrade')).toBeHidden(); await expect(page.locator('#upgrade-panel')).toBeHidden(); await expect(page.locator('#manage')).toBeHidden();
   });
   await test('payment SDK failure does not block account and reports checkout error', {paddleFailed:true}, async ({page})=>{
-    await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Free'); await page.click('#upgrade'); await expect(page.locator('#plan-notice-title')).toHaveText('Checkout unavailable');
+    await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Browser Free'); await page.click('#checkout'); await expect(page.locator('#plan-notice-title')).toHaveText('Checkout unavailable'); await expect(page.locator('#checkout')).toBeEnabled();
   });
   await test('paid account opens the server-issued billing portal', {respond:p=>p==='/v1/entitlement'?{body:{entitlement:{plan:'developer_pro',source:'paddle',status:'active'}}}:p==='/v1/billing/portal'?{body:{url:'https://customer-portal.paddle.com/fixture'}}:null}, async ({page,requests})=>{
     await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#manage')).toBeVisible(); await expect(page.locator('#upgrade')).toBeHidden();
@@ -136,6 +142,97 @@ async function run() {
   await test('overlapping subscription cancellation uses main API contract', {respond:p=>p==='/v1/entitlement'?{body:{entitlement:{plan:'business_pro',source:'org_seat'},personalSubscription:{status:'active',cancelScheduled:false,currentPeriodEnd:'2026-10-01T00:00:00Z'}}}:p==='/v1/billing/cancel'?{body:{endsAt:'2026-10-01T00:00:00Z'}}:null}, async ({page,requests})=>{
     await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#overlap-cancel')).toBeVisible(); await page.click('#overlap-cancel'); await expect(page.locator('#overlap-cancel')).toBeHidden();
     assert.ok(requests.some(r=>r.path==='/v1/billing/cancel'&&r.method==='POST'));
+  });
+  // ---- Packages on the account page (facts: integrations/packages.js) ----
+  const entitled = (entitlement, extra={}) => ({respond:(p)=>p==='/v1/entitlement'?{body:{entitlement,...extra}}:null});
+  const now = Math.floor(Date.now()/1000);
+  const featState = (page,key) => page.locator(`#feature-list .feat[data-key="${key}"] .feat-state`);
+  const options = page => page.locator('#upgrade-options .upgrade-option').evaluateAll(els=>els.map(e=>e.dataset.product));
+  const BANNED = /\b(dead|explosion|devastating|ultimate|illusion|pedigree|seamless|AI-driven|original|workspace|demonstrates|carry forward|Developer Pro|Business Pro|formerly)\b/i;
+  const clean = async page => { const text = await page.locator('#account').innerText(); assert.ok(!BANNED.test(text), 'no banned word or old plan name: '+(text.match(BANNED)||[])[0]); };
+  await test('Browser Free: what is included, Upgrade with both packages and the Monthly / Annual toggle', {}, async ({page,requests})=>{
+    await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Browser Free');
+    await expect(featState(page,'anonymise')).toHaveText('8 / 10 left'); await expect(featState(page,'restore')).toHaveText('Browser Pro');
+    await expect(featState(page,'terminals')).toHaveText('Desktop Pro'); await expect(featState(page,'team_policy')).toHaveText('Business'); await expect(featState(page,'alerts')).toHaveText('Coming soon');
+    await expect(page.locator('#upgrade-panel')).toBeVisible(); assert.deepEqual(await options(page),['browser_pro','desktop_pro']);
+    await expect(page.locator('#upgrade-title')).toHaveText('Upgrade'); await expect(page.locator('#manage')).toBeHidden();
+    const bp = page.locator('.upgrade-option[data-product="browser_pro"]'), dp = page.locator('.upgrade-option[data-product="desktop_pro"]');
+    await expect(page.locator('[data-interval="monthly"]')).toHaveAttribute('aria-pressed','true');
+    await expect(bp).toContainText('$4.00 a month'); await expect(bp).toContainText('first 3 paid months, then $7.99 a month');
+    await expect(dp).toContainText('$7.50 a month'); await expect(dp).toContainText('first 3 paid months, then $14.99 a month');
+    await expect(page.locator('#upgrade-renewal')).toHaveText('Browser Pro, monthly: $4.00 a month for your first 3 paid months, then $7.99 a month. It renews each month until you cancel.');
+    await expect(page.locator('#upgrade-cancel')).toContainText('Renewals stop, and you keep access until the end of the period you\'ve paid for.');
+    await expect(page.locator('#upgrade-tax')).toContainText('US dollars'); await expect(page.locator('#upgrade-tax')).toContainText('shown at checkout');
+    await page.click('[data-interval="annual"]'); await expect(page.locator('[data-interval="annual"]')).toHaveAttribute('aria-pressed','true'); await expect(page.locator('[data-interval="monthly"]')).toHaveAttribute('aria-pressed','false');
+    await expect(bp).toContainText('$76.68 a year'); await expect(bp).toContainText('billed upfront, $6.39 a month');
+    await expect(dp).toContainText('$143.88 a year'); await expect(dp).toContainText('billed upfront, $11.99 a month');
+    await expect(bp).not.toContainText('first 3 paid months');
+    await page.check('input[name="upgrade-product"][value="desktop_pro"]');
+    await expect(page.locator('#upgrade-renewal')).toHaveText('Desktop Pro, annual: $143.88 paid upfront for the year, which comes to $11.99 a month. It renews at $143.88 each year until you cancel.');
+    await page.click('#checkout'); await expect.poll(()=>requests.filter(r=>r.path==='/v1/billing/checkout').length).toBe(1);
+    assert.deepEqual(requests.find(r=>r.path==='/v1/billing/checkout').body,{product:'desktop_pro',interval:'annual'});
+    // Back to monthly keeps the chosen package.
+    await page.click('[data-interval="monthly"]'); await expect(page.locator('input[value="desktop_pro"]')).toBeChecked();
+    await expect(page.locator('#team-name')).toHaveText('Business'); await expect(page.locator('#team-cta')).toHaveText('Talk to us about a team trial');
+    assert.match(await page.locator('#team-cta').getAttribute('href'), /\/business\.html#enquiry$/);
+    await clean(page);
+  });
+  await test('Browser Pro (signed tier): only Desktop Pro is offered, billing is managed', entitled({plan:'developer_pro',tier:'browser_pro',source:'paddle',status:'active'}), async ({page})=>{
+    await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Browser Pro'); await expect(page.locator('#plan-sub')).toHaveText('Subscription: active');
+    await expect(page.locator('#manage')).toBeVisible(); await expect(page.locator('#upgrade-title')).toHaveText('Upgrade to Desktop Pro'); assert.deepEqual(await options(page),['desktop_pro']);
+    await expect(featState(page,'restore')).toHaveText('Active'); await expect(featState(page,'anonymise')).toHaveText('Unlimited'); await expect(featState(page,'clipboard')).toHaveText('Desktop Pro');
+    await clean(page);
+  });
+  await test('Browser Pro from today\'s API (no tier): no second subscription is offered', entitled({plan:'developer_pro',source:'paddle',status:'active'}), async ({page})=>{
+    await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Browser Pro'); await expect(page.locator('#upgrade-panel')).toBeHidden(); await expect(page.locator('#upgrade')).toBeHidden(); await expect(page.locator('#manage')).toBeVisible();
+  });
+  await test('Desktop Pro trial: days left from the signed end date, both packages offered', entitled({plan:'developer',tier:'desktop_pro',source:'none',trial:{state:'active',endsAt:now+12*86400-60}}), async ({page})=>{
+    await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Desktop Pro trial');
+    await expect(page.locator('#plan-sub')).toContainText('12 days left'); await expect(page.locator('#plan-sub')).toContainText('no card needed');
+    await expect(page.locator('#manage')).toBeHidden(); assert.deepEqual(await options(page),['browser_pro','desktop_pro']);
+    await expect(page.locator('input[value="desktop_pro"]')).toBeChecked(); await expect(page.locator('#upgrade-lead')).toContainText('nothing is charged when it ends');
+    await expect(featState(page,'terminals')).toHaveText('Active');
+    await clean(page);
+  });
+  await test('Desktop Pro trial on its last day reads 1 day left', entitled({plan:'developer',tier:'desktop_pro',trial:{state:'active',endsAt:now+3600}}), async ({page})=>{
+    await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-sub')).toContainText('1 day left');
+  });
+  await test('Desktop Pro paid: nothing to upgrade, billing is managed', entitled({plan:'developer_pro',tier:'desktop_pro',source:'paddle',status:'active',trial:{state:'used',endsAt:now-86400}}), async ({page})=>{
+    await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Desktop Pro');
+    await expect(page.locator('#upgrade-panel')).toBeHidden(); await expect(page.locator('#upgrade')).toBeHidden(); await expect(page.locator('#manage')).toBeVisible();
+    await expect(featState(page,'clipboard')).toHaveText('Active'); await expect(featState(page,'activity')).toHaveText('Business');
+    await clean(page);
+  });
+  await test('lifetime keeps its access and reads Lifetime Browser Pro', entitled({plan:'developer_pro',source:'lifetime'}), async ({page})=>{
+    await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Lifetime Browser Pro'); await expect(page.locator('#lifetime-badge')).toBeVisible();
+    await expect(page.locator('#manage')).toBeHidden(); await expect(page.locator('#upgrade-panel')).toBeHidden(); await expect(featState(page,'log_cleaner')).toHaveText('Active');
+    await clean(page);
+  });
+  await test('lifetime with a signed tier may add Desktop Pro', entitled({plan:'developer_pro',tier:'browser_pro',source:'lifetime'}), async ({page})=>{
+    await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Lifetime Browser Pro'); assert.deepEqual(await options(page),['desktop_pro']); await expect(page.locator('#manage')).toBeHidden();
+  });
+  for (const [role,sub] of [['org:member','Provided by your team'],['org:admin','Administrator of Fixture Co']]) await test(`team ${role.slice(4)}: the seat reads as Business, nothing to buy`, entitled({plan:'business_pro',tier:'desktop_pro',source:'org_seat',status:'active',org:{id:'org_fixture',name:'Fixture Co',role,seats:5}}), async ({page})=>{
+    await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Business'); await expect(page.locator('#plan-sub')).toHaveText(sub);
+    await expect(page.locator('#upgrade-panel')).toBeHidden(); await expect(page.locator('#upgrade')).toBeHidden(); await expect(page.locator('#manage')).toBeHidden();
+    await expect(featState(page,'team_policy')).toHaveText('Active'); await expect(featState(page,'alerts')).toHaveText('Coming soon');
+    await expect(page.locator('#team-role')).toHaveText(role==='org:admin'?'Admin':'Member'); await expect(page.locator('#nav-team')).toBeVisible({visible: role==='org:admin'});
+    await clean(page);
+  });
+  await test('an unknown tier grants no more than the plan', entitled({plan:'developer',tier:'enterprise'}), async ({page})=>{
+    await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Browser Free');
+  });
+  await test('a checkout priced for another choice is refused, nothing opens', {respond:p=>p==='/v1/billing/checkout'?{body:{url:'https://secureintent.ai/account.html?_ptxn=txn_other',product:'browser_pro',interval:'monthly'}}:null}, async ({page})=>{
+    await page.goto(BASE+DESIGN+'account.html'); await page.check('input[value="desktop_pro"]'); await page.click('#checkout');
+    await expect(page.locator('#plan-notice-title')).toHaveText("Couldn't open checkout"); assert.equal(await page.evaluate(()=>calls.filter(c=>c[0]==='checkout').length),0);
+  });
+  await test('checkout errors say nothing was charged', {respond:p=>p==='/v1/billing/checkout'?{status:502,body:{error:'checkout failed'}}:null}, async ({page})=>{
+    await page.goto(BASE+DESIGN+'account.html'); await page.click('#checkout'); await expect(page.locator('#plan-notice-body')).toContainText('Nothing was charged'); await expect(page.locator('#checkout')).toBeEnabled();
+  });
+  await test('checkout conflict points to Manage subscription', {respond:p=>p==='/v1/billing/checkout'?{status:409,body:{error:'subscription_exists'}}:null}, async ({page})=>{
+    await page.goto(BASE+DESIGN+'account.html'); await page.click('#checkout'); await expect(page.locator('#plan-notice-body')).toContainText('Manage subscription');
+  });
+  await test('a checkout link off Paddle and without a transaction is not followed', {respond:p=>p==='/v1/billing/checkout'?{body:{url:'https://example.test/pay'}}:null}, async ({page})=>{
+    await page.goto(BASE+DESIGN+'account.html'); await page.click('#checkout'); await expect(page.locator('#plan-notice-title')).toHaveText("Couldn't open checkout"); assert.ok(page.url().startsWith(BASE));
   });
   await test('team admin invites, saves policy, and sees alerts as a preview', {}, async ({page,requests})=>{
     await page.goto(BASE+DESIGN+'team.html'); await expect(page.locator('#console')).toBeVisible(); await expect(page.locator('#nav-seats')).toHaveText('2/5');
@@ -237,9 +334,11 @@ async function run() {
   await test('account and team fit mobile in both themes', {mobile:true}, async ({page})=>{
     for(const name of ['account','team']) {
       await page.goto(BASE+DESIGN+name+'.html'); await expect(page.locator(name==='account'?'#account':'#console')).toBeVisible();
+      if(name==='account') await expect(page.locator('#upgrade-panel')).toBeVisible();
       for(const theme of ['dark','light']) {
         await page.evaluate(t=>document.documentElement.dataset.theme=t,theme);
         assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),name+' has no horizontal overflow');
+        if(name==='account') { await page.click('[data-interval="annual"]'); assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'account annual has no horizontal overflow'); await page.click('[data-interval="monthly"]'); }
         await page.screenshot({path:require('os').tmpdir()+'/si-v2-'+name+'-'+theme+'.png',fullPage:true});
       }
     }
