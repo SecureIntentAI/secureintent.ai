@@ -6,10 +6,23 @@
 const CFG = SI.config;
 
       const PLAN_LABEL = {
-        developer: "Free",
-        developer_pro: "Developer Pro",
-        business_pro: "Business Pro",
+        developer: "Browser Free",
+        developer_pro: "Browser Pro",
+        business_pro: "Business",
       };
+      // The package from the signed plan (`tier`), when the API sends it.
+      const TIER_LABEL = {
+        free: "Browser Free",
+        browser_pro: "Browser Pro",
+        desktop_pro: "Desktop Pro",
+        business: "Business",
+      };
+      const PRICE_LABEL = {
+        browser_pro: { monthly: "$7.99/mo", annual: "$76.68/yr" },
+        desktop_pro: { monthly: "$14.99/mo", annual: "$143.88/yr" },
+      };
+      let billingInterval = "monthly";
+      let linkChecked = false;
 
       // --- Creator attribution ---------------------------------------------
       // The landing page stores the first-touch creator in a cookie on
@@ -358,7 +371,7 @@ const CFG = SI.config;
         const team = (key, label) =>
           plan === "business_pro"
             ? { key, label, state: "active", detail: "Active" }
-            : { key, label, state: "locked", detail: "Business Pro" };
+            : { key, label, state: "locked", detail: "Business" };
         return [
           { key: "detection", label: "Detection & warnings", state: "active", detail: "Active" },
           anon,
@@ -433,8 +446,8 @@ const CFG = SI.config;
         $("overlap-cancel").hidden = false;
         $("overlap-title").textContent = "Your team already covers you";
         $("overlap-body").textContent = ends
-          ? `You're also paying for Developer Pro yourself. Cancel it and it keeps working until ${ends}, then your team seat takes over.`
-          : "You're also paying for Developer Pro yourself. Cancel it and you keep it until the period you've paid for ends. Your team seat takes over from there.";
+          ? `You're also paying for Browser Pro yourself. Cancel it and it keeps working until ${ends}, then your team seat takes over.`
+          : "You're also paying for Browser Pro yourself. Cancel it and you keep it until the period you've paid for ends. Your team seat takes over from there.";
       }
 
       async function cancelPersonal() {
@@ -676,9 +689,10 @@ const CFG = SI.config;
           $("features").hidden = false;
           renderOverlap(data?.personalSubscription, data?.entitlement?.source);
           const plan = data?.entitlement?.plan ?? "developer";
+          const tier = data?.entitlement?.tier ?? null;
           const source = data?.entitlement?.source;
           const status = data?.entitlement?.status;
-          const isFree = plan === "developer";
+          const isFree = tier ? tier === "free" : plan === "developer";
           const isLifetime = source === "lifetime";
           // A seat is billed to the company, not to this person: there is no
           // personal subscription behind it, so neither upgrading nor managing
@@ -690,10 +704,16 @@ const CFG = SI.config;
           const isBusinessEmail = source === "business_email";
           const displayPlan = isTeamSeat && !["org:admin", "admin"].includes(data?.entitlement?.org?.role)
             ? "developer_pro" : plan;
-          $("plan-name").textContent = PLAN_LABEL[displayPlan] ?? displayPlan;
+          $("plan-name").textContent = (!isTeamSeat && tier && TIER_LABEL[tier]) || PLAN_LABEL[displayPlan] || displayPlan;
           $("plan-name").classList.toggle("pro", !isFree);
-          // Lifetime users have nothing to manage; paid users do; free users upgrade.
-          $("upgrade").hidden = !isFree || isTeamSeat;
+          // Free accounts can buy either package; Browser Pro without a subscription
+          // behind it (lifetime) can buy Desktop Pro. A paid Browser Pro changes its
+          // own subscription instead, and Desktop Pro and teams have everything.
+          const canDesktop = !isTeamSeat && (isFree || (tier === "browser_pro" && source !== "paddle"));
+          $("buy-browser_pro").hidden = !isFree || isTeamSeat;
+          $("buy-desktop_pro").hidden = !canDesktop;
+          $("upgrade").hidden = !canDesktop;
+          if (!linkChecked) { linkChecked = true; checkoutFromLink(); }
           $("manage").hidden = isFree || isLifetime || isTeamSeat || isBusinessEmail;
           $("lifetime-badge").hidden = !isLifetime;
           if (isTeamSeat) {
@@ -790,17 +810,69 @@ const CFG = SI.config;
         }
       }
 
-      function openCheckout() {
-        if (!window.Paddle) { showPlanNotice("Checkout unavailable", "Please refresh and try again, or contact billing@secureintent.ai."); return; }
+      const CHECKOUT_ERRORS = {
+        already_subscribed: "You already have this plan. Use Manage subscription to change it.",
+        upgrade_existing_subscription: "You already pay for Browser Pro. Moving to Desktop Pro changes that subscription: email billing@secureintent.ai and we'll do it for you today.",
+        already_includes: "Desktop Pro already includes everything in Browser Pro.",
+      };
+
+      function setBillingInterval(interval) {
+        billingInterval = interval === "annual" ? "annual" : "monthly";
+        document.querySelectorAll("#upgrade .interval button").forEach((b) =>
+          b.setAttribute("aria-pressed", String(b.dataset.interval === billingInterval)));
+        for (const product of ["browser_pro", "desktop_pro"]) {
+          $(`buy-${product}`).textContent = `${TIER_LABEL[product]} · ${PRICE_LABEL[product][billingInterval]}`;
+        }
+      }
+
+      // The backend picks the price, applies the intro offer once per account and
+      // refuses a second subscription; Paddle then opens on the transaction it made.
+      async function openCheckout(product) {
         const user = window.Clerk.user;
         if (!user) return;
-        const email = user.primaryEmailAddress?.emailAddress;
-        window.Paddle.Checkout.open({
-          items: [{ priceId: CFG.priceId, quantity: 1 }],
-          customData: { clerk_user_id: user.id },
-          customer: email ? { email } : undefined,
-          settings: { displayMode: "overlay", theme: document.documentElement.dataset.theme || "dark", allowLogout: false },
-        });
+        const btn = $(`buy-${product}`);
+        btn.disabled = true;
+        try {
+          const token = await window.Clerk.session.getToken({ template: CFG.jwtTemplate });
+          const res = await SI.fetch(`${CFG.apiBase}/v1/billing/checkout`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ product, interval: billingInterval }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            showPlanNotice("Checkout not opened", CHECKOUT_ERRORS[data?.error] ?? "We couldn't open checkout just now. Nothing has been charged. Try again, or email billing@secureintent.ai.");
+            return;
+          }
+          hidePlanNotice();
+          const txn = data?.url ? new URL(data.url).searchParams.get("_ptxn") : null;
+          if (txn && window.Paddle) {
+            window.Paddle.Checkout.open({
+              transactionId: txn,
+              settings: { displayMode: "overlay", theme: document.documentElement.dataset.theme || "dark", allowLogout: false },
+            });
+          } else if (data?.url) {
+            location.href = data.url;
+          }
+        } catch (e) {
+          console.error("[account] openCheckout failed", e);
+          showPlanNotice("Checkout not opened", "We couldn't open checkout just now. Nothing has been charged. Try again, or email billing@secureintent.ai.");
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      // Arriving from the pricing page with a plan chosen: open its checkout once
+      // the account is known, and only for a plan this account can buy.
+      function checkoutFromLink() {
+        const params = new URLSearchParams(location.search);
+        const product = params.get("plan");
+        if (product !== "browser_pro" && product !== "desktop_pro") return;
+        setBillingInterval(params.get("interval"));
+        params.delete("plan");
+        params.delete("interval");
+        history.replaceState(null, "", location.pathname + (params.toString() ? `?${params}` : "") + location.hash);
+        if (!$(`buy-${product}`).hidden) openCheckout(product);
       }
 
       function resumePendingTxn() {
@@ -1191,7 +1263,11 @@ const CFG = SI.config;
             console.warn("[account] Paddle client token not set — upgrade disabled.");
           }
 
-          $("upgrade").addEventListener("click", openCheckout);
+          for (const product of ["browser_pro", "desktop_pro"]) {
+            $(`buy-${product}`).addEventListener("click", () => openCheckout(product));
+          }
+          document.querySelectorAll("#upgrade .interval button").forEach((b) =>
+            b.addEventListener("click", () => setBillingInterval(b.dataset.interval)));
           $("manage").addEventListener("click", openPortal);
           $("plan-retry").addEventListener("click", loadPlan);
           $("team-retry").addEventListener("click", loadPlan);
