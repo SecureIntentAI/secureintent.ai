@@ -110,10 +110,10 @@
   }
   function authReturn(name) {
     const url = new URL(page(name), location.origin);
-    // Preserve payment recovery and invitation state across sign-in, never accept
+    // Preserve payment recovery, invitation state and a chosen plan across sign-in, never accept
     // a caller-supplied external return URL.
     const current = new URLSearchParams(location.search);
-    for (const key of ['_ptxn', 'welcome', 'claim', 'joined', 'org']) if (current.has(key)) url.searchParams.set(key, current.get(key));
+    for (const key of ['_ptxn', 'welcome', 'claim', 'joined', 'org', 'plan', 'interval']) if (current.has(key)) url.searchParams.set(key, current.get(key));
     url.hash = location.hash;
     return url.pathname + url.search + url.hash;
   }
