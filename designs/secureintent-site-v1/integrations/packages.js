@@ -41,6 +41,10 @@
 
   /** Packages someone can buy here, in the order they are offered. */
   const PURCHASABLE = ["browser_pro", "desktop_pro"];
+  // Off until the launch deploy: today's API sells only the older Pro price,
+  // whatever package is chosen, so the Upgrade choice waits for the backend that
+  // prices each package. The launch-day website change turns this on.
+  const ON_SALE = false;
   const INTERVALS = ["monthly", "annual"];
 
   /** The older `plan` names, for an entitlement that has no `tier` yet. */
@@ -134,7 +138,7 @@
   const money = (cents) => `$${(cents / 100).toFixed(2)}`;
 
   window.SI_PACKAGES = Object.freeze({
-    ORDER, PACKAGES, FEATURES, PURCHASABLE, INTERVALS, INTRO_MONTHS, TRIAL_DAYS, CURRENCY, FREE_ANONYMISE_LIMIT,
+    ORDER, PACKAGES, FEATURES, PURCHASABLE, ON_SALE, INTERVALS, INTRO_MONTHS, TRIAL_DAYS, CURRENCY, FREE_ANONYMISE_LIMIT,
     packageOf, hasTier, trialActive, trialDaysLeft, displayName, canUpgrade, upgradeChoices, includedRows,
     isOrgAdmin, money,
   });
