@@ -249,6 +249,35 @@ async function run() {
     await expect(page.locator('#plan-notice-body')).toContainText("you're still on Browser Pro");
     await expect(page.locator('#plan-name')).toHaveText('Browser Pro'); await expect(page.locator('#checkout')).toHaveText('See the price');
   });
+  await test('monthly to annual: the date and the first annual bill first, then one change, nothing charged now', {respond:(p,m,body)=>{
+    if (p==='/v1/entitlement') return {body:{entitlement:{plan:'developer_pro',tier:'desktop_pro',source:'paddle',status:'active'}}};
+    if (p==='/v1/billing/switch-interval/preview') return {body:{product:'desktop_pro',from:'monthly',to:'annual',next:{amount:14388,currency:'USD',on:'2026-12-01T00:00:00Z'}}};
+    if (p==='/v1/billing/switch-interval') return {body:{ok:true,product:'desktop_pro',interval:'annual',from:'2026-12-01T00:00:00Z'}};
+    return null;
+  }}, async ({page,requests})=>{
+    await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#period')).toBeVisible(); await expect(page.locator('#period-switch')).toBeHidden();
+    await page.click('#period');
+    await expect(page.locator('#period-switch-text')).toHaveText("Switch to annual billing from 1 December 2026, when the period you've paid for ends. Nothing is charged now. Your first annual bill: $143.88 a year. Any first-months price left on your monthly plan stops.");
+    assert.equal(requests.filter(r=>r.path==='/v1/billing/switch-interval').length, 0, 'nothing changes before the person confirms');
+    await page.click('#period-confirm');
+    await expect(page.locator('#plan-notice-title')).toHaveText('Billing period changed');
+    await expect(page.locator('#plan-notice-body')).toHaveText("From 1 December 2026 you're billed once a year. Nothing changes before then.");
+    await expect(page.locator('#plan-notice')).not.toHaveClass(/overlap--error/);
+    await expect(page.locator('#period-switch')).toBeHidden();
+    assert.deepEqual(requests.find(r=>r.path==='/v1/billing/switch-interval').body, {interval:'annual'});
+  });
+  await test('billing period with a pending cancel says to resume it first', {respond:(p)=>{
+    if (p==='/v1/entitlement') return {body:{entitlement:{plan:'developer_pro',tier:'browser_pro',source:'paddle',status:'active'}}};
+    if (p==='/v1/billing/switch-interval/preview') return {status:409, body:{error:'scheduled_change'}};
+    return null;
+  }}, async ({page})=>{
+    await page.goto(BASE+DESIGN+'account.html'); await page.click('#period');
+    await expect(page.locator('#plan-notice-title')).toHaveText('Your subscription is set to change'); await expect(page.locator('#plan-notice')).toHaveClass(/overlap--error/);
+    await expect(page.locator('#period-switch')).toBeHidden(); await expect(page.locator('#period')).toBeEnabled();
+  });
+  await test('billing period is not offered on Browser Free or a team seat', {}, async ({page})=>{
+    await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Browser Free'); await expect(page.locator('#period')).toBeHidden();
+  });
   await test('Browser Pro from today\'s API (no tier): no second subscription is offered', entitled({plan:'developer_pro',source:'paddle',status:'active'}), async ({page})=>{
     await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Browser Pro'); await expect(page.locator('#upgrade-panel')).toBeHidden(); await expect(page.locator('#upgrade')).toBeHidden(); await expect(page.locator('#manage')).toBeVisible();
   });

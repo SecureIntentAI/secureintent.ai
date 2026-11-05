@@ -749,3 +749,21 @@
 /* On a phone the card text keeps a readable width and the buttons wrap below it,
    instead of the name truncating and the Business line squeezing to one word. */
 .account-app .plan-info, .account-app .team-info { flex: 1 1 200px; }
+
+/* Monthly <-> annual confirm, inside the plan card. */
+.account-app .period-switch {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid rgba(114, 255, 255, 0.2);
+  border-radius: 12px;
+}
+.account-app .period-switch p {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.account-app .period-switch-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

@@ -470,7 +470,7 @@ const CFG = SI.config;
             upgradeState.quote = data;
           } else {
             upgradeState.quote = null;
-            showPlanNotice("You're on Desktop Pro", "Paddle emails your receipt. The desktop app and the extension pick up the new plan within a few minutes.");
+            showPlanNotice("You're on Desktop Pro", "Paddle emails your receipt. The desktop app and the extension pick up the new plan within a few minutes.", { ok: true });
             await loadPlan();
             return;
           }
@@ -482,6 +482,76 @@ const CFG = SI.config;
         } finally {
           btn.disabled = false;
           renderUpgradeTerms();
+        }
+      }
+
+      // ---- Monthly <-> annual (KAU-29) ----------------------------------------
+      // From the end of the period already paid for; nothing is charged now.
+      // The date and the next bill come from Paddle's preview, shown first.
+      const PERIOD_NAME = { monthly: "monthly", annual: "annual" };
+      const PERIOD_BILLED = { monthly: "monthly", annual: "once a year" };
+      let periodPlan = null;
+
+      async function periodRequest(path) {
+        const token = await window.Clerk.session.getToken({ template: CFG.jwtTemplate });
+        const res = await SI.fetch(`${CFG.apiBase}/v1/billing/switch-interval${path}`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
+          body: JSON.stringify(periodPlan ? { interval: periodPlan.to } : {}),
+          cache: "no-store",
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { code: data?.error });
+        return data;
+      }
+
+      const PERIOD_REFUSED = {
+        scheduled_change: ["Your subscription is set to change", "Resume it in Manage subscription first, then change the billing period here."],
+      };
+      function periodFailed(e) {
+        console.error("[account] billing period change failed", e?.message || e);
+        const [title, body] = PERIOD_REFUSED[e?.code] ?? ["Couldn't change the billing period", "Nothing changed. Try again, or email billing@secureintent.ai."];
+        showPlanNotice(title, body);
+        closePeriod();
+      }
+
+      function closePeriod() {
+        periodPlan = null;
+        $("period-switch").hidden = true;
+        $("period").disabled = false;
+      }
+
+      async function showPeriod() {
+        $("period").disabled = true;
+        try {
+          const q = await periodRequest("/preview");
+          periodPlan = q;
+          const on = q.next?.on ? longDate(q.next.on) : "the end of this period";
+          const price = q.next ? `${money(q.next)} ${q.to === "annual" ? "a year" : "a month"}` : "";
+          $("period-switch-text").textContent =
+            `Switch to ${PERIOD_NAME[q.to]} billing from ${on}, when the period you've paid for ends. Nothing is charged now.` +
+            (price ? ` Your first ${PERIOD_NAME[q.to]} bill: ${price}.` : "") +
+            (q.from === "monthly" ? " Any first-months price left on your monthly plan stops." : "");
+          $("period-confirm").textContent = `Switch to ${PERIOD_NAME[q.to]}`;
+          $("period-switch").hidden = false;
+          hidePlanNotice();
+        } catch (e) {
+          periodFailed(e);
+        }
+      }
+
+      async function confirmPeriod() {
+        const btn = $("period-confirm");
+        btn.disabled = true;
+        try {
+          const done = await periodRequest("");
+          const on = done.from ? longDate(done.from) : "your next bill";
+          closePeriod();
+          showPlanNotice("Billing period changed", `From ${on} you're billed ${PERIOD_BILLED[done.interval]}. Nothing changes before then.`, { ok: true });
+        } catch (e) {
+          periodFailed(e);
+        } finally {
+          btn.disabled = false;
         }
       }
 
@@ -661,6 +731,8 @@ const CFG = SI.config;
         $("plan-notice-title").textContent = title;
         $("plan-notice-body").textContent = body;
         $("plan-retry").hidden = opts?.retry !== true;
+        // Red for a problem; plain for good news (`ok`).
+        $("plan-notice").classList.toggle("overlap--error", opts?.ok !== true);
         $("plan-notice").hidden = false;
       }
 
@@ -848,6 +920,9 @@ const CFG = SI.config;
           upgradeState.quote = null;
           renderUpgrade(!P.ON_SALE || isTeamSeat || (!isFree && !P.hasTier(entitlement)) ? [] : P.upgradeChoices(pkg, trial), trial);
           $("manage").hidden = isFree || isLifetime || isTeamSeat || isBusinessEmail || (Boolean(trial) && source !== "paddle");
+          // Only a subscription of their own can change its billing period.
+          $("period").hidden = !P.ON_SALE || source !== "paddle" || isTeamSeat;
+          closePeriod();
           $("lifetime-badge").hidden = !isLifetime;
           if (isTeamSeat) {
             const org = entitlement.org;
@@ -1411,6 +1486,9 @@ const CFG = SI.config;
             });
           }
           $("manage").addEventListener("click", openPortal);
+          $("period").addEventListener("click", showPeriod);
+          $("period-confirm").addEventListener("click", confirmPeriod);
+          $("period-cancel").addEventListener("click", closePeriod);
           $("plan-retry").addEventListener("click", loadPlan);
           $("team-retry").addEventListener("click", loadPlan);
           $("overlap-cancel").addEventListener("click", cancelPersonal);
