@@ -745,7 +745,7 @@ const CFG = SI.config;
           // that sends no `tier` yet sells only its one older price, so there it
           // stays as it was: offered to Browser Free only, never as a second
           // subscription to someone already paying.
-          renderUpgrade(isTeamSeat || (!isFree && !P.hasTier(entitlement)) ? [] : P.upgradeChoices(pkg, trial), trial);
+          renderUpgrade(!P.ON_SALE || isTeamSeat || (!isFree && !P.hasTier(entitlement)) ? [] : P.upgradeChoices(pkg, trial), trial);
           $("manage").hidden = isFree || isLifetime || isTeamSeat || isBusinessEmail || (Boolean(trial) && source !== "paddle");
           $("lifetime-badge").hidden = !isLifetime;
           if (isTeamSeat) {
