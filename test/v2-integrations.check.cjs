@@ -46,6 +46,12 @@ async function context(browser, options = {}) {
       if (options.unconfigured) return route.continue();
       return route.fulfill({contentType: 'text/javascript', body: 'window.SI_CONFIG = ' + JSON.stringify({preview: {...config, ...options.config}})});
     }
+    // This build has packages on sale; one scenario checks the held page too.
+    if (url.pathname === DESIGN + 'integrations/packages.js' && options.notOnSale) {
+      const res = await route.fetch(); const text = await res.text();
+      assert.ok(text.includes('const ON_SALE = true;'), 'packages.js has the ON_SALE switch');
+      return route.fulfill({response: res, body: text.replace('const ON_SALE = true;', 'const ON_SALE = false;')});
+    }
     if (url.pathname === '/__test/clerk.browser.js') return route.fulfill({contentType:'text/javascript', body:sdk(options.signedIn !== false)});
     if (url.hostname === 'cdn.paddle.com') {
       if (options.paddleFailed) return route.abort();
@@ -196,6 +202,12 @@ async function run() {
   await test('an Upgrade link for a package this account cannot buy is ignored', entitled({plan:'developer_pro',tier:'browser_pro',source:'paddle',status:'active'}), async ({page})=>{
     await page.goto(BASE+DESIGN+'account.html?plan=browser_pro&interval=annual');
     await expect(page.locator('input[value="desktop_pro"]')).toBeChecked(); await expect(page.locator('[data-interval="monthly"]')).toHaveAttribute('aria-pressed','true');
+  });
+  await test('until launch, no Upgrade choice is offered, and the plan still shows', {notOnSale:true}, async ({page,requests})=>{
+    await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Browser Free');
+    await expect(featState(page,'anonymise')).toHaveText('8 / 10 left');
+    await expect(page.locator('#upgrade')).toBeHidden(); await expect(page.locator('#upgrade-panel')).toBeHidden();
+    assert.equal(requests.filter(r=>r.path==='/v1/billing/checkout').length, 0);
   });
   await test('Browser Pro (signed tier): only Desktop Pro is offered, billing is managed', entitled({plan:'developer_pro',tier:'browser_pro',source:'paddle',status:'active'}), async ({page})=>{
     await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Browser Pro'); await expect(page.locator('#plan-sub')).toHaveText('Subscription: active');

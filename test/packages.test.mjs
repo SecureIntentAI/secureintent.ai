@@ -17,6 +17,10 @@ const scope = { window: {} };
 vm.runInNewContext(await readFile(factsFile, 'utf8'), scope, { filename: factsFile });
 const P = scope.window.SI_PACKAGES;
 
+test('the packages are on sale (launch build)', () => {
+  assert.equal(P.ON_SALE, true);
+});
+
 test('names are the four packages, and nothing older', () => {
   assert.deepEqual([...P.ORDER].map(id => P.PACKAGES[id].label), ['Browser Free', 'Browser Pro', 'Desktop Pro', 'Business']);
 });
