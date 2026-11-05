@@ -215,6 +215,40 @@ async function run() {
     await expect(featState(page,'restore')).toHaveText('Active'); await expect(featState(page,'anonymise')).toHaveText('Unlimited'); await expect(featState(page,'clipboard')).toHaveText('Desktop Pro');
     await clean(page);
   });
+  const browserPro = {plan:'developer_pro',tier:'browser_pro',source:'paddle',status:'active'};
+  const quote = {product:'desktop_pro',interval:'monthly',dueNow:{amount:550,currency:'USD'},next:{amount:750,currency:'USD',on:'2026-12-01T00:00:00Z'},introMonths:3};
+  await test('Browser Pro to Desktop Pro: the price first, then one change to the same subscription', {respond:(p)=>{
+    if (p==='/v1/entitlement') return {body:{entitlement:browserPro}};
+    if (p==='/v1/billing/upgrade/preview') return {body:quote};
+    if (p==='/v1/billing/upgrade') { browserPro.tier='desktop_pro'; return {body:{ok:true,product:'desktop_pro',interval:'monthly'}}; }
+    return null;
+  }}, async ({page,requests})=>{
+    await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#upgrade-title')).toHaveText('Upgrade to Desktop Pro');
+    await expect(page.locator('#upgrade-panel .interval-toggle')).toBeHidden();
+    await expect(page.locator('#checkout')).toHaveText('See the price');
+    await page.click('#checkout');
+    await expect(page.locator('#upgrade-renewal')).toHaveText('You pay $5.50 now, the difference until 1 December 2026. From 1 December 2026: $7.50 a month for 3 months, then $14.99 a month.');
+    await expect(page.locator('#checkout')).toHaveText('Pay $5.50 and upgrade');
+    assert.equal(requests.filter(r=>r.path==='/v1/billing/upgrade').length, 0, 'nothing changes before the person confirms');
+    await page.click('#checkout');
+    await expect(page.locator('#plan-notice-title')).toHaveText("You're on Desktop Pro");
+    await expect(page.locator('#plan-name')).toHaveText('Desktop Pro');
+    assert.deepEqual(requests.filter(r=>r.path.startsWith('/v1/billing/')).map(r=>r.path), ['/v1/billing/upgrade/preview','/v1/billing/upgrade']);
+    assert.equal(requests.filter(r=>r.path==='/v1/billing/checkout').length, 0, 'never a second subscription');
+    browserPro.tier='browser_pro';
+  });
+  await test('Browser Pro upgrade with a declined card says nothing changed', {respond:(p)=>{
+    if (p==='/v1/entitlement') return {body:{entitlement:browserPro}};
+    if (p==='/v1/billing/upgrade/preview') return {body:quote};
+    if (p==='/v1/billing/upgrade') return {status:402, body:{error:'payment_failed'}};
+    return null;
+  }}, async ({page})=>{
+    await page.goto(BASE+DESIGN+'account.html'); await page.click('#checkout'); await expect(page.locator('#checkout')).toHaveText('Pay $5.50 and upgrade');
+    await page.click('#checkout');
+    await expect(page.locator('#plan-notice-title')).toHaveText("The payment didn't go through");
+    await expect(page.locator('#plan-notice-body')).toContainText("you're still on Browser Pro");
+    await expect(page.locator('#plan-name')).toHaveText('Browser Pro'); await expect(page.locator('#checkout')).toHaveText('See the price');
+  });
   await test('Browser Pro from today\'s API (no tier): no second subscription is offered', entitled({plan:'developer_pro',source:'paddle',status:'active'}), async ({page})=>{
     await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Browser Pro'); await expect(page.locator('#upgrade-panel')).toBeHidden(); await expect(page.locator('#upgrade')).toBeHidden(); await expect(page.locator('#manage')).toBeVisible();
   });

@@ -351,7 +351,7 @@ const CFG = SI.config;
       // The choice of package and billing period, the price for that choice and
       // the plain renewal and cancellation terms. Every name and amount comes
       // from SI_PACKAGES, so this cannot drift from the facts file.
-      const upgradeState = { choices: [], product: null, interval: "monthly", trial: null };
+      const upgradeState = { choices: [], product: null, interval: "monthly", trial: null, inPlace: false, quote: null };
       const el = (tag, className, text) => {
         const node = document.createElement(tag);
         if (className) node.className = className;
@@ -368,6 +368,12 @@ const CFG = SI.config;
       function renderUpgradeTerms() {
         const { product, interval } = upgradeState;
         if (!product) return;
+        for (const input of document.querySelectorAll('#upgrade-options input[name="upgrade-product"]')) {
+          input.checked = input.value === product;
+        }
+        document.querySelector("#upgrade-panel .interval-toggle").hidden = upgradeState.inPlace;
+        if (upgradeState.inPlace) return renderInPlaceTerms();
+        $("checkout").textContent = "Continue to checkout";
         const { label, price } = P.PACKAGES[product];
         $("upgrade-renewal").textContent = interval === "annual"
           ? `${label}, annual: ${P.money(price.annual)} paid upfront for the year, which comes to ${P.money(price.annualPerMonth)} a month. It renews at ${P.money(price.annual)} each year until you cancel.`
@@ -375,9 +381,6 @@ const CFG = SI.config;
         $("upgrade-cancel").textContent =
           "Cancel any time from Manage subscription. Renewals stop, and you keep access until the end of the period you've paid for.";
         $("upgrade-tax").textContent = `Prices are in ${P.CURRENCY === "USD" ? "US dollars" : P.CURRENCY}. Tax, where it applies, is shown at checkout before you pay.`;
-        for (const input of document.querySelectorAll('#upgrade-options input[name="upgrade-product"]')) {
-          input.checked = input.value === product;
-        }
       }
 
       function renderUpgradeOptions() {
@@ -408,6 +411,78 @@ const CFG = SI.config;
           return option;
         }));
         renderUpgradeTerms();
+      }
+
+      // ---- Upgrade on the subscription they already pay for (KAU-29) --------
+      // A paying Browser Pro customer moves to Desktop Pro on the same
+      // subscription and billing period, never a second one. The price comes
+      // from Paddle's own preview and is shown before anything is charged.
+      const money = (m) => `$${(m.amount / 100).toFixed(2)}`;
+      const longDate = (iso) =>
+        new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+
+      function renderInPlaceTerms() {
+        const q = upgradeState.quote;
+        const btn = $("checkout");
+        if (!q) {
+          $("upgrade-renewal").textContent =
+            "Your Browser Pro subscription changes to Desktop Pro, on the same billing period. You pay only the difference for the rest of this period, and Desktop Pro works straight away.";
+          btn.textContent = "See the price";
+        } else {
+          const from = q.next?.on ? longDate(q.next.on) : "your next bill";
+          const later = q.interval === "annual"
+            ? `From ${from}: ${P.money(P.PACKAGES.desktop_pro.price.annual)} a year.`
+            : q.introMonths
+              ? `From ${from}: ${P.money(P.PACKAGES.desktop_pro.price.intro)} a month for ${q.introMonths} months, then ${P.money(P.PACKAGES.desktop_pro.price.monthly)} a month.`
+              : `From ${from}: ${P.money(P.PACKAGES.desktop_pro.price.monthly)} a month.`;
+          $("upgrade-renewal").textContent = q.dueNow && q.dueNow.amount > 0
+            ? `You pay ${money(q.dueNow)} now, the difference until ${from}. ${later}`
+            : `Nothing to pay now. ${later}`;
+          btn.textContent = q.dueNow && q.dueNow.amount > 0 ? `Pay ${money(q.dueNow)} and upgrade` : "Upgrade";
+        }
+        $("upgrade-cancel").textContent =
+          "Cancel any time from Manage subscription. Renewals stop, and you keep access until the end of the period you've paid for.";
+        $("upgrade-tax").textContent = "Amounts include tax where it applies. If the payment doesn't go through, nothing changes.";
+      }
+
+      const IN_PLACE_REFUSED = {
+        scheduled_change: ["Your subscription is set to change", "Resume it in Manage subscription first, then upgrade here."],
+        already_desktop: ["You're already on Desktop Pro", "Refresh the page to see it."],
+        payment_failed: ["The payment didn't go through", "Nothing changed: you're still on Browser Pro. Update your card in Manage subscription and try again."],
+      };
+
+      async function upgradeInPlace() {
+        const btn = $("checkout");
+        const confirming = Boolean(upgradeState.quote);
+        btn.disabled = true;
+        btn.textContent = confirming ? "Upgrading…" : "Checking the price…";
+        try {
+          const token = await window.Clerk.session.getToken({ template: CFG.jwtTemplate });
+          const res = await SI.fetch(`${CFG.apiBase}/v1/billing/upgrade${confirming ? "" : "/preview"}`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+            cache: "no-store",
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { code: data?.error });
+          hidePlanNotice();
+          if (!confirming) {
+            upgradeState.quote = data;
+          } else {
+            upgradeState.quote = null;
+            showPlanNotice("You're on Desktop Pro", "Paddle emails your receipt. The desktop app and the extension pick up the new plan within a few minutes.");
+            await loadPlan();
+            return;
+          }
+        } catch (e) {
+          console.error("[account] upgrade failed", e?.message || e);
+          upgradeState.quote = null;
+          const [title, body] = IN_PLACE_REFUSED[e?.code] ?? ["Couldn't upgrade", "Nothing was charged. Try again, or email billing@secureintent.ai."];
+          showPlanNotice(title, body);
+        } finally {
+          btn.disabled = false;
+          renderUpgradeTerms();
+        }
       }
 
       /** `choices` is empty for anyone with nothing to buy here. */
@@ -769,6 +844,8 @@ const CFG = SI.config;
           // that sends no `tier` yet sells only its one older price, so there it
           // stays as it was: offered to Browser Free only, never as a second
           // subscription to someone already paying.
+          upgradeState.inPlace = source === "paddle" && pkg === "browser_pro";
+          upgradeState.quote = null;
           renderUpgrade(!P.ON_SALE || isTeamSeat || (!isFree && !P.hasTier(entitlement)) ? [] : P.upgradeChoices(pkg, trial), trial);
           $("manage").hidden = isFree || isLifetime || isTeamSeat || isBusinessEmail || (Boolean(trial) && source !== "paddle");
           $("lifetime-badge").hidden = !isLifetime;
@@ -878,6 +955,7 @@ const CFG = SI.config;
        */
       const CHECKOUT_LABEL = "Continue to checkout";
       async function startCheckout() {
+        if (upgradeState.inPlace) return upgradeInPlace();
         const { product, interval } = upgradeState;
         if (!P.PURCHASABLE.includes(product) || !P.INTERVALS.includes(interval) || !window.Clerk.user) return;
         const btn = $("checkout");
