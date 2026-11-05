@@ -709,3 +709,43 @@
 .account-app .join-password input { padding-right: 64px; }
 .account-app .join-password .text-action { position: absolute; top: 50%; right: 8px; transform: translateY(-50%); padding: 6px 8px; border: 0; background: transparent; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
 .account-app .join-password-note { margin: 0 0 16px; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(114, 255, 255, 0.16); background: rgba(114, 255, 255, 0.05); color: var(--text); font-size: 13px; line-height: 1.5; }
+
+/* ---- Upgrade: package choice, Monthly / Annual, and the plain terms ------ */
+.account-app .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.account-app .upgrade-panel { padding: 18px 20px; background: var(--surface); border: 1px solid var(--field-border); border-radius: 14px; scroll-margin-top: 100px; }
+.account-app .upgrade-panel:focus { outline: none; }
+.account-app .upgrade-panel:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.account-app .upgrade-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.account-app .upgrade-title { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: 0; line-height: 1.4; }
+.account-app .upgrade-lead { margin: 4px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.5; max-width: 60ch; }
+.account-app .interval-toggle { display: inline-flex; padding: 3px; gap: 2px; border: 1px solid var(--field-border); border-radius: 10px; background: var(--field); }
+.account-app .interval-option { padding: 7px 14px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.account-app .interval-option[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 0 0 1px var(--field-border); }
+.account-app .interval-option:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; }
+.account-app .upgrade-options { margin: 16px 0 0; padding: 0; border: 0; min-width: 0; }
+.account-app #upgrade-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.account-app .upgrade-option { position: relative; display: flex; gap: 12px; padding: 14px 16px; border: 1px solid var(--field-border); border-radius: 12px; cursor: pointer; min-width: 0; }
+.account-app .upgrade-option:has(input:checked) { border-color: var(--cyan); box-shadow: inset 0 0 0 1px var(--cyan); }
+.account-app .upgrade-option:has(input:focus-visible) { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.account-app .upgrade-option input { margin: 3px 0 0; accent-color: var(--cyan); flex: none; }
+.account-app .upgrade-option-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.account-app .upgrade-option-name { font-weight: 600; font-size: 14px; color: var(--ink); }
+.account-app .upgrade-option-summary { color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+.account-app .upgrade-price { margin-top: 6px; font-family: var(--mono); font-size: 18px; font-weight: 600; color: var(--ink); }
+.account-app .upgrade-price small { font-size: 12.5px; font-weight: 500; color: var(--muted); }
+.account-app .upgrade-price-note { font-size: 12.5px; color: var(--muted); }
+.account-app .upgrade-terms { margin-top: 14px; display: grid; gap: 4px; }
+.account-app .upgrade-terms p { margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.55; max-width: 72ch; }
+.account-app .upgrade-terms p:first-child { color: var(--ink); }
+.account-app .upgrade-foot { margin-top: 16px; display: flex; justify-content: flex-end; }
+.account-app .upgrade:disabled { opacity: 0.6; cursor: wait; }
+@media (max-width: 520px) {
+  .account-app .upgrade-panel { padding: 16px; }
+  .account-app .upgrade-head { flex-direction: column; }
+  .account-app .interval-toggle { align-self: stretch; }
+  .account-app .interval-option { flex: 1; }
+  .account-app .upgrade-foot .upgrade { width: 100%; }
+}
+/* On a phone the card text keeps a readable width and the buttons wrap below it,
+   instead of the name truncating and the Business line squeezing to one word. */
+.account-app .plan-info, .account-app .team-info { flex: 1 1 200px; }

@@ -5,11 +5,9 @@
     await SI.ready({ auth: true, billing: true });
 const CFG = SI.config;
 
-      const PLAN_LABEL = {
-        developer: "Free",
-        developer_pro: "Developer Pro",
-        business_pro: "Business Pro",
-      };
+      // Package names, prices and what each includes: integrations/packages.js.
+      const P = window.SI_PACKAGES;
+      if (!P) throw new Error("The account page could not load. Please refresh.");
 
       // --- Creator attribution ---------------------------------------------
       // The landing page stores the first-touch creator in a cookie on
@@ -107,7 +105,7 @@ const CFG = SI.config;
         invitation_unavailable: "This invitation has expired or was revoked. Ask your organisation administrator for a new one.",
         unauthenticated: "Your sign-in could not be confirmed yet. Refresh this page and retry.",
         authentication_unavailable: "Clerk could not confirm your session just now. Refresh this page and retry.",
-        already_member: "This account already belongs to a Business workspace. Contact your administrator.",
+        already_member: "This account already belongs to a Business team. Contact your administrator.",
         team_busy: "Your organisation is busy right now. Wait a moment and try again.",
       };
       const inviteErrorText = (code) => INVITE_ERRORS[code] ||
@@ -319,9 +317,9 @@ const CFG = SI.config;
         });
       })();
 
-      // Feature matrix (mirrors the extension popup). Everything listed is live:
-      // the Pro toolkit is locked on Free and active on Pro, and the two team
-      // features are locked below Business Pro and active on it.
+      // What the package includes, row for row as the desktop app lists it
+      // (SI_PACKAGES.FEATURES): active, locked with the package that adds it,
+      // or coming soon.
       const CHECK_SVG =
         '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6"/><path d="M8.4 12.2l2.4 2.4 4.8-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
       const LOCK_SVG =
@@ -332,57 +330,102 @@ const CFG = SI.config;
       const SOON_SVG =
         '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
       const ICON = { locked: LOCK_SVG, soon: SOON_SVG };
+      const escHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
-      const NOTES = {
-        detection: "Scans every paste on-device and warns before secrets reach the page.",
-        anonymise: "Swap detected secrets for masked tokens so you can paste without leaking them.",
-        rehydrate: "Restore the original secrets from masked tokens later in the same session.",
-        ghost: "Strip secrets, IPs and emails from large logs before you paste them.",
-        session_lock: "PIN-lock high-risk cloud consoles after inactivity or tab-away.",
-        team_policy: "Push shared detection rules and settings across your whole team.",
-        team_alerts: "Coming with the SecureIntent desktop app: notify your security team when a teammate pastes a secret.",
-      };
-
-      function featureRows(plan) {
-        const isFree = plan === "developer";
-        const anon = isFree
-          ? { key: "anonymise", label: "Anonymise & Paste", state: "usage", detail: "—" }
-          : { key: "anonymise", label: "Anonymise & Paste", state: "active", detail: "Unlimited" };
-        const toolkit = (key, label) =>
-          isFree
-            ? { key, label, state: "locked", detail: "Pro" }
-            : { key, label, state: "active", detail: "Active" };
-        // Team Policy Sync is shipped, so a Business Pro account has it now. Lower
-        // tiers see it locked, the same way the Pro toolkit reads on Free.
-        // Security-Team Alerts arrive with the desktop app: "Coming soon" for all.
-        const team = (key, label) =>
-          plan === "business_pro"
-            ? { key, label, state: "active", detail: "Active" }
-            : { key, label, state: "locked", detail: "Business Pro" };
-        return [
-          { key: "detection", label: "Detection & warnings", state: "active", detail: "Active" },
-          anon,
-          toolkit("rehydrate", "Rehydrate vault"),
-          toolkit("ghost", "Ghost Log Sanitiser"),
-          toolkit("session_lock", "Session Lock"),
-          team("team_policy", "Team Policy Sync"),
-          { key: "team_alerts", label: "Security-Team Alerts", state: "soon", detail: "Coming soon" },
-        ];
-      }
-
-      function renderFeatures(plan) {
-        $("feature-list").innerHTML = featureRows(plan)
+      function renderFeatures(pkg) {
+        $("feature-list").innerHTML = P.includedRows(pkg)
           .map((r) => {
-            const note = NOTES[r.key] ?? "";
+            const note = escHtml(r.note);
             return (
-              `<li class="feat feat--${r.state}" data-key="${r.key}">` +
+              `<li class="feat feat--${r.state}" data-key="${escHtml(r.key)}">` +
               `<span class="feat-ic">${ICON[r.state] ?? CHECK_SVG}</span>` +
-              `<span class="feat-label">${r.label}</span>` +
+              `<span class="feat-label">${escHtml(r.label)}</span>` +
               `<button type="button" class="feat-help" aria-label="${note}">${HELP_SVG}<span class="feat-tip" role="tooltip">${note}</span></button>` +
-              `<span class="feat-state">${r.detail}</span></li>`
+              `<span class="feat-state">${escHtml(r.detail)}</span></li>`
             );
           })
           .join("");
+      }
+
+      // ---- Upgrade ----------------------------------------------------------
+      // The choice of package and billing period, the price for that choice and
+      // the plain renewal and cancellation terms. Every name and amount comes
+      // from SI_PACKAGES, so this cannot drift from the facts file.
+      const upgradeState = { choices: [], product: null, interval: "monthly", trial: null };
+      const el = (tag, className, text) => {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined) node.textContent = text;
+        return node;
+      };
+      const priceFor = (id, interval) => {
+        const price = P.PACKAGES[id].price;
+        return interval === "annual"
+          ? { amount: P.money(price.annual), per: " a year", note: `billed upfront, ${P.money(price.annualPerMonth)} a month` }
+          : { amount: P.money(price.intro), per: " a month", note: `first ${P.INTRO_MONTHS} paid months, then ${P.money(price.monthly)} a month` };
+      };
+
+      function renderUpgradeTerms() {
+        const { product, interval } = upgradeState;
+        if (!product) return;
+        const { label, price } = P.PACKAGES[product];
+        $("upgrade-renewal").textContent = interval === "annual"
+          ? `${label}, annual: ${P.money(price.annual)} paid upfront for the year, which comes to ${P.money(price.annualPerMonth)} a month. It renews at ${P.money(price.annual)} each year until you cancel.`
+          : `${label}, monthly: ${P.money(price.intro)} a month for your first ${P.INTRO_MONTHS} paid months, then ${P.money(price.monthly)} a month. It renews each month until you cancel.`;
+        $("upgrade-cancel").textContent =
+          "Cancel any time from Manage subscription. Renewals stop, and you keep access until the end of the period you've paid for.";
+        $("upgrade-tax").textContent = `Prices are in ${P.CURRENCY === "USD" ? "US dollars" : P.CURRENCY}. Tax, where it applies, is shown at checkout before you pay.`;
+        for (const input of document.querySelectorAll('#upgrade-options input[name="upgrade-product"]')) {
+          input.checked = input.value === product;
+        }
+      }
+
+      function renderUpgradeOptions() {
+        const { choices, interval } = upgradeState;
+        for (const button of document.querySelectorAll("#upgrade-panel [data-interval]")) {
+          button.setAttribute("aria-pressed", String(button.dataset.interval === interval));
+        }
+        $("upgrade-options").replaceChildren(...choices.map((id) => {
+          const { label, summary } = P.PACKAGES[id];
+          const { amount, per, note } = priceFor(id, interval);
+          const option = el("label", "upgrade-option");
+          option.dataset.product = id;
+          const input = document.createElement("input");
+          input.type = "radio";
+          input.name = "upgrade-product";
+          input.value = id;
+          input.addEventListener("change", () => {
+            if (!input.checked) return;
+            upgradeState.product = id;
+            renderUpgradeTerms();
+          });
+          const body = el("span", "upgrade-option-body");
+          const priceLine = el("span", "upgrade-price", amount);
+          priceLine.append(el("small", "", per));
+          body.append(el("span", "upgrade-option-name", label), el("span", "upgrade-option-summary", summary),
+            priceLine, el("span", "upgrade-price-note", note));
+          option.append(input, body);
+          return option;
+        }));
+        renderUpgradeTerms();
+      }
+
+      /** `choices` is empty for anyone with nothing to buy here. */
+      function renderUpgrade(choices, trial) {
+        upgradeState.choices = choices;
+        upgradeState.trial = trial;
+        $("upgrade").hidden = !choices.length;
+        $("upgrade-panel").hidden = !choices.length;
+        if (!choices.length) return;
+        if (!choices.includes(upgradeState.product)) {
+          upgradeState.product = trial && choices.includes("desktop_pro") ? "desktop_pro" : choices[0];
+        }
+        $("upgrade-title").textContent = choices.length === 1 ? `Upgrade to ${P.PACKAGES[choices[0]].label}` : "Upgrade";
+        $("upgrade-lead").textContent = trial
+          ? "Your trial needs no card, so nothing is charged when it ends. Choose a package here when you want to keep it."
+          : "";
+        $("upgrade-lead").hidden = !trial;
+        renderUpgradeOptions();
       }
 
       function setAnonDetail(text) {
@@ -433,8 +476,8 @@ const CFG = SI.config;
         $("overlap-cancel").hidden = false;
         $("overlap-title").textContent = "Your team already covers you";
         $("overlap-body").textContent = ends
-          ? `You're also paying for Developer Pro yourself. Cancel it and it keeps working until ${ends}, then your team seat takes over.`
-          : "You're also paying for Developer Pro yourself. Cancel it and you keep it until the period you've paid for ends. Your team seat takes over from there.";
+          ? `You're also paying for a plan of your own. Cancel it and it keeps working until ${ends}, then your team seat takes over.`
+          : "You're also paying for a plan of your own. Cancel it and you keep it until the period you've paid for ends. Your team seat takes over from there.";
       }
 
       async function cancelPersonal() {
@@ -479,10 +522,12 @@ const CFG = SI.config;
         $("team-role").hidden = !team;
         if (!team) $("team-facts").hidden = true;
         if (!team) {
-          $("team-name").textContent = "Protecting a team?";
-          $("team-sub").textContent =
-            "One subscription, a seat per person, and a view of what's being stopped.";
-          cta.textContent = "Buy seats";
+          // Business has no public price yet (KAU-82): the way in is a conversation.
+          const business = P.PACKAGES.business;
+          $("team-name").textContent = business.label;
+          $("team-sub").textContent = business.summary;
+          cta.textContent = business.contact.label;
+          cta.href = SI.page(business.contact.href);
           cta.classList.remove("hide");
           return;
         }
@@ -494,6 +539,7 @@ const CFG = SI.config;
           : `Your plan is provided by ${team.name || "your organisation"}`;
         $("team-role").textContent = isAdmin ? "Admin" : "Member";
         cta.textContent = "Manage team";
+        cta.href = SI.page("team.html#/overview");
         cta.classList.toggle("hide", !isAdmin);
       }
 
@@ -532,7 +578,7 @@ const CFG = SI.config;
         $("plan-name").textContent = "Unavailable";
         $("plan-name").classList.remove("pro");
         $("plan-sub").hidden = true;
-        $("upgrade").hidden = true;
+        renderUpgrade([], null);
         $("manage").hidden = true;
         $("lifetime-badge").hidden = true;
         $("overlap").hidden = true;
@@ -675,41 +721,53 @@ const CFG = SI.config;
           hidePlanNotice();
           $("features").hidden = false;
           renderOverlap(data?.personalSubscription, data?.entitlement?.source);
-          const plan = data?.entitlement?.plan ?? "developer";
-          const source = data?.entitlement?.source;
-          const status = data?.entitlement?.status;
-          const isFree = plan === "developer";
+          const entitlement = data?.entitlement || {};
+          const source = entitlement.source;
+          const status = entitlement.status;
           const isLifetime = source === "lifetime";
           // A seat is billed to the company, not to this person: there is no
           // personal subscription behind it, so neither upgrading nor managing
-          // billing belongs here. The team console owns that.
+          // billing belongs here. The team console owns that. A seat reads as
+          // Business for members and admins alike.
           const isTeamSeat = source === "org_seat";
           // A work-domain grant is free and has no Paddle subscription behind it,
           // so /v1/billing/portal has nothing to open. Offering "Manage
           // subscription" here is a button that can only 404.
           const isBusinessEmail = source === "business_email";
-          const displayPlan = isTeamSeat && !["org:admin", "admin"].includes(data?.entitlement?.org?.role)
-            ? "developer_pro" : plan;
-          $("plan-name").textContent = PLAN_LABEL[displayPlan] ?? displayPlan;
+          // `tier` when the API sends it, the older `plan` otherwise.
+          const pkg = P.packageOf(entitlement);
+          // The trial grants Desktop Pro and is run by SecureIntent, not Paddle.
+          const trial = pkg === "desktop_pro" && P.trialActive(entitlement.trial) ? entitlement.trial : null;
+          const isFree = pkg === "free";
+          $("plan-name").textContent = P.displayName(pkg, { lifetime: isLifetime, trial });
           $("plan-name").classList.toggle("pro", !isFree);
-          // Lifetime users have nothing to manage; paid users do; free users upgrade.
-          $("upgrade").hidden = !isFree || isTeamSeat;
-          $("manage").hidden = isFree || isLifetime || isTeamSeat || isBusinessEmail;
+          // Below Desktop Pro, or on its trial, gets the Upgrade choice. An API
+          // that sends no `tier` yet sells only its one older price, so there it
+          // stays as it was: offered to Browser Free only, never as a second
+          // subscription to someone already paying.
+          renderUpgrade(isTeamSeat || (!isFree && !P.hasTier(entitlement)) ? [] : P.upgradeChoices(pkg, trial), trial);
+          $("manage").hidden = isFree || isLifetime || isTeamSeat || isBusinessEmail || (Boolean(trial) && source !== "paddle");
           $("lifetime-badge").hidden = !isLifetime;
           if (isTeamSeat) {
-            const org = data?.entitlement?.org;
-            $("plan-sub").textContent = ["org:admin", "admin"].includes(org?.role)
+            const org = entitlement.org;
+            $("plan-sub").textContent = P.isOrgAdmin(org?.role)
               ? `Administrator of ${org?.name || "your organisation"}`
               : "Provided by your team";
             $("plan-sub").hidden = false;
           } else if (isBusinessEmail) {
-            const domain = data?.entitlement?.businessDomain;
+            const domain = entitlement.businessDomain;
             $("plan-sub").textContent = domain
               ? `Included with ${domain} · nothing to bill`
               : "Included with your work email · nothing to bill";
             $("plan-sub").hidden = false;
           } else if (isLifetime) {
-            $("plan-sub").textContent = "Access: Lifetime";
+            $("plan-sub").textContent = "Lifetime access · nothing to renew";
+            $("plan-sub").hidden = false;
+          } else if (trial) {
+            const days = P.trialDaysLeft(trial, Date.now());
+            const ends = Number.isFinite(trial.endsAt) ? fmtDate(new Date(trial.endsAt * 1000).toISOString()) : null;
+            const left = days === null ? "" : days === 0 ? "Ends today" : `${days} ${days === 1 ? "day" : "days"} left`;
+            $("plan-sub").textContent = [left, ends && days !== 0 ? `ends ${ends}` : "", "no card needed"].filter(Boolean).join(" · ");
             $("plan-sub").hidden = false;
           } else if (!isFree && status) {
             $("plan-sub").textContent = `Subscription: ${status}`;
@@ -717,11 +775,9 @@ const CFG = SI.config;
           } else {
             $("plan-sub").hidden = true;
           }
-          // Render the full feature matrix; free plans then fill in the live
-          // Anonymise & Paste allowance from the usage endpoint.
-          // The member-facing plan name is Developer Pro, while their signed
-          // organization seat also enables policy sync and team alerts.
-          renderFeatures(plan);
+          // The full list for the package; Browser Free then fills in its live
+          // Anonymise allowance from the usage endpoint.
+          renderFeatures(pkg);
           if (isFree) loadUsage(token);
           renderTeam(data?.entitlement);
           renderInvitation(data?.entitlement);
@@ -790,17 +846,69 @@ const CFG = SI.config;
         }
       }
 
-      function openCheckout() {
-        if (!window.Paddle) { showPlanNotice("Checkout unavailable", "Please refresh and try again, or contact billing@secureintent.ai."); return; }
-        const user = window.Clerk.user;
-        if (!user) return;
-        const email = user.primaryEmailAddress?.emailAddress;
-        window.Paddle.Checkout.open({
-          items: [{ priceId: CFG.priceId, quantity: 1 }],
-          customData: { clerk_user_id: user.id },
-          customer: email ? { email } : undefined,
-          settings: { displayMode: "overlay", theme: document.documentElement.dataset.theme || "dark", allowLogout: false },
-        });
+      /**
+       * Upgrade asks the API for a checkout for the chosen package and period.
+       * An API that does not read the choice yet answers with its one Pro
+       * checkout, as before; one that does may say what it priced, and a
+       * different answer is refused rather than opened.
+       */
+      const CHECKOUT_LABEL = "Continue to checkout";
+      async function startCheckout() {
+        const { product, interval } = upgradeState;
+        if (!P.PURCHASABLE.includes(product) || !P.INTERVALS.includes(interval) || !window.Clerk.user) return;
+        const btn = $("checkout");
+        btn.disabled = true;
+        btn.textContent = "Opening checkout…";
+        try {
+          const token = await window.Clerk.session.getToken({ template: CFG.jwtTemplate });
+          const res = await SI.fetch(`${CFG.apiBase}/v1/billing/checkout`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "content-type": "application/json" },
+            body: JSON.stringify({ product, interval }),
+            cache: "no-store",
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { status: res.status });
+          if ((data.product && data.product !== product) || (data.interval && data.interval !== interval)) {
+            throw new Error("checkout does not match the choice");
+          }
+          openCheckoutUrl(data.url);
+          hidePlanNotice();
+        } catch (e) {
+          console.error("[account] checkout failed", e?.message || e);
+          if (e?.code === "sdk") {
+            showPlanNotice("Checkout unavailable", "Please refresh and try again, or contact billing@secureintent.ai.");
+          } else if (e?.status === 409) {
+            showPlanNotice("You already have a subscription", "Change your package from Manage subscription, or email billing@secureintent.ai.");
+          } else {
+            showPlanNotice("Couldn't open checkout", "Nothing was charged. Try again, or email billing@secureintent.ai.");
+          }
+        } finally {
+          btn.disabled = false;
+          btn.textContent = CHECKOUT_LABEL;
+        }
+      }
+
+      /** Paddle's checkout link carries the transaction: open it here in the overlay. */
+      function openCheckoutUrl(raw) {
+        const url = new URL(String(raw || ""));
+        const txn = url.searchParams.get("_ptxn");
+        if (txn && /^txn_[A-Za-z0-9]+$/.test(txn)) {
+          if (!window.Paddle) throw Object.assign(new Error("Paddle unavailable"), { code: "sdk" });
+          window.Paddle.Checkout.open({
+            transactionId: txn,
+            settings: { displayMode: "overlay", theme: document.documentElement.dataset.theme || "dark", allowLogout: false },
+          });
+          return;
+        }
+        SI.openBilling(url.href); // https on paddle.com only
+      }
+
+      function showUpgrade() {
+        const panel = $("upgrade-panel");
+        if (panel.hidden) return;
+        panel.scrollIntoView({ behavior: "smooth", block: "start" });
+        panel.focus({ preventScroll: true });
       }
 
       function resumePendingTxn() {
@@ -944,7 +1052,7 @@ const CFG = SI.config;
           join.step = "blocked";
           join.error = joinError(e.code);
           if (e.code !== "invitation_already_accepted") {
-            // A dead link should not keep steering this browser into the join card.
+            // A link that no longer works should not keep steering this browser into the join card.
             sessionStorage.removeItem(inviteStorageKey);
           }
         }
@@ -1191,7 +1299,15 @@ const CFG = SI.config;
             console.warn("[account] Paddle client token not set — upgrade disabled.");
           }
 
-          $("upgrade").addEventListener("click", openCheckout);
+          $("upgrade").addEventListener("click", showUpgrade);
+          $("checkout").addEventListener("click", startCheckout);
+          for (const button of document.querySelectorAll("#upgrade-panel [data-interval]")) {
+            button.addEventListener("click", () => {
+              if (upgradeState.interval === button.dataset.interval) return;
+              upgradeState.interval = button.dataset.interval;
+              renderUpgradeOptions();
+            });
+          }
           $("manage").addEventListener("click", openPortal);
           $("plan-retry").addEventListener("click", loadPlan);
           $("team-retry").addEventListener("click", loadPlan);
