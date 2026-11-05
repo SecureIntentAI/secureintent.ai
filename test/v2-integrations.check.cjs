@@ -177,6 +177,26 @@ async function run() {
     assert.match(await page.locator('#team-cta').getAttribute('href'), /\/business\.html#enquiry$/);
     await clean(page);
   });
+  await test('an Upgrade link pre-selects its package and period, then leaves the address clean', {}, async ({page,requests})=>{
+    await page.goto(BASE+DESIGN+'account.html?mode=signup&plan=desktop_pro&interval=annual');
+    await expect(page.locator('#upgrade-panel')).toBeVisible(); await expect(page.locator('input[value="desktop_pro"]')).toBeChecked();
+    await expect(page.locator('[data-interval="annual"]')).toHaveAttribute('aria-pressed','true');
+    await expect(page.locator('#upgrade-renewal')).toContainText('Desktop Pro, annual');
+    await expect.poll(()=>page.evaluate(()=>location.search)).toBe('?mode=signup');
+    // Nothing is bought until the person presses Continue to checkout.
+    assert.equal(requests.filter(r=>r.path==='/v1/billing/checkout').length, 0);
+  });
+  await test('signing up from an Upgrade link comes back with the chosen package and period', {signedIn:false}, async ({page})=>{
+    await page.goto(BASE+DESIGN+'account.html?mode=signup&plan=desktop_pro&interval=annual');
+    const args=await page.evaluate(()=>calls.find(c=>c[0]==='signup')[1]);
+    for (const url of [args.forceRedirectUrl, args.signUpForceRedirectUrl, args.signInForceRedirectUrl]) {
+      assert.match(url, /account\.html\?(.*&)?plan=desktop_pro&interval=annual/);
+    }
+  });
+  await test('an Upgrade link for a package this account cannot buy is ignored', entitled({plan:'developer_pro',tier:'browser_pro',source:'paddle',status:'active'}), async ({page})=>{
+    await page.goto(BASE+DESIGN+'account.html?plan=browser_pro&interval=annual');
+    await expect(page.locator('input[value="desktop_pro"]')).toBeChecked(); await expect(page.locator('[data-interval="monthly"]')).toHaveAttribute('aria-pressed','true');
+  });
   await test('Browser Pro (signed tier): only Desktop Pro is offered, billing is managed', entitled({plan:'developer_pro',tier:'browser_pro',source:'paddle',status:'active'}), async ({page})=>{
     await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Browser Pro'); await expect(page.locator('#plan-sub')).toHaveText('Subscription: active');
     await expect(page.locator('#manage')).toBeVisible(); await expect(page.locator('#upgrade-title')).toHaveText('Upgrade to Desktop Pro'); assert.deepEqual(await options(page),['desktop_pro']);

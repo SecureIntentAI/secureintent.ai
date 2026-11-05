@@ -426,6 +426,30 @@ const CFG = SI.config;
           : "";
         $("upgrade-lead").hidden = !trial;
         renderUpgradeOptions();
+        chooseFromLink();
+      }
+
+      // Arriving from a pricing card or the desktop app's Upgrade link
+      // (?plan=desktop_pro&interval=annual): pre-select that choice and bring the
+      // panel into view, once. Paying is still "Continue to checkout", after the
+      // terms are on screen. A plan this account can't buy is just ignored.
+      let linkChoiceRead = false;
+      function chooseFromLink() {
+        if (linkChoiceRead) return;
+        linkChoiceRead = true;
+        const params = new URLSearchParams(location.search);
+        const product = params.get("plan");
+        const interval = params.get("interval");
+        if (!product && !interval) return;
+        params.delete("plan");
+        params.delete("interval");
+        history.replaceState(null, "", location.pathname + (params.toString() ? `?${params}` : "") + location.hash);
+        if (!upgradeState.choices.includes(product)) return;
+        upgradeState.product = product;
+        if (P.INTERVALS.includes(interval)) upgradeState.interval = interval;
+        renderUpgradeOptions();
+        $("upgrade-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+        $("upgrade-panel").focus({ preventScroll: true });
       }
 
       function setAnonDetail(text) {
