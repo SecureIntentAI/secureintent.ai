@@ -4,7 +4,7 @@
 // too; SI_DESKTOP_PACKAGES points at another copy of src/lib/packages.ts.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
@@ -142,4 +142,48 @@ test('the account page loads the facts file before its own script', async () => 
   const html = await readFile(path.join(design, 'account.html'), 'utf8');
   const facts = html.indexOf('integrations/packages.js');
   assert.ok(facts > 0 && facts < html.indexOf('integrations/account.js'));
+});
+
+test('Business needs 2 paid seats, and the team console reads that from the facts file', async () => {
+  assert.equal(P.BUSINESS_MIN_SEATS, 2);
+  const html = await readFile(path.join(design, 'team.html'), 'utf8');
+  const facts = html.indexOf('integrations/packages.js');
+  assert.ok(facts > 0 && facts < html.indexOf('integrations/team.js'), 'team.html loads packages.js before team.js');
+  const js = await readFile(path.join(design, 'integrations/team.js'), 'utf8');
+  assert.match(js, /const MIN_SEATS = window\.SI_PACKAGES\.BUSINESS_MIN_SEATS;/);
+  for (const id of ['buy-seats', 'pending-seats', 'seats-input']) {
+    assert.match(html, new RegExp(`id="${id}" type="number" min="${P.BUSINESS_MIN_SEATS}"`), id + ' starts at the minimum before script runs');
+  }
+});
+
+test('no page still says the old seat minimum', async () => {
+  const old = /three[- ]seats?|3[- ]seats? minimum|three minimum|min="3"/i;
+  const files = [path.join(root, 'index.html'), path.join(root, 'team.html')];
+  const walk = async (dir) => {
+    for (const entry of await readdir(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) { if (entry.name !== 'node_modules') await walk(full); }
+      else if (/\.(html|js|md)$/.test(entry.name)) files.push(full);
+    }
+  };
+  await walk(design);
+  for (const file of files) {
+    const text = await readFile(file, 'utf8');
+    assert.ok(!old.test(text), `${path.relative(root, file)} says "${(text.match(old) || [])[0]}"`);
+  }
+});
+
+test('a refunded plan reads Refunded, a failed renewal reads as limited access', () => {
+  assert.equal(P.statusText('refunded'), 'Refunded');
+  assert.match(P.statusText('past_due'), /^Payment failed · paid access for a limited time/);
+  assert.equal(P.statusText('active'), null);
+  assert.equal(P.statusText(undefined), null);
+});
+
+const backendSeats = process.env.SI_BACKEND_TEAM_SEATS || path.join(root, '../secureintent-backend/src/lib/teamSeats.ts');
+test('the seat minimum matches the backend', { skip: !existsSync(backendSeats) && 'backend not checked out beside this repo' }, async () => {
+  const source = await readFile(backendSeats, 'utf8');
+  const m = source.match(/MIN_PAID_SEATS = (\d+)/);
+  assert.ok(m, 'backend has MIN_PAID_SEATS (KAU-82)');
+  assert.equal(Number(m[1]), P.BUSINESS_MIN_SEATS);
 });

@@ -634,6 +634,13 @@ const CFG = SI.config;
         }
         box.hidden = false;
         const ends = fmtDate(personal.currentPeriodEnd);
+        // A full refund ended its paid access, so it is not a plan they pay for.
+        if (personal.status === "refunded") {
+          $("overlap-title").textContent = `Your personal subscription: ${P.statusText("refunded")}`;
+          $("overlap-body").textContent = "It no longer gives paid access. Your team seat covers you.";
+          $("overlap-cancel").hidden = true;
+          return;
+        }
         if (personal.cancelScheduled) {
           $("overlap-title").textContent = "Your personal subscription is set to end";
           $("overlap-body").textContent = ends
@@ -946,7 +953,7 @@ const CFG = SI.config;
             $("plan-sub").textContent = [left, ends && days !== 0 ? `ends ${ends}` : "", "no card needed"].filter(Boolean).join(" · ");
             $("plan-sub").hidden = false;
           } else if (!isFree && status) {
-            $("plan-sub").textContent = `Subscription: ${status}`;
+            $("plan-sub").textContent = `Subscription: ${P.statusText(status) || status}`;
             $("plan-sub").hidden = false;
           } else {
             $("plan-sub").hidden = true;

@@ -15,8 +15,9 @@
         "https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof";
       const BILLING_EMAIL = "billing@secureintent.ai";
       // Must match the Worker: MIN_SEATS/MAX_SEATS in backend/src/routes/team.ts,
-      // and the per-seat price behind PADDLE_TEAM_PRICE_ID.
-      const MIN_SEATS = 1;
+      // and the per-seat price behind PADDLE_TEAM_PRICE_ID. The paid minimum
+      // lives in the packages facts file (packages.js).
+      const MIN_SEATS = window.SI_PACKAGES.BUSINESS_MIN_SEATS;
       const MAX_SEATS = 150;
       const SEAT_PRICE = 9; // main price; confirm against Paddle before launch.
       const PAY_HINT = "Available once your payment completes";
@@ -145,8 +146,9 @@
       // ("Failed to fetch", "NetworkError when attempting…"). Never show that.
       const NETWORK_ERROR = "We couldn't reach SecureIntent. Check your connection and try again.";
       const TIMEOUT_ERROR = "That took too long to answer. Try again in a moment.";
-      const BELOW_MIN_SEATS =
-        "A team starts at three seats. For fewer, Developer Pro on your account page is the cheaper plan.";
+      // `min` is the server's minSeats when it sent one, so the two never disagree.
+      const belowMinSeats = (min = MIN_SEATS) =>
+        `Business needs at least ${min} paid seats. For one person, choose a package on your account page.`;
       const ABOVE_MAX_SEATS = `${MAX_SEATS} seats is the most you can buy here. Email ${BILLING_EMAIL} for anything larger.`;
       const ERROR_TEXT = {
         business_promo_required: "This console requires an activated Business invitation from SecureIntent.",
@@ -200,7 +202,7 @@
 
       /** The seat count is out of range — say which end, because the fix differs. */
       function seatsRangeError(seats) {
-        if (!Number.isFinite(seats) || seats < MIN_SEATS) return BELOW_MIN_SEATS;
+        if (!Number.isFinite(seats) || seats < MIN_SEATS) return belowMinSeats();
         if (seats > MAX_SEATS) return ABOVE_MAX_SEATS;
         return null;
       }
@@ -216,7 +218,11 @@
         if (err instanceof TypeError || code === "network") return NETWORK_ERROR;
         if (err && err.name === "TimeoutError") return TIMEOUT_ERROR;
         if (code === "invalid_seats") {
-          return seatsRangeError(Math.floor(Number(ctx.seats))) || BELOW_MIN_SEATS;
+          // The server sends one code for too few and too many, with its minimum.
+          const seats = Math.floor(Number(ctx.seats));
+          if (seats > MAX_SEATS) return ABOVE_MAX_SEATS;
+          const min = Math.floor(Number(data.minSeats));
+          return belowMinSeats(Number.isFinite(min) && min >= 1 ? min : MIN_SEATS);
         }
         if (code === "seats_in_use") {
           const n = Number(data.seatsUsed);
@@ -1622,7 +1628,7 @@
         // Only when empty, so a background refresh can't overwrite what someone
         // is halfway through typing.
         if (!$("pending-company").value.trim()) $("pending-company").value = team.name || "";
-        if (!$("pending-seats").value) $("pending-seats").value = String(MIN_SEATS + 2);
+        if (!$("pending-seats").value) $("pending-seats").value = String(MIN_SEATS);
         updatePrice($("pending-seats"), $("pending-price"));
       }
 
@@ -2185,6 +2191,13 @@
         $("pending-seats").addEventListener("input", () =>
           updatePrice($("pending-seats"), $("pending-price")),
         );
+        // Every seat box stops at the paid minimum from the facts file, and a
+        // new purchase starts there.
+        for (const id of ["buy-seats", "pending-seats", "seats-input"]) {
+          $(id).min = String(MIN_SEATS);
+          $(id).title = `${MIN_SEATS} paid seats minimum`;
+        }
+        $("buy-seats").value = String(MIN_SEATS);
         updatePrice($("buy-seats"), $("buy-price"));
 
         $("invite").addEventListener("click", sendInvitations);
