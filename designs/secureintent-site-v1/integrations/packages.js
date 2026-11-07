@@ -38,10 +38,12 @@
   const TRIAL_DAYS = 30;
   const CURRENCY = "USD";
   const FREE_ANONYMISE_LIMIT = 10;
-  // Business is sold with at least this many paid seats (KAU-82). Must match
-  // MIN_PAID_SEATS in the backend (src/lib/teamSeats.ts). A complimentary or
-  // pilot team has no subscription, so it never applies there.
-  const BUSINESS_MIN_SEATS = 2;
+  // A paid team has 3 to 20 seats in total, the owner's seat included (Julian,
+  // 6 Nov 2026). More than 20 is Enterprise: contact us. Must match
+  // MIN_PAID_SEATS and MAX_PAID_SEATS in the backend (src/lib/teamSeats.ts).
+  // A complimentary or pilot team has no subscription, so neither applies there.
+  const BUSINESS_MIN_SEATS = 3;
+  const BUSINESS_MAX_SEATS = 20;
 
   /** Packages someone can buy here, in the order they are offered. */
   const PURCHASABLE = ["browser_pro", "desktop_pro"];
@@ -153,7 +155,7 @@
 
   window.SI_PACKAGES = Object.freeze({
     ORDER, PACKAGES, FEATURES, PURCHASABLE, ON_SALE, INTERVALS, INTRO_MONTHS, TRIAL_DAYS, CURRENCY, FREE_ANONYMISE_LIMIT,
-    BUSINESS_MIN_SEATS,
+    BUSINESS_MIN_SEATS, BUSINESS_MAX_SEATS,
     packageOf, hasTier, trialActive, trialDaysLeft, displayName, canUpgrade, upgradeChoices, includedRows,
     isOrgAdmin, money, statusText,
   });

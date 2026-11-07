@@ -15,10 +15,10 @@
         "https://chromewebstore.google.com/detail/secureintent/ejdhcakapnkbmfihgoamdnajgimhemof";
       const BILLING_EMAIL = "billing@secureintent.ai";
       // Must match the Worker: MIN_SEATS/MAX_SEATS in backend/src/routes/team.ts,
-      // and the per-seat price behind PADDLE_TEAM_PRICE_ID. The paid minimum
-      // lives in the packages facts file (packages.js).
+      // and the per-seat price behind PADDLE_TEAM_PRICE_ID. The paid minimum and
+      // maximum live in the packages facts file (packages.js).
       const MIN_SEATS = window.SI_PACKAGES.BUSINESS_MIN_SEATS;
-      const MAX_SEATS = 150;
+      const MAX_SEATS = window.SI_PACKAGES.BUSINESS_MAX_SEATS;
       const SEAT_PRICE = 9; // main price; confirm against Paddle before launch.
       const PAY_HINT = "Available once your payment completes";
 
@@ -148,8 +148,8 @@
       const TIMEOUT_ERROR = "That took too long to answer. Try again in a moment.";
       // `min` is the server's minSeats when it sent one, so the two never disagree.
       const belowMinSeats = (min = MIN_SEATS) =>
-        `Business needs at least ${min} paid seats. For one person, choose a package on your account page.`;
-      const ABOVE_MAX_SEATS = `${MAX_SEATS} seats is the most you can buy here. Email ${BILLING_EMAIL} for anything larger.`;
+        `A team needs at least ${min} seats, yours included. For one person, choose a package on your account page.`;
+      const ABOVE_MAX_SEATS = `${MAX_SEATS} seats is the most you can buy here. For more, email ${BILLING_EMAIL} about Enterprise.`;
       const ERROR_TEXT = {
         business_promo_required: "This console requires an activated Business invitation from SecureIntent.",
         member_role_required: "Invitations are for member seats. Only the organization owner administers this workspace.",

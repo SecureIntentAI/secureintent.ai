@@ -362,29 +362,31 @@ async function run() {
   await test('pending team cannot invite or edit policies', {teamBody:team({seats:0,seatsUsed:0})}, async ({page})=>{
     await page.goto(BASE+DESIGN+'team.html#/policy'); await expect(page.locator('#pending')).toBeVisible(); await expect(page.locator('#invite')).toBeDisabled(); await expect(page.locator('[data-view="policy"]')).toHaveAttribute('aria-disabled','true');
   });
-  // Business is sold with at least 2 paid seats (KAU-82); the backend answers invalid_seats with minSeats.
-  await test('Business checkout starts at 2 paid seats, refuses 1, and shows the server minimum', {teamBody:team({seats:0,seatsUsed:0,seatsAvailable:0}), respond:p=>p==='/v1/team/checkout'?{status:400,body:{error:'invalid_seats',minSeats:3}}:null}, async ({page,requests})=>{
+  // A paid team has 3 to 20 seats, the owner included; the backend answers invalid_seats with minSeats.
+  await test('team checkout starts at 3 seats, refuses 2 and 21, and shows the server minimum', {teamBody:team({seats:0,seatsUsed:0,seatsAvailable:0}), respond:p=>p==='/v1/team/checkout'?{status:400,body:{error:'invalid_seats',minSeats:4,maxSeats:20}}:null}, async ({page,requests})=>{
     await page.goto(BASE+DESIGN+'team.html'); await expect(page.locator('#pending')).toBeVisible();
-    await expect(page.locator('#pending-seats')).toHaveValue('2'); await expect(page.locator('#buy-seats')).toHaveValue('2');
-    for (const id of ['#pending-seats','#buy-seats','#seats-input']) await expect(page.locator(id)).toHaveAttribute('min','2');
-    await page.fill('#pending-seats','1'); await page.click('#pending-buy');
-    await expect(page.locator('#pending-err')).toHaveText('Business needs at least 2 paid seats. For one person, choose a package on your account page.');
-    assert.equal(requests.filter(r=>r.path==='/v1/team/checkout').length, 0, 'one seat never reaches checkout');
+    await expect(page.locator('#pending-seats')).toHaveValue('3'); await expect(page.locator('#buy-seats')).toHaveValue('3');
+    for (const id of ['#pending-seats','#buy-seats','#seats-input']) { await expect(page.locator(id)).toHaveAttribute('min','3'); await expect(page.locator(id)).toHaveAttribute('max','20'); }
     await page.fill('#pending-seats','2'); await page.click('#pending-buy');
-    await expect(page.locator('#pending-err')).toHaveText(/^Business needs at least 3 paid seats\./);
-    assert.deepEqual(requests.find(r=>r.path==='/v1/team/checkout').body, {companyName:'Test Company', seats:2});
+    await expect(page.locator('#pending-err')).toHaveText('A team needs at least 3 seats, yours included. For one person, choose a package on your account page.');
+    await page.fill('#pending-seats','21'); await page.click('#pending-buy');
+    await expect(page.locator('#pending-err')).toHaveText(/^20 seats is the most you can buy here\. For more, email .* about Enterprise\.$/);
+    assert.equal(requests.filter(r=>r.path==='/v1/team/checkout').length, 0, 'out-of-range seats never reach checkout');
+    await page.fill('#pending-seats','3'); await page.click('#pending-buy');
+    await expect(page.locator('#pending-err')).toHaveText(/^A team needs at least 4 seats, yours included\./);
+    assert.deepEqual(requests.find(r=>r.path==='/v1/team/checkout').body, {companyName:'Test Company', seats:3});
   });
   // Change seats is hidden for pilot teams, so the editor is opened directly here.
-  await test('changing seats refuses 1 and shows the server minimum', {respond:p=>p==='/v1/team/seats'?{status:400,body:{error:'invalid_seats',minSeats:2}}:null}, async ({page,requests})=>{
+  await test('changing seats refuses 2 and shows the server minimum', {respond:p=>p==='/v1/team/seats'?{status:400,body:{error:'invalid_seats',minSeats:3,maxSeats:20}}:null}, async ({page,requests})=>{
     await page.goto(BASE+DESIGN+'team.html#/people'); await expect(page.locator('#view-people')).toBeVisible();
     await page.evaluate(()=>{ document.getElementById('seats-btn').hidden=false; }); await page.click('#seats-btn');
     await expect(page.locator('#seats-input')).toHaveValue('5');
-    await page.fill('#seats-input','1'); await page.click('#seats-save');
-    await expect(page.locator('#team-err')).toHaveText(/^Business needs at least 2 paid seats\./);
-    assert.equal(requests.filter(r=>r.path==='/v1/team/seats').length, 0, 'one seat never reaches the server');
     await page.fill('#seats-input','2'); await page.click('#seats-save');
-    await expect(page.locator('#team-err')).toHaveText(/^Business needs at least 2 paid seats\./);
-    assert.deepEqual(requests.find(r=>r.path==='/v1/team/seats').body, {seats:2});
+    await expect(page.locator('#team-err')).toHaveText(/^A team needs at least 3 seats, yours included\./);
+    assert.equal(requests.filter(r=>r.path==='/v1/team/seats').length, 0, 'two seats never reach the server');
+    await page.fill('#seats-input','3'); await page.click('#seats-save');
+    await expect(page.locator('#team-err')).toHaveText(/^A team needs at least 3 seats, yours included\./);
+    assert.deepEqual(requests.find(r=>r.path==='/v1/team/seats').body, {seats:3});
   });
   // Business is invitation-only since 2 Oct: no team means no seat purchase, only the invitation note.
   await test('no team: invitation required, nothing to buy', {teamBody:{team:null}}, async ({page,requests})=>{

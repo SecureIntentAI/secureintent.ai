@@ -623,15 +623,15 @@
         <p class="sub hide" id="pitch">
           SecureIntent Business protects a whole team: one subscription, a seat per
           person, and a view of what the extension is stopping. $9 per seat per month,
-          2 paid seats minimum. Add or remove seats any time.
+          3 to 20 seats, yours included. Add or remove seats any time.
         </p>
         <div id="clerk-auth"></div>
         <div id="gate-actions" class="hide">
           <div class="invite" style="justify-content: center">
             <label class="vh" for="company">Company name</label>
             <input id="company" type="text" placeholder="Company name" />
-            <label class="vh" for="buy-seats">Number of seats (2 paid seats minimum)</label>
-            <input id="buy-seats" type="number" min="2" max="500" value="2" style="width: 96px" title="2 paid seats minimum" />
+            <label class="vh" for="buy-seats">Number of seats (3 to 20, yours included)</label>
+            <input id="buy-seats" type="number" min="3" max="20" value="3" style="width: 96px" title="3 to 20 seats, yours included" />
             <button class="btn primary" id="buy" type="button">Buy seats</button>
           </div>
           <p class="note" id="buy-price"></p>
@@ -763,8 +763,8 @@
             <div class="invite">
               <label class="vh" for="pending-company">Company name for this subscription</label>
               <input id="pending-company" type="text" placeholder="Company name" />
-              <label class="vh" for="pending-seats">Seats to pay for (2 paid seats minimum)</label>
-              <input id="pending-seats" type="number" min="2" max="500" title="2 paid seats minimum" />
+              <label class="vh" for="pending-seats">Seats to pay for (3 to 20, yours included)</label>
+              <input id="pending-seats" type="number" min="3" max="20" title="3 to 20 seats, yours included" />
               <button class="btn primary" id="pending-buy" type="button">Complete payment</button>
               <button class="btn" id="recheck" type="button">Check again</button>
             </div>
@@ -859,7 +859,7 @@
             <p class="status" id="invite-hint" hidden>Available once your payment completes</p>
             <div id="seats-edit" hidden>
               <label class="flbl" for="seats-input" style="width: auto">Seats in total</label>
-              <input id="seats-input" type="number" min="2" max="500" />
+              <input id="seats-input" type="number" min="3" max="20" />
               <span class="status" id="seats-price"></span>
               <button class="btn primary" id="seats-save" type="button">Update seats</button>
               <button class="btn" id="seats-cancel" type="button">Cancel</button>
@@ -1069,8 +1069,8 @@
       const BILLING_EMAIL = "billing@secureintent.ai";
       // Must match the Worker: MIN_SEATS/MAX_SEATS in backend/src/routes/team.ts,
       // and the per-seat price behind PADDLE_TEAM_PRICE_ID.
-      const MIN_SEATS = 2;
-      const MAX_SEATS = 500;
+      const MIN_SEATS = 3;
+      const MAX_SEATS = 20;
       const SEAT_PRICE = 9;
       const PAY_HINT = "Available once your payment completes";
 
@@ -1142,8 +1142,8 @@
       // ---------------------------------------------------------------------
       const DEFAULT_ERROR = `Something went wrong — try again, or email ${BILLING_EMAIL}.`;
       const BELOW_MIN_SEATS =
-        "Business needs at least 2 paid seats. For one person, choose a plan on your account page.";
-      const ABOVE_MAX_SEATS = `${MAX_SEATS} seats is the most you can buy here — email ${BILLING_EMAIL} for anything larger.`;
+        "A team needs at least 3 seats, yours included. For one person, choose a plan on your account page.";
+      const ABOVE_MAX_SEATS = `${MAX_SEATS} seats is the most you can buy here. For more, email ${BILLING_EMAIL} about Enterprise.`;
       const ERROR_TEXT = {
         unauthenticated: "Your session has expired. Sign in again and pick up where you left off.",
         forbidden: "Only an admin of this team can do that.",

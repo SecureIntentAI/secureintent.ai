@@ -430,7 +430,7 @@ export const docs = [
       {
         id: "plan-overview",
         title: "Plan overview",
-        body: `<div class="doc-table-wrap"><table><thead><tr><th>Plan</th><th>Displayed price</th><th>Starting point</th></tr></thead><tbody><tr><td>Free</td><td>$0</td><td>Get familiar with detection and 10 anonymizations per month.</td></tr><tr><td>Developer Pro</td><td>$8 / month</td><td>Expanded individual workflow, including restore.</td></tr><tr><td>Business Pro</td><td>$9 / seat / month</td><td>Team plan, with at least 2 paid seats.</td></tr></tbody></table></div><p>Developer Pro is $8 per month. Business Pro is $9 per seat per month, with at least 2 paid seats. <a href="/designs/secureintent-site-v1/index.html#tiers">Compare the plans on the website.</a></p>`,
+        body: `<div class="doc-table-wrap"><table><thead><tr><th>Plan</th><th>Displayed price</th><th>Starting point</th></tr></thead><tbody><tr><td>Free</td><td>$0</td><td>Get familiar with detection and 10 anonymizations per month.</td></tr><tr><td>Developer Pro</td><td>$8 / month</td><td>Expanded individual workflow, including restore.</td></tr><tr><td>Business Pro</td><td>$9 / seat / month</td><td>Team plan, 3 to 20 seats including the owner.</td></tr></tbody></table></div><p>Developer Pro is $8 per month. Business Pro is $9 per seat per month, for 3 to 20 seats including the owner. <a href="/designs/secureintent-site-v1/index.html#tiers">Compare the plans on the website.</a></p>`,
       },
       {
         id: "team-availability",
