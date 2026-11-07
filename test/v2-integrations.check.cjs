@@ -209,6 +209,18 @@ async function run() {
     await expect(page.locator('#upgrade')).toBeHidden(); await expect(page.locator('#upgrade-panel')).toBeHidden();
     assert.equal(requests.filter(r=>r.path==='/v1/billing/checkout').length, 0);
   });
+  // An approved full refund ends paid access at once (KAU-90); a failed renewal keeps it for a limited time.
+  await test('a refunded personal subscription reads Refunded, not as a plan being paid for', entitled({plan:'business_pro',source:'org_seat'}, {personalSubscription:{status:'refunded',cancelScheduled:false,currentPeriodEnd:'2026-12-01T00:00:00Z'}}), async ({page})=>{
+    await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#overlap')).toBeVisible();
+    await expect(page.locator('#overlap-title')).toHaveText('Your personal subscription: Refunded');
+    await expect(page.locator('#overlap-body')).toHaveText('It no longer gives paid access. Your team seat covers you.');
+    await expect(page.locator('#overlap-cancel')).toBeHidden(); await clean(page);
+  });
+  await test('a failed renewal says payment failed, with paid access for a limited time', entitled({plan:'developer_pro',tier:'browser_pro',source:'paddle',status:'past_due'}), async ({page})=>{
+    await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Browser Pro');
+    await expect(page.locator('#plan-sub')).toHaveText('Subscription: Payment failed · paid access for a limited time · update your card in Manage subscription');
+    await expect(page.locator('#manage')).toBeVisible(); await clean(page);
+  });
   await test('Browser Pro (signed tier): only Desktop Pro is offered, billing is managed', entitled({plan:'developer_pro',tier:'browser_pro',source:'paddle',status:'active'}), async ({page})=>{
     await page.goto(BASE+DESIGN+'account.html'); await expect(page.locator('#plan-name')).toHaveText('Browser Pro'); await expect(page.locator('#plan-sub')).toHaveText('Subscription: active');
     await expect(page.locator('#manage')).toBeVisible(); await expect(page.locator('#upgrade-title')).toHaveText('Upgrade to Desktop Pro'); assert.deepEqual(await options(page),['desktop_pro']);
@@ -349,6 +361,32 @@ async function run() {
   });
   await test('pending team cannot invite or edit policies', {teamBody:team({seats:0,seatsUsed:0})}, async ({page})=>{
     await page.goto(BASE+DESIGN+'team.html#/policy'); await expect(page.locator('#pending')).toBeVisible(); await expect(page.locator('#invite')).toBeDisabled(); await expect(page.locator('[data-view="policy"]')).toHaveAttribute('aria-disabled','true');
+  });
+  // A paid team has 3 to 20 seats, the owner included; the backend answers invalid_seats with minSeats.
+  await test('team checkout starts at 3 seats, refuses 2 and 21, and shows the server minimum', {teamBody:team({seats:0,seatsUsed:0,seatsAvailable:0}), respond:p=>p==='/v1/team/checkout'?{status:400,body:{error:'invalid_seats',minSeats:4,maxSeats:20}}:null}, async ({page,requests})=>{
+    await page.goto(BASE+DESIGN+'team.html'); await expect(page.locator('#pending')).toBeVisible();
+    await expect(page.locator('#pending-seats')).toHaveValue('3'); await expect(page.locator('#buy-seats')).toHaveValue('3');
+    for (const id of ['#pending-seats','#buy-seats','#seats-input']) { await expect(page.locator(id)).toHaveAttribute('min','3'); await expect(page.locator(id)).toHaveAttribute('max','20'); }
+    await page.fill('#pending-seats','2'); await page.click('#pending-buy');
+    await expect(page.locator('#pending-err')).toHaveText('A team needs at least 3 seats, yours included. For one person, choose a package on your account page.');
+    await page.fill('#pending-seats','21'); await page.click('#pending-buy');
+    await expect(page.locator('#pending-err')).toHaveText(/^20 seats is the most you can buy here\. For more, email .* about Enterprise\.$/);
+    assert.equal(requests.filter(r=>r.path==='/v1/team/checkout').length, 0, 'out-of-range seats never reach checkout');
+    await page.fill('#pending-seats','3'); await page.click('#pending-buy');
+    await expect(page.locator('#pending-err')).toHaveText(/^A team needs at least 4 seats, yours included\./);
+    assert.deepEqual(requests.find(r=>r.path==='/v1/team/checkout').body, {companyName:'Test Company', seats:3});
+  });
+  // Change seats is hidden for pilot teams, so the editor is opened directly here.
+  await test('changing seats refuses 2 and shows the server minimum', {respond:p=>p==='/v1/team/seats'?{status:400,body:{error:'invalid_seats',minSeats:3,maxSeats:20}}:null}, async ({page,requests})=>{
+    await page.goto(BASE+DESIGN+'team.html#/people'); await expect(page.locator('#view-people')).toBeVisible();
+    await page.evaluate(()=>{ document.getElementById('seats-btn').hidden=false; }); await page.click('#seats-btn');
+    await expect(page.locator('#seats-input')).toHaveValue('5');
+    await page.fill('#seats-input','2'); await page.click('#seats-save');
+    await expect(page.locator('#team-err')).toHaveText(/^A team needs at least 3 seats, yours included\./);
+    assert.equal(requests.filter(r=>r.path==='/v1/team/seats').length, 0, 'two seats never reach the server');
+    await page.fill('#seats-input','3'); await page.click('#seats-save');
+    await expect(page.locator('#team-err')).toHaveText(/^A team needs at least 3 seats, yours included\./);
+    assert.deepEqual(requests.find(r=>r.path==='/v1/team/seats').body, {seats:3});
   });
   // Business is invitation-only since 2 Oct: no team means no seat purchase, only the invitation note.
   await test('no team: invitation required, nothing to buy', {teamBody:{team:null}}, async ({page,requests})=>{
