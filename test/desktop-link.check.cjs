@@ -97,6 +97,14 @@ const path = require('node:path');
     await expect(page.locator('#enter')).toBeHidden();
     await expect(page.locator('#approve')).toBeHidden();
     console.log('PASS: signed out, the page asks to sign in and shows no code field or approve button');
+    await expect(page.locator('#auth h1')).toHaveText('Sign in to approve');
+
+    // "Create account" in the desktop app opens the page on sign-up, and says so.
+    await open(`${origin}/link.html?mode=signup&preview_signed_out=1`);
+    await expect(page.locator('#auth')).toBeVisible();
+    await expect(page.locator('#auth h1')).toHaveText('Create your account');
+    await expect(page.locator('#auth .auth-head p')).toContainText('No browser extension is needed');
+    console.log('PASS: sign-up mode says Create your account, with no extension needed');
 
     if (!calls.some((c) => c.startsWith('approve') && c.includes('"KQ7M-4TXP"'))) throw Error('approve was not sent with the typed code: ' + calls.join(' | '));
     if (errors.length) throw Error('page errors: ' + errors.join(' | '));
