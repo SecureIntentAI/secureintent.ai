@@ -103,8 +103,8 @@ const path = require('node:path');
     await open(`${origin}/link.html?mode=signup&preview_signed_out=1`);
     await expect(page.locator('#auth')).toBeVisible();
     await expect(page.locator('#auth h1')).toHaveText('Create your account');
-    await expect(page.locator('#auth .auth-head p')).toContainText('No browser extension is needed');
-    console.log('PASS: sign-up mode says Create your account, with no extension needed');
+    await expect(page.locator('#auth .auth-head p')).toHaveText('Create a SecureIntent account to connect the desktop app.');
+    console.log('PASS: sign-up mode says Create your account');
 
     if (!calls.some((c) => c.startsWith('approve') && c.includes('"KQ7M-4TXP"'))) throw Error('approve was not sent with the typed code: ' + calls.join(' | '));
     if (errors.length) throw Error('page errors: ' + errors.join(' | '));

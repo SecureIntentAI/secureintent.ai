@@ -199,10 +199,10 @@
     };
     if (signUpMode) {
       // Someone new, from "Create account" in the desktop app: say what this
-      // form is for. The desktop app needs no browser extension to sign in.
+      // form is for.
       const head = document.querySelector('#auth .auth-head');
       head.querySelector('h1').textContent = 'Create your account';
-      head.querySelector('p').textContent = 'Create a SecureIntent account to connect the desktop app. No browser extension is needed.';
+      head.querySelector('p').textContent = 'Create a SecureIntent account to connect the desktop app.';
       mounted = 'signup';
       window.Clerk.mountSignUp($('clerk-auth'), { ...common, signInUrl: back });
     } else {
